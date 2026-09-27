@@ -18,4 +18,4 @@ RUN mkdir -p storage/framework/cache storage/framework/sessions storage/framewor
     && touch database/database.sqlite \
     && chown -R www-data:www-data storage bootstrap/cache database/database.sqlite
 EXPOSE 10000
-CMD ["sh", "-c", "if ! MYSQL_PWD=\"$DB_PASSWORD\" mysql -h \"$DB_HOST\" -P \"$DB_PORT\" -u \"$DB_USERNAME\" \"$DB_DATABASE\" -Nse \"SHOW TABLES LIKE 'users'\" | grep -q users; then MYSQL_PWD=\"$DB_PASSWORD\" mysql -h \"$DB_HOST\" -P \"$DB_PORT\" -u \"$DB_USERNAME\" \"$DB_DATABASE\" < database/schema/mysql-schema.sql; fi && php artisan migrate --force --path=database/migrations/2026_09_28_090000_add_payment_handover_fields.php && php -S 0.0.0.0:${PORT:-10000} -t public"]
+CMD ["sh", "docker-entrypoint.sh"]
