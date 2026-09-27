@@ -5,7 +5,8 @@ RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoload
 
 FROM php:8.3-cli-alpine
 WORKDIR /var/www/html
-RUN docker-php-ext-install pdo_sqlite
+RUN apk add --no-cache sqlite-dev \
+    && docker-php-ext-install pdo_sqlite
 COPY --from=dependencies /app/vendor ./vendor
 COPY . .
 RUN mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache \
