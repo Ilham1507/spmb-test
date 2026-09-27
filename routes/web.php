@@ -1,31 +1,53 @@
 <?php
 
-use App\Http\Controllers\{AuthController, BankAccountController, CandidateFormController, PaymentController, SiswaController};
+use App\Http\Controllers\Landing\HomeController;
+use App\Http\Controllers\Landing\ProfilController;
+use App\Http\Controllers\Landing\JurusanController;
+use App\Http\Controllers\Landing\KontakController;
+use App\Http\Controllers\Landing\PendaftaranController;
+use App\Http\Controllers\Landing\SchoolPageController;
+use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
-Route::view('/', 'welcome')->name('home');
-Route::resource('siswa', SiswaController::class)->except(['create', 'show', 'edit']);
+// Public Landing Pages
+Route::get('/', [HomeController::class, 'index'])->name('home');
+Route::get('/profil', [ProfilController::class, 'index'])->name('profil');
+Route::get('/jurusan', [JurusanController::class, 'index'])->name('jurusan');
+Route::get('/konsentrasi/{jurusan}', [JurusanController::class, 'show'])->name('konsentrasi.show');
+Route::get('/biaya', [PendaftaranController::class, 'biaya'])->name('biaya');
+Route::get('/alur', [PendaftaranController::class, 'alur'])->name('alur');
+Route::get('/kontak', [KontakController::class, 'index'])->name('kontak');
+Route::get('/faq', [HomeController::class, 'faq'])->name('faq');
+Route::get('/pengumuman', [HomeController::class, 'pengumuman'])->name('pengumuman');
+Route::get('/pengumuman/sorotan/{slug}', [HomeController::class, 'artikelSorotan'])->name('pengumuman.sorotan');
+Route::get('/pengumuman/{pengumuman}', [HomeController::class, 'artikel'])->name('pengumuman.artikel');
+Route::get('/tentang/{page}', [SchoolPageController::class, 'show'])->whereIn('page', ['pimpinan', 'sejarah', 'sambutan-kepala-sekolah'])->name('tentang.page');
+Route::get('/pendidikan/{page}', [SchoolPageController::class, 'show'])->whereIn('page', ['program-studi', 'fasilitas'])->name('pendidikan.page');
 
-// Halaman autentikasi ringan untuk tampilan portal.
-Route::view('/login', 'auth.login')->middleware('guest')->name('login');
-Route::view('/register', 'auth.register')->middleware('guest')->name('register');
-Route::post('/login', [AuthController::class, 'login'])->middleware('guest')->name('login.submit');
-Route::post('/register', [AuthController::class, 'register'])->middleware('guest')->name('register.submit');
-Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
-Route::get('/aktivasi/{siswa}', [AuthController::class, 'showActivation'])->name('activation.show');
-Route::post('/aktivasi/{siswa}', [AuthController::class, 'activate'])->name('activation.complete');
-Route::get('/invoice-publik/{payment}.pdf', [PaymentController::class, 'publicInvoicePdf'])->name('payments.invoice.pdf.public');
-Route::get('/formulir/{siswa}/lanjut', [CandidateFormController::class, 'show'])->name('candidate-form.show');
-Route::post('/formulir/{siswa}/lanjut', [CandidateFormController::class, 'store'])->name('candidate-form.store');
+// Redirect generic dashboard to role-specific dashboard
+Route::get('/dashboard', function () {
+    $user = auth()->user();
+    if ($user->hasRole('admin')) {
+        return redirect()->route('admin.dashboard');
+    } elseif ($user->hasRole('panitia')) {
+        return redirect()->route('panitia.dashboard');
+    } elseif ($user->hasRole('bendahara')) {
+        return redirect()->route('bendahara.dashboard');
+    } elseif ($user->hasRole('kepala_sekolah')) {
+        return redirect()->route('kepala-sekolah.dashboard');
+    } else {
+        return redirect()->route('peserta.dashboard');
+    }
+})->middleware('auth')->name('dashboard');
 
+// Auth Profile
 Route::middleware('auth')->group(function () {
-    Route::get('/pembayaran', [PaymentController::class, 'index'])->name('payments.index');
-    Route::post('/pembayaran', [PaymentController::class, 'store'])->name('payments.store');
-    Route::post('/pembayaran/{payment}/setujui', [PaymentController::class, 'approve'])->middleware('payment.role:panitia,admin')->name('payments.approve');
-    Route::post('/pembayaran/{payment}/terima', [PaymentController::class, 'receive'])->middleware('payment.role:bendahara,admin')->name('payments.receive');
-    Route::get('/pembayaran/{payment}/invoice', [PaymentController::class, 'invoice'])->name('payments.invoice');
-    Route::get('/pembayaran/{payment}/invoice.pdf', [PaymentController::class, 'invoicePdf'])->name('payments.invoice.pdf');
-    Route::get('/keuangan/rekening', [BankAccountController::class, 'index'])->middleware('payment.role:bendahara,admin')->name('bank-accounts.index');
-    Route::post('/keuangan/rekening', [BankAccountController::class, 'store'])->middleware('payment.role:bendahara,admin')->name('bank-accounts.store');
-    Route::post('/keuangan/rekening/{bankAccount}/toggle', [BankAccountController::class, 'toggle'])->middleware('payment.role:bendahara,admin')->name('bank-accounts.toggle');
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::post('/profile/phone/verify', [ProfileController::class, 'verifyPhoneChange'])->middleware('throttle:8,1')->name('profile.phone.verify');
+    Route::post('/profile/phone/resend', [ProfileController::class, 'resendPhoneChangeCode'])->middleware('throttle:3,1')->name('profile.phone.resend');
+    Route::patch('/profile/avatar', [ProfileController::class, 'updateAvatar'])->name('profile.avatar.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
+
+require __DIR__.'/auth.php';

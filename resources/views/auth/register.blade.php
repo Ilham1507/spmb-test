@@ -1,17 +1,32 @@
-@extends('layouts.auth', ['title' => 'Daftar'])
-@section('content')
-    <div class="brand"><div class="brand-mark">SM</div><div class="brand-copy"><strong>SMK Negeri</strong><span>Portal Siswa</span></div></div>
-    <h1>Buat akun<br>barumu.</h1>
-    <p class="intro">Daftar sekali, lalu akses semua kebutuhan sekolahmu.</p>
-    @if($errors->any())<div class="alert">{{ $errors->first() }}</div>@endif
-    <form method="POST" action="{{ route('register.submit') }}">
+<x-guest-layout>
+    @slot('auth_title', 'Buat akun peserta')
+    @slot('auth_subtitle', 'Gunakan nomor WhatsApp aktif untuk login.')
+
+    <form method="POST" action="{{ route('register') }}" class="auth-form auth-register" x-data="{ showPassword:false, showConfirmation:false }">
         @csrf
-        <div class="field"><label class="field-label" for="name">Nama lengkap</label><div class="input-wrap"><input id="name" name="name" type="text" value="{{ old('name') }}" placeholder="Nama lengkapmu" autocomplete="name" required></div></div>
-        <div class="field"><label class="field-label" for="phone">Nomor WhatsApp</label><div class="input-wrap"><input id="phone" name="phone" type="tel" value="{{ old('phone') }}" placeholder="08xxxxxxxxxx" required></div></div>
-        <div class="field"><label class="field-label" for="email">Email (opsional)</label><div class="input-wrap"><input id="email" name="email" type="email" value="{{ old('email') }}" placeholder="nama@email.com" autocomplete="email"></div></div>
-        <div class="field"><label class="field-label" for="register-password">Kata sandi</label><div class="input-wrap"><input id="register-password" name="password" type="password" placeholder="Minimal 8 karakter" autocomplete="new-password" required><button type="button" class="password-toggle" data-password-toggle="register-password" aria-label="Tampilkan kata sandi"><svg class="eye" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M2.5 12s3.5-5 9.5-5 9.5 5 9.5 5-3.5 5-9.5 5-9.5-5-9.5-5Z"/><circle cx="12" cy="12" r="2.2"/></svg><svg class="eye-off" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="m3 3 18 18M10.6 6.9A10.6 10.6 0 0 1 12 7c6 0 9.5 5 9.5 5a16 16 0 0 1-3.1 3.5M6.2 6.2C3.8 7.5 2.5 12 2.5 12s3.5 5 9.5 5a9.7 9.7 0 0 0 3.2-.5"/></svg></button></div></div>
-        <div class="field"><label class="field-label" for="password_confirmation">Ulangi kata sandi</label><div class="input-wrap"><input id="password_confirmation" name="password_confirmation" type="password" placeholder="Ulangi kata sandi" autocomplete="new-password" required></div></div>
-        <button class="submit" type="submit">Buat akun <span aria-hidden="true">→</span></button>
+        <div class="register-identity">
+            <div>
+                <label for="name" class="mb-1.5 block">Nama Lengkap</label>
+                <input id="name" type="text" name="name" value="{{ old('name') }}" required autofocus autocomplete="name">
+                <x-input-error :messages="$errors->get('name')" class="mt-1" />
+            </div>
+            <div>
+                <label for="phone" class="mb-1.5 block">Nomor WhatsApp</label>
+                <input id="phone" type="tel" name="phone" value="{{ old('phone') }}" required autocomplete="tel" inputmode="numeric" placeholder="08xxxxxxxxxx">
+                <x-input-error :messages="$errors->get('phone')" class="mt-1" />
+            </div>
+        </div>
+        <div>
+            <label for="password" class="mb-1.5 block">Kata Sandi</label>
+            <div class="auth-password-field"><input id="password" type="password" class="auth-input-password" :type="showPassword ? 'text' : 'password'" name="password" required autocomplete="new-password"><button type="button" @click="showPassword=!showPassword" :aria-label="showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'" class="auth-password-toggle"><svg x-show="!showPassword" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg><svg x-cloak x-show="showPassword" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 3 18 18M10.6 6.2A11 11 0 0 1 12 6c6.5 0 10 6 10 6a18 18 0 0 1-2.1 2.9M6.2 6.2C3.4 8 2 12 2 12s3.5 6 10 6a10.8 10.8 0 0 0 4.1-.8M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg></button></div>
+            <x-input-error :messages="$errors->get('password')" class="mt-1" />
+        </div>
+        <div>
+            <label for="password_confirmation" class="mb-1.5 block">Konfirmasi Kata Sandi</label>
+            <div class="auth-password-field"><input id="password_confirmation" type="password" class="auth-input-password" :type="showConfirmation ? 'text' : 'password'" name="password_confirmation" required autocomplete="new-password"><button type="button" @click="showConfirmation=!showConfirmation" :aria-label="showConfirmation ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'" class="auth-password-toggle"><svg x-show="!showConfirmation" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg><svg x-cloak x-show="showConfirmation" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 3 18 18M10.6 6.2A11 11 0 0 1 12 6c6.5 0 10 6 10 6a18 18 0 0 1-2.1 2.9M6.2 6.2C3.4 8 2 12 2 12s3.5 6 10 6a10.8 10.8 0 0 0 4.1-.8M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg></button></div>
+            <x-input-error :messages="$errors->get('password_confirmation')" class="mt-1" />
+        </div>
+        <button type="submit" class="auth-button">Buat Akun</button>
+        <p class="m-0 text-center text-xs text-slate-500">Sudah punya akun? <a href="{{ route('login') }}" class="auth-link">Masuk</a></p>
     </form>
-    <p class="switch">Sudah punya akun? <a class="link" href="{{ route('login') }}">Masuk di sini</a></p>
-@endsection
+</x-guest-layout>

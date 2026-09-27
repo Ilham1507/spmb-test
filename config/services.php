@@ -2,14 +2,6 @@
 
 return [
 
-    'whatsapp' => [
-        'provider' => env('WHATSAPP_PROVIDER', 'waslah'),
-        'webhook_url' => env('WHATSAPP_WEBHOOK_URL'),
-        'token' => env('WHATSAPP_TOKEN'),
-        'waslah_token' => env('WASLAH_API_TOKEN'),
-        'waslah_instance_key' => env('WASLAH_INSTANCE_KEY'),
-    ],
-
     /*
     |--------------------------------------------------------------------------
     | Third Party Services
@@ -41,6 +33,28 @@ return [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
+    ],
+
+    'whatsapp' => [
+        'api_version' => env('WHATSAPP_API_VERSION', 'v25.0'),
+        'phone_number_id' => env('WHATSAPP_PHONE_NUMBER_ID'),
+        'sender_number' => env('WHATSAPP_SENDER_NUMBER'),
+        'access_token' => env('WHATSAPP_ACCESS_TOKEN'),
+        'verify_token' => env('WHATSAPP_WEBHOOK_VERIFY_TOKEN'),
+        'template_language' => env('WHATSAPP_TEMPLATE_LANGUAGE', 'id'),
+        'templates' => [
+            'activation' => env('WHATSAPP_TEMPLATE_ACTIVATION'),
+            'password_reset' => env('WHATSAPP_TEMPLATE_PASSWORD_RESET'),
+        ],
+    ],
+
+    'panitia' => [
+        'whatsapp_number' => env('PANITIA_WHATSAPP_NUMBER', '087888405075'),
+    ],
+
+    'payments' => [
+        // Nomor WhatsApp admin yang menerima pemberitahuan pembayaran yang sudah diterima.
+        'admin_whatsapp_number' => env('PAYMENT_NOTIFICATION_WHATSAPP_NUMBER'),
     ],
 
 ];

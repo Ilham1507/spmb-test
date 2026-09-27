@@ -1,0 +1,16 @@
+<?php
+
+$command = $argv[1] ?? null;
+
+if ($command !== 'dev') {
+    echo "Usage: php run dev\n";
+    exit(1);
+}
+
+echo "Starting development server...\n";
+
+// Run composer run dev directly without overwriting the PATH variable.
+// This relies on composer and npm being available in the user's current environment.
+passthru('composer run dev', $exitCode);
+
+exit($exitCode);

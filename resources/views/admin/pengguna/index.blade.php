@@ -1,0 +1,202 @@
+@extends('layouts.admin')
+
+@section('title', 'Panitia & Bendahara')
+@section('page_title', 'Panitia & Bendahara')
+@section('page_description', 'Kelola akun petugas yang membantu operasional dan keuangan SPMB.')
+
+@section('content')
+<div x-data="{ addOpen: {{ old('_modal') === 'add' || ($errors->any() && old('_modal') !== 'edit') ? 'true' : 'false' }}, editId: {{ old('_modal') === 'edit' ? (int) old('user_id') : 'null' }} }">
+    <section class="admin-card overflow-hidden bg-white p-0">
+        <div class="admin-card-header border-b border-slate-100">
+            <div>
+                <div class="flex flex-wrap items-center gap-2">
+                    <h2 class="text-lg font-black text-slate-950">Daftar Pengguna Sistem</h2>
+                    <span class="admin-count-badge bg-slate-100 text-slate-600">{{ $users->total() }} akun</span>
+                    <span class="admin-count-badge bg-emerald-50 text-emerald-700">{{ $teacherCount }} staf operasional</span>
+                </div>
+                <p class="mt-1 text-sm text-slate-500">Admin dapat mengelola akun panitia, bendahara, dan kepala sekolah.</p>
+            </div>
+            <button type="button" @click="addOpen=true" class="admin-primary-button bg-emerald-600 hover:bg-emerald-700">+ Tambah User</button>
+        </div>
+
+        <div class="admin-table-wrap">
+            <table class="admin-table min-w-[780px]">
+                <thead>
+                    <tr>
+                        <th>Nama</th>
+                        <th>WhatsApp Login</th>
+                        <th>Email</th>
+                        <th>Akses</th>
+                        <th class="text-right">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($users as $user)
+                        @php
+                            $roleName = $user->role?->name ?? '-';
+                            $roleLabel = match ($roleName) {
+                                'panitia' => 'Panitia',
+                                'bendahara' => 'Bendahara',
+                                'kepala_sekolah' => 'Kepala Sekolah',
+                                'admin' => 'Admin',
+                                'peserta' => 'Peserta',
+                                default => ucfirst($roleName),
+                            };
+                            $roleClass = match ($roleName) {
+                                'admin' => 'bg-emerald-100 text-emerald-700',
+                                'panitia' => 'bg-sky-100 text-sky-700',
+                                'bendahara' => 'bg-amber-100 text-amber-800',
+                                'kepala_sekolah' => 'bg-violet-100 text-violet-700',
+                                'peserta' => 'bg-slate-100 text-slate-600',
+                                default => 'bg-slate-100 text-slate-600',
+                            };
+                        @endphp
+                        <tr>
+                            <td><div class="flex items-center gap-3"><x-user-avatar :user="$user" size="h-10 w-10" class="border border-slate-200" /><div><div class="font-black text-slate-950">{{ $user->name }}</div><div class="text-xs font-semibold text-slate-400">ID {{ $user->id }}</div></div></div></td>
+                            <td>
+                                <span class="font-bold text-slate-700">{{ $user->phone ?: '-' }}</span>
+                                @if(!$user->phone)<p class="mt-1 text-[10px] font-bold text-amber-600">Belum bisa login dengan WhatsApp</p>@endif
+                            </td>
+                            <td class="text-xs font-semibold text-slate-500">{{ $user->email ?: '-' }}</td>
+                            <td><span class="rounded-full px-2.5 py-1 text-xs font-black {{ $roleClass }}">{{ $roleLabel }}</span></td>
+                            <td>
+                                <div class="flex justify-end gap-2">
+                                    <button type="button" @click="editId={{ $user->id }}" class="rounded-xl bg-sky-50 px-3 py-2 text-xs font-black text-sky-700 hover:bg-sky-100">Edit</button>
+                                    <form method="POST" action="{{ route('admin.users.destroy', $user) }}" onsubmit="return confirm('Hapus user {{ $user->name }}? Aksi ini tidak bisa dibatalkan.')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button class="rounded-xl bg-rose-50 px-3 py-2 text-xs font-black text-rose-700 hover:bg-rose-100">Hapus</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+
+        @if($users->hasPages())
+            <x-per-page-pagination :paginator="$users" />
+        @endif
+    </section>
+
+    <div x-cloak x-show="addOpen" x-transition.opacity class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/45 p-3 sm:p-4 backdrop-blur-sm" @keydown.escape.window="addOpen=false">
+        <div @click.outside="addOpen=false" class="user-account-dialog flex max-h-[calc(100dvh-24px)] w-full max-w-xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl sm:max-h-[calc(100dvh-32px)]">
+            <div class="shrink-0 flex items-start justify-between border-b border-slate-100 p-5">
+                <div>
+                    <h3 class="text-lg font-black text-slate-950">Tambah User</h3>
+                    <p class="mt-1 text-xs text-slate-500">Buat akun panitia, bendahara, atau kepala sekolah sesuai tugasnya.</p>
+                </div>
+                <button type="button" @click="addOpen=false" class="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-xl text-slate-500">&times;</button>
+            </div>
+
+            <form method="POST" action="{{ route('admin.users.guru.store') }}" class="flex min-h-0 flex-1 flex-col">
+                @csrf
+                <input type="hidden" name="_modal" value="add">
+                <div class="admin-form-grid min-h-0 flex-1 overflow-y-auto p-5">
+                <div>
+                    <label class="admin-label">Nama Lengkap *</label>
+                    <input name="name" value="{{ old('name') }}" required class="admin-input" placeholder="Nama petugas">
+                    @error('name')<p class="admin-error">{{ $message }}</p>@enderror
+                </div>
+
+                <div>
+                    <label class="admin-label">Nomor WhatsApp *</label>
+                    <input type="tel" name="phone" value="{{ old('phone') }}" required inputmode="numeric" pattern="[0-9+ ]*" class="admin-input" placeholder="08xxxxxxxxxx">
+                    <p class="admin-help">Dipakai untuk login staf.</p>
+                    @error('phone')<p class="admin-error">{{ $message }}</p>@enderror
+                </div>
+
+                <div>
+                    <label class="admin-label">Email <span class="font-medium text-slate-400">(opsional)</span></label>
+                    <input type="email" name="email" value="{{ old('email') }}" class="admin-input" placeholder="nama@smk.sch.id">
+                    @error('email')<p class="admin-error">{{ $message }}</p>@enderror
+                </div>
+
+                <div>
+                    <label class="admin-label">Akses *</label>
+                    <select name="role" required class="admin-input">
+                        <option value="panitia" @selected(old('role', 'panitia') === 'panitia')>Panitia</option>
+                        <option value="bendahara" @selected(old('role') === 'bendahara')>Bendahara</option>
+                        <option value="kepala_sekolah" @selected(old('role') === 'kepala_sekolah')>Kepala Sekolah</option>
+                    </select>
+                    @error('role')<p class="admin-error">{{ $message }}</p>@enderror
+                </div>
+
+                <div>
+                    <label class="admin-label">Kata Sandi Awal *</label>
+                    <input type="password" name="password" required minlength="8" class="admin-input" placeholder="Minimal 8 karakter">
+                    @error('password')<p class="admin-error">{{ $message }}</p>@enderror
+                </div>
+
+                </div><div class="flex shrink-0 justify-end gap-2 border-t border-slate-100 bg-white px-4 py-3 sm:px-5">
+                    <button type="button" @click="addOpen=false" class="rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-black text-slate-600">Batal</button>
+                    <button class="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-black text-white">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @foreach($users as $user)
+        <div x-cloak x-show="editId==={{ $user->id }}" x-transition.opacity class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/45 p-3 sm:p-4 backdrop-blur-sm" @keydown.escape.window="editId=null">
+            <div @click.outside="editId=null" class="user-account-dialog flex max-h-[calc(100dvh-24px)] w-full max-w-xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl sm:max-h-[calc(100dvh-32px)]">
+                <div class="shrink-0 flex items-start justify-between border-b border-slate-100 p-5">
+                    <div>
+                        <h3 class="text-lg font-black text-slate-950">Edit User</h3>
+                        <p class="mt-1 text-xs text-slate-500">Ubah data login dan akses {{ $user->name }}.</p>
+                    </div>
+                    <button type="button" @click="editId=null" class="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-xl text-slate-500">&times;</button>
+                </div>
+
+                <form method="POST" action="{{ route('admin.users.update', $user) }}" class="flex min-h-0 flex-1 flex-col">
+                    @csrf
+                    @method('PATCH')
+                    <input type="hidden" name="_modal" value="edit">
+                    <input type="hidden" name="user_id" value="{{ $user->id }}">
+                    <div class="admin-form-grid min-h-0 flex-1 overflow-y-auto p-5">
+
+                    <div>
+                        <label class="admin-label">Nama Lengkap *</label>
+                        <input name="name" value="{{ old('user_id') == $user->id ? old('name', $user->name) : $user->name }}" required class="admin-input" placeholder="Nama petugas">
+                        @if(old('user_id') == $user->id) @error('name')<p class="admin-error">{{ $message }}</p>@enderror @endif
+                    </div>
+
+                    <div>
+                        <label class="admin-label">Nomor WhatsApp *</label>
+                        <input type="tel" name="phone" value="{{ old('user_id') == $user->id ? old('phone', $user->phone) : $user->phone }}" required inputmode="numeric" pattern="[0-9+ ]*" class="admin-input" placeholder="08xxxxxxxxxx">
+                        @if(old('user_id') == $user->id) @error('phone')<p class="admin-error">{{ $message }}</p>@enderror @endif
+                    </div>
+
+                    <div>
+                        <label class="admin-label">Email <span class="font-medium text-slate-400">(opsional)</span></label>
+                        <input type="email" name="email" value="{{ old('user_id') == $user->id ? old('email', $user->email) : $user->email }}" class="admin-input" placeholder="nama@smk.sch.id">
+                        @if(old('user_id') == $user->id) @error('email')<p class="admin-error">{{ $message }}</p>@enderror @endif
+                    </div>
+
+                    <div>
+                        <label class="admin-label">Akses *</label>
+                        @php $selectedRole = old('user_id') == $user->id ? old('role', $user->role?->name) : $user->role?->name; @endphp
+                        <select name="role" required class="admin-input">
+                            <option value="panitia" @selected($selectedRole === 'panitia')>Panitia</option>
+                            <option value="bendahara" @selected($selectedRole === 'bendahara')>Bendahara</option>
+                            <option value="kepala_sekolah" @selected($selectedRole === 'kepala_sekolah')>Kepala Sekolah</option>
+                        </select>
+                        @if(old('user_id') == $user->id) @error('role')<p class="admin-error">{{ $message }}</p>@enderror @endif
+                    </div>
+
+                    <div>
+                        <label class="admin-label">Reset Kata Sandi <span class="font-medium text-slate-400">(opsional)</span></label>
+                        <input type="password" name="password" minlength="8" class="admin-input" placeholder="Kosongkan jika tidak diganti">
+                        @if(old('user_id') == $user->id) @error('password')<p class="admin-error">{{ $message }}</p>@enderror @endif
+                    </div>
+
+                    </div><div class="flex shrink-0 justify-end gap-2 border-t border-slate-100 bg-white px-4 py-3 sm:px-5">
+                        <button type="button" @click="editId=null" class="rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-black text-slate-600">Batal</button>
+                        <button class="rounded-xl bg-sky-600 px-5 py-2.5 text-sm font-black text-white">Simpan Perubahan</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    @endforeach
+</div>
+@endsection

@@ -1,0 +1,65 @@
+<?php
+
+use App\Http\Controllers\Bendahara\TagihanController;
+use App\Http\Controllers\Bendahara\DashboardController;
+use App\Http\Controllers\Bendahara\PembayaranController;
+use App\Http\Controllers\Bendahara\LaporanController;
+use App\Http\Controllers\Bendahara\RekeningController;
+use App\Http\Controllers\Admin\PengaturanController;
+use App\Http\Controllers\Admin\GelombangController;
+use App\Http\Controllers\Panitia\PendaftarController;
+use App\Http\Controllers\Panitia\AssistedRegistrationController;
+use App\Http\Controllers\Panitia\VerifikasiBerkasController;
+use App\Http\Controllers\Shared\HasilTesController;
+use App\Http\Controllers\Shared\DaftarHadirTesController;
+use App\Http\Controllers\Panitia\TesSpmbController;
+use Illuminate\Support\Facades\Route;
+
+Route::middleware(['web', 'bendahara'])->group(function () {
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/hasil-tes', [HasilTesController::class, 'index'])->name('hasil-tes.index');
+    Route::get('/tes-spmb/kehadiran', [DaftarHadirTesController::class, 'index'])->name('tes.attendance');
+    Route::get('/tes-spmb/btq', [TesSpmbController::class, 'btq'])->name('tes.btq');
+    Route::get('/tes-spmb/seragam', [TesSpmbController::class, 'uniform'])->name('tes.uniform');
+    Route::get('/tes-spmb/kesehatan', [TesSpmbController::class, 'health'])->name('tes.health');
+    Route::get('/tes-spmb/cbt', [TesSpmbController::class, 'cbt'])->name('tes.cbt');
+    Route::get('/tes-spmb/wawancara', [TesSpmbController::class, 'interview'])->name('tes.interview');
+    Route::get('/hasil-tes/{pendaftar}', [HasilTesController::class, 'show'])->name('hasil-tes.show');
+    Route::get('/pendaftar', [PendaftarController::class, 'index'])->name('pendaftar.index');
+    Route::get('/pendaftaran-dibantu', [AssistedRegistrationController::class, 'create'])->name('pendaftaran_bantuan.create');
+    Route::get('/pendaftaran-dibantu/cari-sekolah', [AssistedRegistrationController::class, 'searchSchool'])->name('pendaftaran_bantuan.sekolah.search');
+    Route::post('/pendaftaran-dibantu', [AssistedRegistrationController::class, 'store'])->name('pendaftaran_bantuan.store');
+    Route::get('/pendaftaran-dibantu/{pendaftar}/edit', [AssistedRegistrationController::class, 'edit'])->name('pendaftaran_bantuan.edit');
+    Route::put('/pendaftaran-dibantu/{pendaftar}', [AssistedRegistrationController::class, 'update'])->name('pendaftaran_bantuan.update');
+    Route::get('/pendaftar/export-excel', [PendaftarController::class, 'export'])->name('pendaftar.export');
+    Route::get('/pendaftar/{pendaftar}', [PendaftarController::class, 'show'])->name('pendaftar.show');
+    Route::get('/pendaftar/{pendaftar}/cetak', [PendaftarController::class, 'cetak'])->name('pendaftar.cetak');
+    Route::get('/pendaftar/{pendaftar}/pdf', [PendaftarController::class, 'pdf'])->name('pendaftar.pdf');
+    Route::put('/pendaftar/{pendaftar}/verifikasi', [PendaftarController::class, 'verify'])->name('pendaftar.verify');
+    Route::get('/dokumen/{dokumen}/lihat', [VerifikasiBerkasController::class, 'viewDocument'])->name('dokumen.show');
+    Route::get('/tagihan', [TagihanController::class, 'index'])->name('tagihan.index');
+    Route::get('/tagihan/{bill}/invoice', [TagihanController::class, 'invoice'])->name('tagihan.invoice');
+    Route::get('/pembayaran', [PembayaranController::class, 'index'])->name('pembayaran.index');
+    Route::post('/pembayaran-online/{checkout}/cek', [PembayaranController::class, 'refreshCheckout'])
+        ->middleware('throttle:20,1')->name('pembayaran.online.refresh');
+    Route::post('/pembayaran', [PembayaranController::class, 'store'])->name('pembayaran.store');
+    Route::patch('/pembayaran/transaksi/{transaksi}', [PembayaranController::class, 'verify'])->name('pembayaran.verify');
+    Route::get('/pembayaran/transaksi/{transaksi}/nota', [PembayaranController::class, 'receipt'])->name('pembayaran.receipt');
+    Route::get('/pembayaran/transaksi/{transaksi}/bukti', [PembayaranController::class, 'viewProof'])->name('pembayaran.proof');
+    Route::get('/rekening', [RekeningController::class, 'index'])->name('rekening.index');
+    Route::post('/rekening', [RekeningController::class, 'store'])->name('rekening.store');
+    Route::patch('/rekening/{rekening}', [RekeningController::class, 'update'])->name('rekening.update');
+    Route::patch('/rekening/{rekening}/toggle', [RekeningController::class, 'toggle'])->name('rekening.toggle');
+    Route::delete('/rekening/{rekening}', [RekeningController::class, 'destroy'])->name('rekening.destroy');
+    Route::get('/laporan', [LaporanController::class, 'index'])->name('laporan.index');
+    Route::get('/laporan/cetak', [LaporanController::class, 'print'])->name('laporan.print');
+    Route::get('/laporan/pdf', [LaporanController::class, 'pdf'])->name('laporan.pdf');
+    Route::get('/laporan/export-csv', [LaporanController::class, 'exportCsv'])->name('laporan.export-csv');
+    Route::get('/keuangan/biaya-pendaftaran', [PengaturanController::class, 'biayaPendaftaran'])->name('keuangan.biaya-pendaftaran.index');
+    Route::post('/keuangan/biaya-pendaftaran', [PengaturanController::class, 'saveBiayaPendaftaran'])->name('keuangan.biaya-pendaftaran.save');
+    Route::get('/keuangan/biaya-jurusan', [GelombangController::class, 'biayaJurusan'])->name('keuangan.biaya-jurusan.index');
+    Route::post('/keuangan/biaya-jurusan', [GelombangController::class, 'saveBiayaJurusan'])->name('keuangan.biaya-jurusan.save');
+    Route::get('/keuangan/biaya-jurusan/excel', [GelombangController::class, 'exportBiayaJurusan'])->name('keuangan.biaya-jurusan.export');
+    Route::get('/keuangan/biaya-jurusan/template-excel', [GelombangController::class, 'templateBiayaJurusan'])->name('keuangan.biaya-jurusan.template');
+    Route::post('/keuangan/biaya-jurusan/import-excel', [GelombangController::class, 'importBiayaJurusan'])->name('keuangan.biaya-jurusan.import');
+});
