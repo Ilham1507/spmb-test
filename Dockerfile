@@ -5,10 +5,10 @@ RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoload
 
 FROM php:8.3-cli-alpine
 WORKDIR /var/www/html
-RUN docker-php-ext-install pdo_pgsql
+RUN docker-php-ext-install pdo_pgsql pdo_sqlite
 COPY --from=dependencies /app/vendor ./vendor
 COPY . .
 RUN mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache \
     && chown -R www-data:www-data storage bootstrap/cache
 EXPOSE 10000
-CMD ["sh", "-c", "php artisan migrate --force && php -S 0.0.0.0:${PORT:-10000} -t public"]
+CMD ["sh", "-c", "touch database/database.sqlite && php artisan migrate --force && php -S 0.0.0.0:${PORT:-10000} -t public"]
