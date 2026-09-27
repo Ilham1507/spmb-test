@@ -11,9 +11,13 @@ $pdo = new PDO(
     [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
 );
 
-$hasUsersTable = $pdo->query("SHOW TABLES LIKE \"users\"")->fetchColumn();
-if (! $hasUsersTable) {
-    $pdo->exec(file_get_contents("database/schema/mysql-schema.sql"));
+$hasPaymentTable = $pdo->query("SHOW TABLES LIKE \"transaksi_pembayaran\"")->fetchColumn();
+if (! $hasPaymentTable) {
+    // A prior startup may have left harmless base tables behind.  Make the
+    // schema bootstrap resumable, then create every still-missing table.
+    $schema = file_get_contents("database/schema/mysql-schema.sql");
+    $schema = str_replace("CREATE TABLE `", "CREATE TABLE IF NOT EXISTS `", $schema);
+    $pdo->exec($schema);
 }
 '
 
