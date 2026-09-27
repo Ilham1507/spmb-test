@@ -2,7 +2,7 @@ FROM php:8.3-cli-alpine AS base
 WORKDIR /var/www/html
 RUN apk add --no-cache sqlite-dev libzip-dev icu-dev libpng-dev libjpeg-turbo-dev freetype-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install pdo_sqlite zip intl gd
+    && docker-php-ext-install pdo_sqlite pdo_mysql zip intl gd
 
 FROM base AS dependencies
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
