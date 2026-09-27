@@ -2,6 +2,10 @@
 
 return [
 
+    'railway_import' => [
+        'token' => env('RAILWAY_IMPORT_TOKEN'),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Third Party Services
