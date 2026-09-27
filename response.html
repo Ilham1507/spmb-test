@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="id">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Laravel • Data Siswa</title>
+    <style>
+        *{box-sizing:border-box}body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:#f4f7fb;color:#172033}header{background:#173b68;color:#fff;padding:18px 6%;display:flex;justify-content:space-between;align-items:center}header b{font-size:20px}.badge{font-size:12px;background:#2c5b91;padding:7px 10px;border-radius:20px}main{max-width:1050px;margin:34px auto;padding:0 20px}.hero{display:flex;justify-content:space-between;align-items:end;margin-bottom:24px;gap:20px}.hero h1{margin:0 0 7px}.hero p{margin:0;color:#647085}.card{background:#fff;border-radius:16px;box-shadow:0 8px 28px #19395e16;padding:22px}.grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:10px;margin-bottom:22px}input{border:1px solid #d9e0e9;border-radius:9px;padding:11px 12px;font:inherit;width:100%}button{border:0;border-radius:9px;padding:11px 15px;font-weight:650;cursor:pointer}.primary{background:#146ee8;color:#fff}.danger{background:#fff0f0;color:#c52c2c}.edit{background:#edf5ff;color:#1461bd}table{border-collapse:collapse;width:100%}th,td{text-align:left;padding:13px 10px;border-bottom:1px solid #edf0f4}th{color:#6d788b;font-size:13px}.actions{display:flex;gap:7px}.flash,.errors{padding:12px 14px;border-radius:9px;margin-bottom:16px}.flash{background:#eaf9ef;color:#176b35}.errors{background:#fff0f0;color:#a52626}dialog{border:0;border-radius:16px;width:min(430px,90vw);padding:24px;box-shadow:0 25px 70px #17203344}dialog::backdrop{background:#17203388}.form{display:grid;gap:13px}.form h2{margin:0 0 5px}.row{display:flex;justify-content:flex-end;gap:8px}.secondary{background:#eef1f5;color:#354052}code{background:#eaf0f8;padding:5px 8px;border-radius:6px}@media(max-width:780px){.grid{grid-template-columns:1fr 1fr}.grid input:first-child{grid-column:1/-1}.hero{align-items:start;flex-direction:column}table{font-size:13px}}
+    </style>
+</head>
+<body>
+<header><b>SMK • Sistem Siswa</b><span class="badge">Laravel 12.64.0</span></header>
+<main>
+    <section class="hero"><div><h1>Data Siswa</h1><p>CRUD sungguhan: Laravel, Eloquent ORM, validation, Blade, dan SQLite.</p></div><code>3 siswa</code></section>
+            <section class="card">
+        <form class="grid" method="POST" action="http://127.0.0.1:8000/siswa">
+            <input type="hidden" name="_token" value="9UPrc3vwvGdzEqtf1rWGIsVuPl92hrlriwqZbzGV" autocomplete="off">            <input name="nama" placeholder="Nama lengkap" value="" required>
+            <input name="nis" placeholder="NIS" value="" required>
+            <input name="kelas" placeholder="Kelas" value="" required>
+            <input name="jurusan" placeholder="Jurusan" value="" required>
+            <button class="primary">+ Tambah</button>
+        </form>
+        <table><thead><tr><th>Nama</th><th>NIS</th><th>Kelas</th><th>Jurusan</th><th>Aksi</th></tr></thead><tbody>
+                    <tr><td><b>Andi Pratama</b></td><td>2026001</td><td>XII</td><td>RPL</td><td><div class="actions">
+                <button class="edit" onclick='editSiswa({"id":1,"nama":"Andi Pratama","nis":"2026001","kelas":"XII","jurusan":"RPL","created_at":"2026-08-01T13:35:13.000000Z","updated_at":"2026-08-01T13:35:13.000000Z"})'>Edit</button>
+                <form method="POST" action="http://127.0.0.1:8000/siswa/1" onsubmit="return confirm('Hapus data Andi Pratama?')"><input type="hidden" name="_token" value="9UPrc3vwvGdzEqtf1rWGIsVuPl92hrlriwqZbzGV" autocomplete="off"> <input type="hidden" name="_method" value="DELETE"><button class="danger">Hapus</button></form>
+            </div></td></tr>
+                    <tr><td><b>Siti Aisyah</b></td><td>2026002</td><td>XII</td><td>TKJ</td><td><div class="actions">
+                <button class="edit" onclick='editSiswa({"id":2,"nama":"Siti Aisyah","nis":"2026002","kelas":"XII","jurusan":"TKJ","created_at":"2026-08-01T13:35:13.000000Z","updated_at":"2026-08-01T13:35:13.000000Z"})'>Edit</button>
+                <form method="POST" action="http://127.0.0.1:8000/siswa/2" onsubmit="return confirm('Hapus data Siti Aisyah?')"><input type="hidden" name="_token" value="9UPrc3vwvGdzEqtf1rWGIsVuPl92hrlriwqZbzGV" autocomplete="off"> <input type="hidden" name="_method" value="DELETE"><button class="danger">Hapus</button></form>
+            </div></td></tr>
+                    <tr><td><b>Budi Santoso</b></td><td>2026003</td><td>XI</td><td>RPL</td><td><div class="actions">
+                <button class="edit" onclick='editSiswa({"id":3,"nama":"Budi Santoso","nis":"2026003","kelas":"XI","jurusan":"RPL","created_at":"2026-08-01T13:35:13.000000Z","updated_at":"2026-08-01T13:35:13.000000Z"})'>Edit</button>
+                <form method="POST" action="http://127.0.0.1:8000/siswa/3" onsubmit="return confirm('Hapus data Budi Santoso?')"><input type="hidden" name="_token" value="9UPrc3vwvGdzEqtf1rWGIsVuPl92hrlriwqZbzGV" autocomplete="off"> <input type="hidden" name="_method" value="DELETE"><button class="danger">Hapus</button></form>
+            </div></td></tr>
+                </tbody></table>
+    </section>
+</main>
+<dialog id="modal"><form id="editForm" class="form" method="POST"><input type="hidden" name="_token" value="9UPrc3vwvGdzEqtf1rWGIsVuPl92hrlriwqZbzGV" autocomplete="off"> <input type="hidden" name="_method" value="PUT"><h2>Edit siswa</h2><input id="editNama" name="nama" required><input id="editNis" name="nis" required><input id="editKelas" name="kelas" required><input id="editJurusan" name="jurusan" required><div class="row"><button type="button" class="secondary" onclick="modal.close()">Batal</button><button class="primary">Simpan perubahan</button></div></form></dialog>
+<script>
+const modal=document.querySelector('#modal');function editSiswa(s){editForm.action=`http://127.0.0.1:8000/siswa/${s.id}`;editNama.value=s.nama;editNis.value=s.nis;editKelas.value=s.kelas;editJurusan.value=s.jurusan;modal.showModal()}
+</script>
+</body>
+</html>
