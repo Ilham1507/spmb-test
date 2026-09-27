@@ -11,6 +11,21 @@ class WhatsappCloudApiService
 {
     public function send(string $target, string $message): void
     {
+        if ($this->usesWaslah()) {
+            $response = Http::acceptJson()
+                ->withToken(trim((string) config('services.whatsapp.waslah_token')))
+                ->timeout(20)
+                ->post('https://waslah.id/api/v1/messages/text', [
+                    'instance_key' => trim((string) config('services.whatsapp.waslah_instance_key')),
+                    'to' => $this->normalizeTarget($target),
+                    'text' => $message,
+                ]);
+            if (! $response->successful() || ! $response->json('ok')) {
+                throw new RuntimeException((string) ($response->json('message') ?? 'Waslah gagal mengirim pesan.'));
+            }
+            return;
+        }
+
         $response = $this->request()->post($this->messagesUrl(), [
             'messaging_product' => 'whatsapp',
             'to' => $this->normalizeTarget($target),
@@ -32,6 +47,12 @@ class WhatsappCloudApiService
      */
     public function sendTemplate(string $target, string $template, array $bodyParameters = [], string $language = 'id'): void
     {
+        if ($this->usesWaslah()) {
+            $message = "Notifikasi SPMB\n\n" . implode("\n", $bodyParameters);
+            $this->send($target, $message);
+            return;
+        }
+
         if (trim($template) === '') {
             throw new RuntimeException('Nama template WhatsApp belum dikonfigurasi.');
         }
@@ -78,6 +99,15 @@ class WhatsappCloudApiService
 
         $version = trim((string) config('services.whatsapp.api_version', 'v25.0'));
         return "https://graph.facebook.com/{$version}/{$phoneNumberId}/messages";
+    }
+
+    private function usesWaslah(): bool
+    {
+        if (config('services.whatsapp.provider') !== 'waslah') return false;
+        if (trim((string) config('services.whatsapp.waslah_token')) === '' || trim((string) config('services.whatsapp.waslah_instance_key')) === '') {
+            throw new RuntimeException('Waslah belum dikonfigurasi pada server.');
+        }
+        return true;
     }
 
     private function normalizeTarget(string $target): string

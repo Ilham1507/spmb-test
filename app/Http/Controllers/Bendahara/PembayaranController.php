@@ -283,12 +283,67 @@ class PembayaranController extends Controller
             : 'Bukti pembayaran ditolak. Notifikasi WhatsApp terkirim agar siswa mengirim ulang bukti.');
     }
 
+    /** Final handover after panitia approval. Only this step records DU as received. */
+    public function receive(Request $request, TransaksiPembayaran $transaksi, WhatsappCloudApiService $whatsapp, \App\Services\PaymentReceiptNotifier $receiptNotifier)
+    {
+        $request->validate(['notes' => ['nullable', 'string', 'max:1000']]);
+
+        $result = \Illuminate\Support\Facades\DB::transaction(function () use ($transaksi, $request) {
+            $transaction = TransaksiPembayaran::lockForUpdate()->findOrFail($transaksi->id);
+            $bill = TagihanPendaftar::with('jenisTagihan')->lockForUpdate()->findOrFail($transaction->bill_id);
+
+            if ($transaction->status !== 'verified') {
+                throw \Illuminate\Validation\ValidationException::withMessages(['payment' => 'Pembayaran harus disetujui panitia terlebih dahulu.']);
+            }
+            if ($transaction->treasurer_received_at) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['payment' => 'Pembayaran ini sudah diterima bendahara.']);
+            }
+
+            // Formulir telah membuka akses setelah persetujuan panitia. DU baru
+            // diterapkan saat bendahara menerima rincian yang dipilih.
+            if ($this->isReRegistrationFee($bill)) {
+                $quote = \App\Support\PaymentQuote::forBill($bill, $transaction->selected_items ?? []);
+                if (! $quote['valid_selection'] || (float) $quote['amount'] !== (float) $transaction->amount) {
+                    throw \Illuminate\Validation\ValidationException::withMessages(['payment' => 'Rincian biaya DU tidak cocok dengan bukti pembayaran.']);
+                }
+                \App\Support\VerifiedPayment::apply($bill, $transaction);
+            }
+
+            $transaction->update([
+                'treasurer_received_by' => Auth::id(),
+                'treasurer_received_at' => now(),
+                'treasurer_notes' => $request->string('notes')->toString() ?: null,
+            ]);
+
+            return $transaction->fresh(['tagihan.jenisTagihan', 'tagihan.pendaftar.biodata', 'tagihan.pendaftar.user', 'verifier', 'treasurerReceiver']);
+        }, 3);
+
+        $receiptNotifier->send($result);
+        try {
+            $this->sendReceivedNotification($whatsapp, $result);
+        } catch (Throwable $exception) {
+            Log::warning('Notifikasi penerimaan bendahara gagal dikirim.', ['transaction_id' => $result->id, 'error' => $exception->getMessage()]);
+        }
+
+        return back()->with('success', 'Pembayaran diterima oleh bendahara. Invoice BMT sekarang dapat dicetak.');
+    }
+
     public function receipt(TransaksiPembayaran $transaksi)
     {
         abort_unless($transaksi->status === 'verified', 404, 'Nota pembayaran belum tersedia.');
         $transaksi->load(['checkout', 'tagihan.jenisTagihan', 'tagihan.pendaftar.biodata', 'tagihan.pendaftar.user', 'tagihan.pendaftar.kunjungan.penerima', 'verifier']);
 
         return view('payments.system-proof', ['transaction' => $transaksi]);
+    }
+
+    public function receiptPdf(TransaksiPembayaran $transaksi)
+    {
+        abort_unless($transaksi->status === 'verified', 404, 'Invoice pembayaran belum tersedia.');
+        $transaksi->load(['checkout', 'tagihan.jenisTagihan', 'tagihan.pendaftar.biodata', 'tagihan.pendaftar.user', 'tagihan.pendaftar.kunjungan.penerima', 'verifier', 'treasurerReceiver']);
+
+        return \Barryvdh\DomPDF\Facade\Pdf::loadView('payments.system-proof', ['transaction' => $transaksi])
+            ->setPaper('a4')
+            ->download('invoice-spmb-'.$transaksi->id.'.pdf');
     }
 
     public function viewProof(TransaksiPembayaran $transaksi)
@@ -440,5 +495,23 @@ Silakan unggah ulang bukti pembayaran yang benar melalui sistem.";
         }
 
         $whatsapp->send((string) $phone, $message);
+    }
+
+    private function sendReceivedNotification(WhatsappCloudApiService $whatsapp, TransaksiPembayaran $transaction): void
+    {
+        $applicant = $transaction->tagihan?->pendaftar;
+        $phone = (string) ($applicant?->user?->phone ?? '');
+        if ($phone === '') return;
+        $name = $applicant?->biodata?->full_name ?? $applicant?->user?->name ?? 'Calon siswa';
+        $type = $transaction->tagihan?->jenisTagihan?->name ?? 'Pembayaran SPMB';
+        $receivedBy = $transaction->treasurerReceiver?->name ?? Auth::user()?->name ?? 'bendahara sekolah';
+        $amount = number_format((float) $transaction->amount, 0, ',', '.');
+        $invoice = route($this->routeName('pembayaran.receipt'), $transaction);
+        $pdf = route($this->routeName('pembayaran.receipt.pdf'), $transaction);
+        $message = "Halo {$name}, pembayaran {$type} sebesar Rp {$amount} sudah diterima oleh bendahara {$receivedBy}.\n\n"
+            ."Disetujui panitia: ".($transaction->verifier?->name ?? '-')."\n"
+            ."Invoice: {$invoice}\nPDF invoice: {$pdf}\n\n"
+            ."Untuk pembayaran lanjutan, silakan ke BMT PCM Cileungsi setiap Selasa dan Jumat, Kampus E SMK Muhammadiyah 4 Cileungsi, pukul 07.30–14.30.";
+        $whatsapp->send($phone, $message);
     }
 }

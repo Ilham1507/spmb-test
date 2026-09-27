@@ -44,7 +44,9 @@ Route::middleware(['web', 'bendahara'])->group(function () {
         ->middleware('throttle:20,1')->name('pembayaran.online.refresh');
     Route::post('/pembayaran', [PembayaranController::class, 'store'])->name('pembayaran.store');
     Route::patch('/pembayaran/transaksi/{transaksi}', [PembayaranController::class, 'verify'])->name('pembayaran.verify');
+    Route::patch('/pembayaran/transaksi/{transaksi}/terima', [PembayaranController::class, 'receive'])->name('pembayaran.receive');
     Route::get('/pembayaran/transaksi/{transaksi}/nota', [PembayaranController::class, 'receipt'])->name('pembayaran.receipt');
+    Route::get('/pembayaran/transaksi/{transaksi}/invoice.pdf', [PembayaranController::class, 'receiptPdf'])->name('pembayaran.receipt.pdf');
     Route::get('/pembayaran/transaksi/{transaksi}/bukti', [PembayaranController::class, 'viewProof'])->name('pembayaran.proof');
     Route::get('/rekening', [RekeningController::class, 'index'])->name('rekening.index');
     Route::post('/rekening', [RekeningController::class, 'store'])->name('rekening.store');

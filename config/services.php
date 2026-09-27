@@ -36,6 +36,9 @@ return [
     ],
 
     'whatsapp' => [
+        'provider' => env('WHATSAPP_PROVIDER', 'waslah'),
+        'waslah_token' => env('WASLAH_API_TOKEN'),
+        'waslah_instance_key' => env('WASLAH_INSTANCE_KEY'),
         'api_version' => env('WHATSAPP_API_VERSION', 'v25.0'),
         'phone_number_id' => env('WHATSAPP_PHONE_NUMBER_ID'),
         'sender_number' => env('WHATSAPP_SENDER_NUMBER'),

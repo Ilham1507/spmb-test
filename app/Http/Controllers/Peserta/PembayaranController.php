@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\TagihanPendaftar;
 use App\Models\TransaksiPembayaran;
 use App\Models\Jurusan;
+use App\Models\RekeningSekolah;
 use App\Support\PendaftarSetup;
 use App\Support\RegistrationFee;
 use App\Support\ReRegistrationFee;
@@ -29,7 +30,7 @@ class PembayaranController extends Controller
         if ($registrationFeePaid) {
             ReRegistrationFee::ensureBill($pendaftar);
         }
-        $paymentMethods = ['cash' => 'Tunai di Sekolah'];
+        $paymentMethods = ['cash' => 'Tunai di Sekolah', 'transfer' => 'Transfer rekening sekolah'];
 
         $tagihansQuery = TagihanPendaftar::with(['jenisTagihan', 'transaksi' => function ($q) {
             $q->latest();
@@ -49,30 +50,11 @@ class PembayaranController extends Controller
 
         $tagihans = $tagihansQuery->get()->values();
 
-        $gatewayReady = app(\App\Services\MidtransClient::class)->ready();
-        $activeCheckouts = \Illuminate\Support\Facades\Schema::hasTable('payment_checkouts')
-            ? \App\Models\PaymentCheckout::whereIn('bill_id', $tagihans->pluck('id'))->whereNotNull('active_bill_id')->get()->keyBy('bill_id')
-            : collect();
-
-        // Midtrans cannot reach a local development URL for its webhook. Reconcile a pending
-        // checkout when the student returns to this page so a completed payment never remains
-        // displayed as "Menunggu pembayaran".
-        if ($activeCheckouts->isNotEmpty()) {
-            $checkoutService = app(PaymentCheckoutService::class);
-            foreach ($activeCheckouts as $checkout) {
-                if ($checkout->status !== 'pending') continue;
-                try {
-                    $checkoutService->refresh($checkout);
-                } catch (Throwable $exception) {
-                    Log::warning('Status checkout peserta belum dapat diperbarui saat halaman pembayaran dibuka.', [
-                        'checkout_id' => $checkout->id,
-                        'error' => $exception->getMessage(),
-                    ]);
-                }
-            }
-            $activeCheckouts = \App\Models\PaymentCheckout::whereIn('bill_id', $tagihans->pluck('id'))->whereNotNull('active_bill_id')->get()->keyBy('bill_id');
-            $tagihans->load(['transaksi' => fn ($query) => $query->latest()]);
-        }
+        // Pembayaran digital/Midtrans dihentikan. Semua transfer memakai rekening
+        // resmi dan setiap metode menyertakan bukti pembayaran.
+        $gatewayReady = false;
+        $activeCheckouts = collect();
+        $rekeningAktif = RekeningSekolah::query()->where('status', true)->orderBy('id')->get();
         return view('peserta.pembayaran.index', compact(
             'pendaftar',
             'tagihans',
@@ -81,7 +63,8 @@ class PembayaranController extends Controller
             'registrationFeePending',
             'paymentMethods',
             'gatewayReady',
-            'activeCheckouts'
+            'activeCheckouts',
+            'rekeningAktif'
         ));
     }
 
@@ -160,10 +143,6 @@ class PembayaranController extends Controller
         try {
             $transaction = \Illuminate\Support\Facades\DB::transaction(function () use ($tagihan, $request, $proofPath) {
                 $bill = TagihanPendaftar::lockForUpdate()->findOrFail($tagihan->id);
-                app(\App\Services\PaymentCheckoutService::class)->assertPayable($bill);
-                if ($bill->hasActiveCheckout()) {
-                    throw \Illuminate\Validation\ValidationException::withMessages(['payment' => 'Pembayaran virtual account masih terbuka. Cek status sebelum membayar dengan cara lain.']);
-                }
                 $quote = \App\Support\PaymentQuote::forBill($bill, $request->input('selected_items'), (int) $request->amount);
                 if (! $quote['valid_selection']) {
                     throw \Illuminate\Validation\ValidationException::withMessages(['selected_items' => 'Pilih biaya yang ingin dibayar.']);

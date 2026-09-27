@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Throwable;
 use App\Support\Pagination;
 
@@ -47,6 +48,7 @@ class PembayaranController extends Controller
             if ($transaction->status !== 'pending') {
                 return;
             }
+            $bill = TagihanPendaftar::with('jenisTagihan')->lockForUpdate()->find($transaction->bill_id);
 
             $transaction->update([
                 'status' => $validated['status'],
@@ -55,13 +57,12 @@ class PembayaranController extends Controller
                 'notes' => $validated['notes'] ?? $transaction->notes,
             ]);
 
-            if ($validated['status'] === 'verified') {
-                $bill = TagihanPendaftar::lockForUpdate()->find($transaction->bill_id);
+            if ($validated['status'] === 'verified' && $this->isRegistrationBill($bill)) {
                 if ($bill) \App\Support\VerifiedPayment::apply($bill, $transaction);
             }
         });
 
-        $transaksi->refresh()->load(['tagihan.pendaftar.biodata', 'tagihan.pendaftar.user', 'verifier']);
+        $transaksi->refresh()->load(['tagihan.jenisTagihan', 'tagihan.pendaftar.biodata', 'tagihan.pendaftar.user', 'verifier']);
 
         try {
             $this->sendDecisionNotification($whatsapp, $transaksi);
@@ -75,7 +76,7 @@ class PembayaranController extends Controller
         }
 
         if ($validated['status'] === 'verified') {
-            return back()->with('success', 'Pembayaran disetujui oleh '.Auth::user()->name.'. Notifikasi WhatsApp sudah dikirim otomatis ke siswa.');
+            return back()->with('success', 'Pembayaran disetujui oleh '.Auth::user()->name.'. Pembayaran formulir langsung membuka formulir; pembayaran DU diteruskan ke bendahara untuk penerimaan.');
         }
 
         return back()->with('success', 'Pembayaran ditolak. Notifikasi WhatsApp sudah dikirim otomatis agar siswa dapat mengirim ulang bukti.');
@@ -115,10 +116,15 @@ class PembayaranController extends Controller
         }
 
         if ($transaction->status === 'verified') {
-            $loginUrl = route('login');
-            $message = "Halo {$name}, pembayaran formulir SPMB kamu sudah disetujui oleh {$approver}.\n\n"
-                ."Formulir pendaftaran sudah terbuka. Silakan masuk, lengkapi data dari Biodata sampai Dokumen, lalu kirim formulir untuk dicek panitia.\n"
-                ."Login: {$loginUrl}";
+            if ($this->isRegistrationFee($transaction)) {
+                $formUrl = URL::temporarySignedRoute('formulir.lanjut', now()->addMinutes(5));
+                $message = "Halo {$name}, pembayaran formulir SPMB kamu sudah disetujui oleh {$approver}.\n\n"
+                    ."Silakan lanjutkan pengisian formulir melalui tautan ini:\n{$formUrl}\n\n"
+                    ."Jika tautan tidak dapat dibuka, silakan masuk melalui: ".route('login');
+            } else {
+                $message = "Halo {$name}, pembayaran daftar ulang SPMB kamu sudah disetujui oleh {$approver}.\n\n"
+                    ."Pembayaran sedang diteruskan ke bendahara untuk penerimaan dan rincian biaya. Status dapat dipantau di: ".route('login');
+            }
         } else {
             $reason = $transaction->notes ? "\nCatatan: {$transaction->notes}" : '';
             $message = "Halo {$name}, pembayaran formulir SPMB kamu belum dapat disetujui oleh {$approver}.{$reason}\n\n"
@@ -134,5 +140,17 @@ class PembayaranController extends Controller
             ->orWhereRaw('LOWER(name) LIKE ?', ['%pendaftaran%'])
             ->orWhereRaw('LOWER(name) LIKE ?', ['%daftar ulang%'])
             ->orWhereRaw('LOWER(name) LIKE ?', ['%du%']);
+    }
+
+    private function isRegistrationFee(TransaksiPembayaran $transaction): bool
+    {
+        $name = strtolower((string) $transaction->tagihan?->jenisTagihan?->name);
+        return str_contains($name, 'formulir') || str_contains($name, 'pendaftaran');
+    }
+
+    private function isRegistrationBill(?TagihanPendaftar $bill): bool
+    {
+        $name = strtolower((string) $bill?->jenisTagihan?->name);
+        return str_contains($name, 'formulir') || str_contains($name, 'pendaftaran');
     }
 }

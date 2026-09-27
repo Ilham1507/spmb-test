@@ -36,6 +36,6 @@ class ParticipantActivationService
             return;
         }
 
-        $whatsapp->send($user->phone, "Halo {$user->name}, panitia sudah membuat akun SPMB untukmu. Buat kata sandi sendiri melalui tautan ini (berlaku 5 menit):\n{$link}\n\nSetelah itu kamu bisa masuk dan melengkapi data yang masih kosong.");
+        $whatsapp->send($user->phone, "Halo {$user->name}, panitia sudah membuat akun SPMB untukmu. Buat kata sandi sendiri melalui tautan ini:\n{$link}\n\nSetelah itu masuk dan lengkapi data yang masih kosong. Jika tautan tidak dapat dibuka, silakan gunakan halaman login.");
     }
 }

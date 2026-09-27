@@ -12,5 +12,6 @@ class TransaksiPembayaran extends Model
 
     public function tagihan() { return $this->belongsTo(TagihanPendaftar::class, 'bill_id'); }
     public function verifier() { return $this->belongsTo(User::class, 'verified_by'); }
+    public function treasurerReceiver() { return $this->belongsTo(User::class, 'treasurer_received_by'); }
     public function checkout() { return $this->hasOne(PaymentCheckout::class, 'transaction_id'); }
 }

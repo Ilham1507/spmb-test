@@ -1,9 +1,9 @@
 <?php
 
 return [
-    // Enable only after the sandbox/production checklist in docs/pembayaran-midtrans.md.
+    // Midtrans is retired. Payments use cash/transfer with mandatory proof.
     'midtrans' => [
-        'enabled' => env('MIDTRANS_ENABLED', false),
+        'enabled' => false,
         'production' => env('MIDTRANS_PRODUCTION', false),
         'server_key' => env('MIDTRANS_SERVER_KEY', ''),
         'merchant_id' => env('MIDTRANS_MERCHANT_ID', ''),

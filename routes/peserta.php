@@ -17,6 +17,10 @@ use App\Http\Controllers\Peserta\KontakController;
 use App\Http\Controllers\Shared\HasilTesController;
 use Illuminate\Support\Facades\Route;
 
+Route::middleware('web')->get('/lanjutkan-formulir', \App\Http\Controllers\ParticipantFormLinkController::class)
+    ->middleware('signed')
+    ->name('formulir.lanjut');
+
 Route::middleware('web')->get('/verifikasi-email/{token}', [KontakController::class, 'verifyEmail'])
     ->where('token', '[A-Za-z0-9]{64}')
     ->name('kontak.verify-email');
@@ -83,12 +87,6 @@ Route::middleware(['web', 'peserta'])->group(function () {
     // Keuangan / Pembayaran
     Route::get('/biaya-jurusan', [\App\Http\Controllers\Peserta\PembayaranController::class, 'majorFees'])->name('biaya-jurusan');
     Route::post('/biaya-jurusan/{jurusan}/daftar-ulang', [\App\Http\Controllers\Peserta\PembayaranController::class, 'startReRegistration'])->name('biaya-jurusan.daftar-ulang');
-    Route::post('/pembayaran/{tagihan}/checkout', [\App\Http\Controllers\Peserta\PaymentCheckoutController::class, 'store'])
-        ->middleware('throttle:6,1')->name('pembayaran.checkout');
-    Route::post('/pembayaran-online/{checkout}/cek', [\App\Http\Controllers\Peserta\PaymentCheckoutController::class, 'refresh'])
-        ->middleware('throttle:10,1')->name('pembayaran.refresh');
-    Route::post('/pembayaran-online/{checkout}/batalkan', [\App\Http\Controllers\Peserta\PaymentCheckoutController::class, 'cancel'])
-        ->middleware('throttle:3,1')->name('pembayaran.cancel');
     Route::get('/pembayaran/transaksi/{transaksi}/nota', [\App\Http\Controllers\Peserta\PembayaranController::class, 'receipt'])->name('pembayaran.receipt');
     Route::get('/pembayaran', [\App\Http\Controllers\Peserta\PembayaranController::class, 'index'])->name('pembayaran');
     Route::post('/pembayaran/{tagihan}', [\App\Http\Controllers\Peserta\PembayaranController::class, 'store'])->name('pembayaran.store');
