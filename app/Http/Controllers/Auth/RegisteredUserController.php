@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\BiodataPendaftar;
 use App\Models\KontakPendaftar;
+use App\Models\KunjunganPendaftar;
 use App\Models\User;
+use App\Support\FullNameNormalizer;
 use App\Support\PendaftarSetup;
 use App\Support\ParticipantNameFormatter;
 use App\Support\SpmbConfiguration;
@@ -48,10 +50,24 @@ class RegisteredUserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'phone' => ['required', 'string', 'regex:/^08[0-9]{8,13}$/', 'unique:pengguna,phone'],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'visit_id' => ['nullable', 'integer'],
         ], [
             'phone.regex' => 'No. WhatsApp harus diawali 08 dan berisi 10 sampai 15 digit angka.',
             'phone.unique' => 'No. WhatsApp ini sudah terdaftar. Silakan langsung masuk atau hubungi panitia.',
         ]);
+
+        $visit = null;
+        if ($request->filled('visit_id')) {
+            $visit = KunjunganPendaftar::query()
+                ->whereNull('applicant_id')
+                ->find($request->integer('visit_id'));
+
+            if (! $visit || FullNameNormalizer::normalize($visit->full_name) !== FullNameNormalizer::normalize($request->name)) {
+                throw ValidationException::withMessages([
+                    'name' => 'Data kunjungan sudah berubah. Periksa kembali sebelum membuat akun.',
+                ]);
+            }
+        }
 
         $pesertaRole = \App\Models\Peran::where('name', 'peserta')->first();
 
@@ -75,11 +91,61 @@ class RegisteredUserController extends Controller
             ['phone' => $request->phone]
         );
 
+        if ($visit) {
+            $linked = KunjunganPendaftar::query()
+                ->whereKey($visit->id)
+                ->whereNull('applicant_id')
+                ->update(['applicant_id' => $pendaftar->id]);
+
+            if (! $linked) {
+                throw ValidationException::withMessages([
+                    'name' => 'Data kunjungan baru saja terhubung ke akun lain. Silakan hubungi panitia.',
+                ]);
+            }
+        }
+
         event(new Registered($user));
 
         Auth::login($user);
 
         return redirect(route('peserta.dashboard', absolute: false));
+    }
+
+    /** Find a visit or existing account before a new participant account is created. */
+    public function checkVisit(Request $request)
+    {
+        $name = ParticipantNameFormatter::titleCase((string) $request->query('name'));
+        $phone = $this->normalizePhone((string) $request->query('phone'));
+
+        if ($name === '' || ! preg_match('/^08[0-9]{8,13}$/', $phone)) {
+            return response()->json(['existing_account' => null, 'visits' => []]);
+        }
+
+        $existing = User::query()->where('phone', $phone)->first();
+        if ($existing) {
+            return response()->json([
+                'existing_account' => [
+                    'name' => $existing->name,
+                    'phone' => $this->maskPhone($existing->phone),
+                ],
+                'visits' => [],
+            ]);
+        }
+
+        $visits = KunjunganPendaftar::query()
+            ->whereNull('applicant_id')
+            ->where('normalized_full_name', FullNameNormalizer::normalize($name))
+            ->latest('visited_at')
+            ->limit(3)
+            ->get()
+            ->map(fn (KunjunganPendaftar $visit) => [
+                'id' => $visit->id,
+                'school' => $visit->origin_school ?: 'Sekolah belum dicatat',
+                'student_phone' => $this->maskPhone($visit->visitor_phone),
+                'parent_phone' => $visit->parent_phone ? $this->maskPhone($visit->parent_phone) : null,
+            ]);
+
+        return response()->json(['existing_account' => null, 'visits' => $visits]);
     }
 
     private function normalizePhone(string $value): string
@@ -91,5 +157,12 @@ class RegisteredUserController extends Controller
         }
 
         return $digits;
+    }
+
+    private function maskPhone(?string $phone): string
+    {
+        $phone = (string) $phone;
+
+        return preg_replace('/^(\d{4})\d+(\d{3})$/', '$1••••$2', $phone) ?: $phone;
     }
 }
