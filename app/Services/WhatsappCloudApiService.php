@@ -48,6 +48,27 @@ class WhatsappCloudApiService
             throw new RuntimeException('Lampiran invoice WhatsApp saat ini memerlukan konfigurasi Waslah.');
         }
 
+        // Upload the generated invoice first. This avoids a third-party fetch
+        // of a short-lived Railway signed URL failing after approval.
+        $mediaUrl = $url;
+        try {
+            $invoice = Http::timeout(30)->get($url);
+            if ($invoice->successful()) {
+                $upload = Http::acceptJson()
+                    ->withToken($this->waslahToken())
+                    ->timeout(30)
+                    ->attach('file', $invoice->body(), $filename)
+                    ->post('https://waslah.id/api/v1/uploads');
+                $uploadedUrl = trim((string) $upload->json('data.url'));
+
+                if ($upload->successful() && $upload->json('ok') && $uploadedUrl !== '') {
+                    $mediaUrl = $uploadedUrl;
+                }
+            }
+        } catch (\Throwable) {
+            // Waslah can still fetch the signed URL directly as a fallback.
+        }
+
         $response = Http::acceptJson()
             ->withToken($this->waslahToken())
             ->timeout(30)
@@ -55,7 +76,7 @@ class WhatsappCloudApiService
                 'instance_key' => $this->waslahInstanceKey(),
                 'to' => $this->normalizeTarget($target),
                 'type' => 'document',
-                'url' => $url,
+                'url' => $mediaUrl,
                 'filename' => $filename,
                 'mimetype' => 'application/pdf',
                 'caption' => $caption,
@@ -130,7 +151,10 @@ class WhatsappCloudApiService
 
     private function usesWaslah(): bool
     {
-        if (config('services.whatsapp.provider') !== 'waslah') return false;
+        // This installation uses Waslah for payment notifications. Respect an
+        // explicitly configured Meta provider only when no Waslah key exists.
+        if (trim((string) config('services.whatsapp.waslah_token')) === ''
+            && config('services.whatsapp.provider') !== 'waslah') return false;
         $this->waslahToken();
         return true;
     }
