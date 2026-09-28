@@ -2696,9 +2696,9 @@ body.admin-clean .fixed.inset-0:has(>.visit-create-dialog){
     padding:16px!important;
 }
 body.admin-clean .fixed.inset-0 > .visit-create-dialog{
-    width:min(700px,calc(100vw - 32px))!important;
-    height:min(640px,calc(100dvh - 32px))!important;
-    max-height:calc(100dvh - 32px)!important;
+    width:min(1040px,calc(100vw - 32px))!important;
+    height:calc(100dvh - 24px)!important;
+    max-height:calc(100dvh - 24px)!important;
     min-height:0!important;
     overflow:hidden!important;
     zoom:.85;
@@ -2716,7 +2716,7 @@ body.admin-clean .fixed.inset-0 > .user-account-dialog{
     max-height:calc(100dvh - 32px)!important;
     min-height:0!important;
     overflow:hidden!important;
-    zoom:.85;
+    zoom:1;
 }
 body.admin-clean .fixed.inset-0 > .user-account-dialog .admin-input,
 body.admin-clean .fixed.inset-0 > .user-account-dialog .custom-select-button{
@@ -2787,11 +2787,11 @@ body.admin-clean .fixed.inset-0 > .visit-create-dialog > form{
 }
 body.admin-clean .fixed.inset-0:has(>.visit-create-dialog){
     align-items:flex-start!important;
-    padding-top:16px!important;
+    padding-top:12px!important;
 }
 body.admin-clean .fixed.inset-0 > .visit-create-dialog{
-    height:calc(100dvh - 32px)!important;
-    max-height:calc(100dvh - 32px)!important;
+    height:calc(100dvh - 24px)!important;
+    max-height:calc(100dvh - 24px)!important;
 }
 @media(max-width:767px){
     body.admin-clean .fixed.inset-0:has(>.visit-create-dialog){
@@ -2802,7 +2802,7 @@ body.admin-clean .fixed.inset-0 > .visit-create-dialog{
         width:calc(100vw - 24px)!important;
         height:auto!important;
         max-height:calc(100dvh - 24px)!important;
-        zoom:.8;
+        zoom:1;
     }
     body.admin-clean .fixed.inset-0 > .visit-create-dialog > form{
         min-height:0!important;

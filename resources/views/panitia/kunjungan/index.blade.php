@@ -84,7 +84,7 @@
     </section>
 
     @unless($readOnly)
-    <div x-cloak x-show="createOpen" x-transition.opacity @keydown.escape.window="createOpen = false" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/50 p-3 sm:p-4" @click.self="createOpen = false">
+    <template x-teleport="body"><div x-cloak x-show="createOpen" x-transition.opacity @keydown.escape.window="createOpen = false" class="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-950/55 p-3 sm:p-4" @click.self="createOpen = false">
         <section role="dialog" aria-modal="true" aria-label="Catat kunjungan baru" class="visit-create-dialog grid max-h-[calc(100vh-32px)] w-full max-w-4xl grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden rounded-2xl bg-white shadow-2xl sm:max-h-[calc(100vh-32px)]">
             <div class="flex items-center justify-between border-b border-slate-100 px-5 py-4 sm:px-6"><div><h2 class="text-lg font-black text-slate-950">Catat kunjungan</h2><p class="text-sm text-slate-500">Penerima: {{ Auth::user()->name }}</p></div><button type="button" @click="createOpen = false" class="rounded-lg px-3 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100">Tutup</button></div>
             <form id="visit-create-form" method="POST" action="{{ route($prefix . 'kunjungan.store') }}" class="min-h-0 overflow-y-auto p-5 sm:p-6" autocomplete="off" @submit="createOpen = false">
@@ -106,7 +106,7 @@
             </form>
             <div class="flex shrink-0 justify-end gap-2 border-t border-slate-100 bg-white px-3 py-2.5 pb-[max(10px,env(safe-area-inset-bottom))] sm:px-4"><button type="button" @click="createOpen = false" class="rounded-xl px-4 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100">Batal</button><button type="submit" form="visit-create-form" class="admin-primary-button bg-emerald-600 hover:bg-emerald-700">Simpan kunjungan</button></div>
         </section>
-    </div>
+    </div></template>
     @endunless
 </div>
 @endsection
