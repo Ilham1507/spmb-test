@@ -7,6 +7,7 @@ use App\Models\TagihanPendaftar;
 use App\Models\TransaksiPembayaran;
 use App\Models\Pendaftar;
 use App\Models\KunjunganPendaftar;
+use App\Models\PengaturanSpmb;
 use App\Models\User;
 use App\Services\WhatsappCloudApiService;
 use App\Services\ParticipantActivationService;
@@ -46,8 +47,9 @@ class PembayaranController extends Controller
             ->whereNull('applicant_id')
             ->whereNotNull('visitor_phone')
             ->latest('visited_at')->limit(250)->get();
+        $formFeeAmount = (int) round((float) (PengaturanSpmb::query()->latest('id')->value('biaya_pendaftaran') ?? 0));
 
-        return view('panitia.pembayaran.index', compact('transactions', 'applicants', 'visits'));
+        return view('panitia.pembayaran.index', compact('transactions', 'applicants', 'visits', 'formFeeAmount'));
     }
 
     /**
