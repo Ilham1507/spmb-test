@@ -56,7 +56,7 @@ function assistedForm(config) {
             this.selectedSchool = null;
             this.schoolSelectionError = false;
             const query = this.schoolQuery.trim();
-            if (query.length < 2) { this.schoolResults = []; this.schoolOpen = false; return; }
+            if (query.length < 1) { this.schoolResults = []; this.schoolOpen = false; return; }
             this.schoolLoading = true;
             this.schoolOpen = true;
             try {
@@ -164,16 +164,16 @@ function assistedForm(config) {
             <div class="rounded-2xl border p-4" style="border-color:var(--line);background:var(--soft)">
                 <label class="assist-label" for="assisted-school-search">Cari sekolah SMP / MTs<em>*</em></label>
                 <div class="relative mt-1.5">
-                    <input id="assisted-school-search" x-ref="schoolSearch" type="search" x-model="schoolQuery" @input.debounce.350ms="searchSchool()" @focus="schoolOpen = schoolQuery.trim().length >= 2" autocomplete="off" class="assist-input w-full rounded-xl px-3.5 py-3 text-sm font-semibold" placeholder="Ketik nama sekolah, NPSN, kecamatan, atau kabupaten">
+                    <input id="assisted-school-search" x-ref="schoolSearch" type="search" x-model="schoolQuery" @input.debounce.150ms="searchSchool()" @focus="schoolOpen = schoolQuery.trim().length >= 1" autocomplete="off" class="assist-input w-full rounded-xl px-3.5 py-3 text-sm font-semibold" placeholder="Ketik nama sekolah, NPSN, kecamatan, atau kabupaten">
                     <div x-cloak x-show="schoolOpen" @click.outside="schoolOpen = false" class="absolute inset-x-0 top-[calc(100%+8px)] z-40 max-h-64 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-1 shadow-xl">
                         <p x-show="schoolLoading" class="px-3 py-3 text-sm font-semibold text-slate-500">Mencari sekolah…</p>
                         <template x-for="school in schoolResults" :key="school.id">
-                            <button type="button" @click="selectSchool(school)" class="block w-full rounded-xl px-3 py-3 text-left hover:bg-slate-50"><span class="flex items-center justify-between gap-2"><span class="font-black text-slate-900" x-text="school.nama"></span><span class="rounded-full px-2 py-0.5 text-[10px] font-black" style="background:var(--soft);color:var(--deep)" x-text="school.bentuk_pendidikan"></span></span><span class="mt-1 block text-xs font-semibold text-slate-500"><span x-text="school.npsn"></span><span x-show="school.alamat_lengkap"> · <span x-text="school.alamat_lengkap"></span></span></span></button>
+                            <button type="button" @click="selectSchool(school)" class="block w-full rounded-xl px-3 py-3 text-left hover:bg-slate-50"><span class="flex items-center justify-between gap-2"><span class="font-black text-slate-900" x-text="school.nama"></span><span class="rounded-full px-2 py-0.5 text-[10px] font-black" style="background:var(--soft);color:var(--deep)" x-text="school.bentuk_pendidikan"></span></span><span class="mt-1 block text-xs font-semibold text-slate-500"><span x-text="school.npsn"></span><span x-show="school.kecamatan"> · Kec. <span x-text="school.kecamatan"></span></span><span x-show="school.kabupaten_kota">, <span x-text="school.kabupaten_kota"></span></span></span></button>
                         </template>
                         <p x-show="!schoolLoading && schoolResults.length === 0" class="px-3 py-3 text-sm text-slate-500">Tidak ada SMP atau MTs yang cocok.</p>
                     </div>
                 </div>
-                <p class="mt-2 text-xs text-slate-500">Ketik minimal 2 karakter, lalu pilih satu hasil pencarian.</p>
+                <p class="mt-2 text-xs text-slate-500">Ketik nama sekolah, NPSN, atau kecamatan, lalu pilih satu hasil pencarian.</p>
                 <p x-cloak x-show="schoolSelectionError" class="mt-2 text-xs font-bold text-rose-600">Pilih sekolah SMP atau MTs dari hasil pencarian.</p>
             </div>
             <div x-cloak x-show="selectedSchool" class="mt-4 grid gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 sm:grid-cols-2">

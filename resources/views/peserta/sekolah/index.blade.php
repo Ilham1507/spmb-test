@@ -36,18 +36,18 @@
                 <label for="search_sekolah" class="mb-2 block text-xs font-black uppercase tracking-wide text-sky-800">Cari SMP / MTs berdasarkan nama atau NPSN <span class="text-rose-500">*</span></label>
 
                 <div class="relative">
-                    <input id="search_sekolah" type="text" x-model="query" @input.debounce.300ms="search()" @focus="open = true"
+                    <input id="search_sekolah" type="text" x-model="query" @input.debounce.150ms="search()" @focus="open = true"
                            required
                            class="w-full px-4 py-3 rounded-xl border border-sky-200 bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/40 focus:border-sky-500 text-sm transition-all"
-                           placeholder="Cari SMP atau MTs berdasarkan nama / NPSN">
+                           placeholder="Cari SMP/MTs, NPSN, atau kecamatan">
 
                     <div x-cloak x-show="open" @click.outside="open = false" class="absolute left-0 right-0 top-[calc(100%+8px)] z-30 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
                         <div x-show="loading" class="px-4 py-3 text-sm font-semibold text-slate-500">Mencari sekolah...</div>
 
-                        <template x-if="!loading && results.length === 0 && query.length >= 2">
+                        <template x-if="!loading && results.length === 0 && query.length >= 1">
                             <div class="px-4 py-4">
                                 <p class="text-sm font-bold text-slate-700">Sekolah belum ditemukan.</p>
-                                <p class="mt-1 text-xs leading-relaxed text-slate-500">Coba ketik NPSN atau nama SMP / MTs yang lebih lengkap.</p>
+                                <p class="mt-1 text-xs leading-relaxed text-slate-500">Coba nama sekolah, NPSN, atau kecamatan.</p>
                             </div>
                         </template>
 
@@ -57,6 +57,7 @@
                                 <span class="mt-1 flex flex-wrap gap-2 text-[11px] font-bold text-slate-500">
                                     <span class="rounded-full bg-slate-100 px-2 py-0.5" x-text="'NPSN ' + school.npsn"></span>
                                     <span class="rounded-full bg-slate-100 px-2 py-0.5" x-text="school.bentuk_pendidikan || 'Sekolah'"></span>
+                                    <span class="rounded-full bg-sky-100 px-2 py-0.5 text-sky-800" x-show="school.kecamatan" x-text="'Kec. ' + school.kecamatan"></span>
                                 </span>
                                 <span class="mt-1 block text-xs leading-relaxed text-slate-500" x-text="school.alamat_lengkap || 'Alamat belum tersedia di referensi.'"></span>
                             </button>
@@ -145,7 +146,7 @@
                 this.selectedCity = '';
                 this.selectedProvince = '';
 
-                if (this.query.trim().length < 2) {
+                if (this.query.trim().length < 1) {
                     this.results = [];
                     return;
                 }

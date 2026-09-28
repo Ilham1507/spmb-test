@@ -31,7 +31,7 @@ class SekolahAsalController extends Controller
         $query = trim((string) $request->query('q', ''));
         $juniorHighOnly = true;
 
-        if (mb_strlen($query) < 2) {
+        if (mb_strlen($query) < 1) {
             return response()->json([]);
         }
 
@@ -53,7 +53,7 @@ class SekolahAsalController extends Controller
 
         // Lengkapi hasil lokal dengan pencarian referensi resmi agar sekolah
         // baru tetap langsung muncul saat siswa mengetik namanya.
-        $officialSchools = $schools->count() < 5
+        $officialSchools = mb_strlen($query) >= 3 && $schools->count() < 5
             ? $this->findAndCacheOfficialSchools($query)
             : collect();
 
