@@ -340,7 +340,7 @@ class PembayaranController extends Controller
     public function receipt(TransaksiPembayaran $transaksi)
     {
         abort_unless($transaksi->status === 'verified', 404, 'Nota pembayaran belum tersedia.');
-        $transaksi->load(['checkout', 'tagihan.jenisTagihan', 'tagihan.pendaftar.biodata', 'tagihan.pendaftar.user', 'tagihan.pendaftar.kunjungan.penerima', 'verifier']);
+        $transaksi->load(['tagihan.jenisTagihan', 'tagihan.pendaftar.biodata', 'tagihan.pendaftar.user', 'tagihan.pendaftar.kunjungan.penerima', 'verifier']);
 
         return view('payments.system-proof', ['transaction' => $transaksi]);
     }
@@ -348,7 +348,7 @@ class PembayaranController extends Controller
     public function receiptPdf(TransaksiPembayaran $transaksi)
     {
         abort_unless($transaksi->status === 'verified', 404, 'Invoice pembayaran belum tersedia.');
-        $transaksi->load(['checkout', 'tagihan.jenisTagihan', 'tagihan.pendaftar.biodata', 'tagihan.pendaftar.user', 'tagihan.pendaftar.kunjungan.penerima', 'verifier', 'treasurerReceiver']);
+        $transaksi->load(['tagihan.jenisTagihan', 'tagihan.pendaftar.biodata', 'tagihan.pendaftar.user', 'tagihan.pendaftar.kunjungan.penerima', 'verifier', 'treasurerReceiver']);
 
         return \Barryvdh\DomPDF\Facade\Pdf::loadView('payments.system-proof', ['transaction' => $transaksi])
             ->setPaper('a4')

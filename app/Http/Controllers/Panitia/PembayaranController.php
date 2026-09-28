@@ -31,7 +31,7 @@ class PembayaranController extends Controller
     {
         $transactions = TransaksiPembayaran::with([
             'tagihan.jenisTagihan', 'tagihan.pendaftar.biodata', 'tagihan.pendaftar.user',
-            'tagihan.pendaftar.kunjungan.penerima', 'verifier', 'checkout',
+            'tagihan.pendaftar.kunjungan.penerima', 'verifier',
         ])
             ->whereIn('status', ['pending', 'verified', 'rejected'])
             ->whereHas('tagihan.jenisTagihan', fn ($query) => $this->approvalFeeQuery($query))
@@ -228,10 +228,7 @@ class PembayaranController extends Controller
 
     public function viewProof(TransaksiPembayaran $transaksi)
     {
-        $transaksi->load(['checkout', 'tagihan.jenisTagihan', 'tagihan.pendaftar.biodata', 'tagihan.pendaftar.user', 'tagihan.pendaftar.kunjungan.penerima', 'verifier']);
-        if (! $transaksi->proof_file && $transaksi->checkout) {
-            return view('payments.system-proof', ['transaction' => $transaksi]);
-        }
+        $transaksi->load(['tagihan.jenisTagihan', 'tagihan.pendaftar.biodata', 'tagihan.pendaftar.user', 'tagihan.pendaftar.kunjungan.penerima', 'verifier']);
         $disk = Storage::disk('local')->exists((string) $transaksi->proof_file) ? 'local' : 'public';
         abort_if(! $transaksi->proof_file || ! Storage::disk($disk)->exists($transaksi->proof_file), 404, 'Bukti pembayaran tidak ditemukan.');
 

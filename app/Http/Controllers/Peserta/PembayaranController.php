@@ -109,7 +109,7 @@ class PembayaranController extends Controller
     public function receipt(TransaksiPembayaran $transaksi)
     {
         abort_unless((int) $transaksi->tagihan?->applicant_id === (int) Auth::user()?->pendaftar?->id, 403);
-        $transaksi->load(['checkout', 'tagihan.jenisTagihan', 'tagihan.pendaftar.biodata', 'tagihan.pendaftar.user', 'tagihan.pendaftar.kunjungan.penerima', 'verifier']);
+        $transaksi->load(['tagihan.jenisTagihan', 'tagihan.pendaftar.biodata', 'tagihan.pendaftar.user', 'tagihan.pendaftar.kunjungan.penerima', 'verifier']);
 
         return view('payments.system-proof', ['transaction' => $transaksi]);
     }
