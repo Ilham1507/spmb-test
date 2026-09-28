@@ -47,6 +47,7 @@ class SekolahAsalController extends Controller
             })
             ->when($juniorHighOnly, fn ($builder) => $builder->whereRaw("UPPER(TRIM(bentuk_pendidikan)) IN (?, ?)", ['SMP', 'MTS']))
             ->orderByRaw("CASE WHEN npsn = ? THEN 0 WHEN npsn LIKE ? THEN 1 ELSE 2 END", [$query, "{$query}%"])
+            ->orderByRaw("CASE WHEN LOWER(COALESCE(kecamatan, '')) LIKE '%cileungsi%' THEN 0 WHEN LOWER(COALESCE(kabupaten_kota, '')) LIKE '%bogor%' THEN 1 WHEN LOWER(COALESCE(kabupaten_kota, '')) LIKE '%bekasi%' OR LOWER(COALESCE(kabupaten_kota, '')) LIKE '%depok%' OR LOWER(COALESCE(kabupaten_kota, '')) LIKE '%jakarta%' OR LOWER(COALESCE(kabupaten_kota, '')) LIKE '%tangerang%' THEN 2 ELSE 3 END")
             ->orderBy('nama')
             ->limit(15)
             ->get();
@@ -62,6 +63,11 @@ class SekolahAsalController extends Controller
                 fn (ReferensiSekolah $school) => in_array(strtoupper(trim((string) $school->bentuk_pendidikan)), ['SMP', 'MTS'], true)
             ))
             ->unique('npsn')
+            ->sort(fn (ReferensiSekolah $left, ReferensiSekolah $right) => [
+                $this->searchRank($left, $query), $this->proximityRank($left), mb_strtolower((string) $left->nama),
+            ] <=> [
+                $this->searchRank($right, $query), $this->proximityRank($right), mb_strtolower((string) $right->nama),
+            ])
             ->take(15)
             ->values();
 
@@ -126,6 +132,38 @@ class SekolahAsalController extends Controller
             'provinsi' => $school->provinsi,
             'alamat_lengkap' => $school->alamat_lengkap,
         ];
+    }
+
+    /** Prioritise the school's immediate catchment area when search relevance is the same. */
+    private function proximityRank(ReferensiSekolah $school): int
+    {
+        $district = mb_strtolower((string) $school->kecamatan);
+        $city = mb_strtolower((string) $school->kabupaten_kota);
+
+        if (str_contains($district, 'cileungsi')) {
+            return 0;
+        }
+        if (str_contains($city, 'bogor')) {
+            return 1;
+        }
+        if (str_contains($city, 'bekasi') || str_contains($city, 'depok') || str_contains($city, 'jakarta') || str_contains($city, 'tangerang')) {
+            return 2;
+        }
+
+        return 3;
+    }
+
+    private function searchRank(ReferensiSekolah $school, string $query): int
+    {
+        $query = mb_strtolower($query);
+        $npsn = (string) $school->npsn;
+        $name = mb_strtolower((string) $school->nama);
+
+        if ($npsn === $query || $name === $query) {
+            return 0;
+        }
+
+        return str_starts_with($npsn, $query) || str_starts_with($name, $query) ? 1 : 2;
     }
 
     private function findAndCacheOfficialSchools(string $query)
