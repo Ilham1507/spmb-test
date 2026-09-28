@@ -28,4 +28,5 @@ if (! $hasPaymentTable) {
 '
 
 php artisan migrate --force --path=database/migrations/2026_09_28_090000_add_payment_handover_fields.php
+php artisan migrate --force --path=database/migrations/2026_09_28_120000_purge_participant_test_data.php
 exec php -S "0.0.0.0:${PORT:-10000}" -t public
