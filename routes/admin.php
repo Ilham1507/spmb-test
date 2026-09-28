@@ -102,6 +102,7 @@ Route::middleware(['web', 'admin'])->group(function () {
     Route::get('/pembayaran', [BendaharaPembayaranController::class, 'index'])->name('pembayaran.index');
     Route::post('/pembayaran', [BendaharaPembayaranController::class, 'store'])->name('pembayaran.store');
     Route::patch('/pembayaran/transaksi/{transaksi}', [BendaharaPembayaranController::class, 'verify'])->name('pembayaran.verify');
+    Route::patch('/pembayaran/transaksi/{transaksi}/terima', [BendaharaPembayaranController::class, 'receive'])->name('pembayaran.receive');
     Route::get('/pembayaran/transaksi/{transaksi}/nota', [BendaharaPembayaranController::class, 'receipt'])->name('pembayaran.receipt');
     Route::get('/pembayaran/transaksi/{transaksi}/bukti', [BendaharaPembayaranController::class, 'viewProof'])->name('pembayaran.proof');
     Route::get('/rekening', [BendaharaRekeningController::class, 'index'])->name('rekening.index');
