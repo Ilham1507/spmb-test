@@ -42,6 +42,8 @@ class LayananPiketController extends Controller
             'visit_purpose' => ['required', 'in:information,plan_to_register,direct_registration'],
             'full_name' => ['required', 'string', 'max:150'],
             'visitor_phone' => ['required', 'string', 'regex:/^08[0-9]{8,13}$/'],
+            'parent_name' => ['nullable', 'string', 'max:150', 'required_without:parent_phone'],
+            'parent_phone' => ['nullable', 'string', 'regex:/^08[0-9]{8,13}$/', 'required_without:parent_name'],
             'referensi_sekolah_id' => ['required', 'exists:referensi_sekolah,id'],
             'interested_major_id' => [
                 'required',
@@ -54,6 +56,9 @@ class LayananPiketController extends Controller
 
         $validated['school_reference_id'] = $reference?->id;
         $validated['visitor_phone'] = $this->normalizePhone($validated['visitor_phone']);
+        $validated['parent_phone'] = filled($validated['parent_phone'] ?? null)
+            ? $this->normalizePhone($validated['parent_phone'])
+            : null;
         $validated['normalized_full_name'] = FullNameNormalizer::normalize($validated['full_name']);
         $validated['origin_school'] = $reference->nama;
         $validated['origin_school_npsn'] = $reference->npsn;

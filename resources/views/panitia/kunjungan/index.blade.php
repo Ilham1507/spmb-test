@@ -39,12 +39,13 @@
         </div>
 
         <div class="admin-table-wrap">
-            <table class="admin-table min-w-[980px]">
-                <thead><tr><th>Siswa</th><th>Sekolah asal</th><th>Minat jurusan</th><th>Datang</th><th>Petugas penerima</th><th>Status</th><th class="text-right">Aksi</th></tr></thead>
+            <table class="admin-table min-w-[1120px]">
+                <thead><tr><th>Siswa</th><th>Orang tua/wali</th><th>Sekolah asal</th><th>Minat jurusan</th><th>Datang</th><th>Petugas penerima</th><th>Status</th><th class="text-right">Aksi</th></tr></thead>
                 <tbody>
                     @forelse($visits as $visit)
                         <tr>
                             <td><p class="font-black text-slate-950">{{ $visit->full_name }}</p><p class="text-xs text-slate-500">{{ $visit->visitor_phone }}</p></td>
+                            <td><p class="font-bold text-slate-700">{{ $visit->parent_name ?: '-' }}</p><p class="text-xs text-slate-500">{{ $visit->parent_phone ?: '-' }}</p></td>
                             <td><p class="font-bold text-slate-700">{{ $visit->origin_school ?: '-' }}</p>@if($visit->origin_school_npsn)<p class="text-xs text-slate-500">NPSN {{ $visit->origin_school_npsn }}</p>@endif</td>
                             <td>{{ $visit->major_interest ?: '-' }}</td>
                             <td><p class="font-bold text-slate-700">{{ $visit->visited_at?->format('d M Y') ?? '-' }}</p><p class="text-xs text-slate-400">{{ $visit->visited_at?->format('H:i') ?? '' }} WIB</p></td>
@@ -53,7 +54,7 @@
                             <td class="text-right">@if($visit->pendaftar)<a href="{{ route($prefix . 'pendaftar.show', $visit->pendaftar) }}" class="visit-detail-link">Lihat siswa →</a>@else<span class="text-xs font-semibold text-slate-400">Menunggu daftar</span>@endif</td>
                         </tr>
                     @empty
-                        <tr><td colspan="7" class="text-center text-slate-400">Belum ada kunjungan.</td></tr>
+                        <tr><td colspan="8" class="text-center text-slate-400">Belum ada kunjungan.</td></tr>
                     @endforelse
                 </tbody>
             </table>
@@ -62,15 +63,17 @@
 
     @unless($readOnly)
     <div x-cloak x-show="createOpen" x-transition.opacity @keydown.escape.window="createOpen = false" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/50 p-3 sm:p-4" @click.self="createOpen = false">
-        <section role="dialog" aria-modal="true" aria-label="Catat kunjungan baru" class="visit-create-dialog grid max-h-[calc(100vh-32px)] w-full max-w-xl grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden rounded-2xl bg-white shadow-2xl sm:max-h-[calc(100vh-32px)]">
-            <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3"><div><h2 class="font-black text-slate-950">Catat kunjungan</h2><p class="text-xs text-slate-500">Penerima: {{ Auth::user()->name }}</p></div><button type="button" @click="createOpen = false" class="rounded-lg px-3 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100">Tutup</button></div>
-            <form id="visit-create-form" method="POST" action="{{ route($prefix . 'kunjungan.store') }}" class="min-h-0 overflow-y-auto p-3 sm:p-4" autocomplete="off" @submit="createOpen = false">
+        <section role="dialog" aria-modal="true" aria-label="Catat kunjungan baru" class="visit-create-dialog grid max-h-[calc(100vh-32px)] w-full max-w-4xl grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden rounded-2xl bg-white shadow-2xl sm:max-h-[calc(100vh-32px)]">
+            <div class="flex items-center justify-between border-b border-slate-100 px-5 py-4 sm:px-6"><div><h2 class="text-lg font-black text-slate-950">Catat kunjungan</h2><p class="text-sm text-slate-500">Penerima: {{ Auth::user()->name }}</p></div><button type="button" @click="createOpen = false" class="rounded-lg px-3 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100">Tutup</button></div>
+            <form id="visit-create-form" method="POST" action="{{ route($prefix . 'kunjungan.store') }}" class="min-h-0 overflow-y-auto p-5 sm:p-6" autocomplete="off" @submit="createOpen = false">
                 @csrf
                 <input type="hidden" name="referensi_sekolah_id" :value="selectedId">
                 <div class="grid gap-3 sm:grid-cols-2">
                     <fieldset class="sm:col-span-2"><legend class="admin-label">Tujuan kedatangan</legend><div class="grid gap-2 sm:grid-cols-3">@foreach(['information' => 'Bertanya', 'plan_to_register' => 'Rencana daftar', 'direct_registration' => 'Langsung daftar'] as $value => $label)<label class="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold"><input type="radio" name="visit_purpose" value="{{ $value }}" @checked(old('visit_purpose', 'information') === $value)>{{ $label }}</label>@endforeach</div></fieldset>
                     <label class="admin-label">Nama calon siswa<input name="full_name" value="{{ old('full_name') }}" required class="admin-input mt-1" placeholder="Nama lengkap">@error('full_name')<p class="admin-error">{{ $message }}</p>@enderror</label>
                     <label class="admin-label">No. WhatsApp<input name="visitor_phone" value="{{ old('visitor_phone') }}" required inputmode="numeric" class="admin-input mt-1" placeholder="08xxxxxxxxxx">@error('visitor_phone')<p class="admin-error">{{ $message }}</p>@enderror</label>
+                    <label class="admin-label">Nama orang tua/wali <span class="font-normal text-slate-400">(isi salah satu)</span><input name="parent_name" value="{{ old('parent_name') }}" class="admin-input mt-1" placeholder="Nama orang tua atau wali">@error('parent_name')<p class="admin-error">{{ $message }}</p>@enderror</label>
+                    <label class="admin-label">No. HP orang tua/wali <span class="font-normal text-slate-400">(isi salah satu)</span><input name="parent_phone" value="{{ old('parent_phone') }}" inputmode="numeric" class="admin-input mt-1" placeholder="08xxxxxxxxxx">@error('parent_phone')<p class="admin-error">{{ $message }}</p>@enderror</label>
                     <div class="rounded-2xl border border-sky-100 bg-sky-50/70 p-3 sm:col-span-2"><div class="mb-2 flex items-center justify-between gap-2"><label class="admin-label mb-0 text-sky-900">Cari sekolah asal <span class="text-rose-500">*</span></label><span class="text-xs font-semibold text-sky-700">Hanya SMP/MTs</span></div>
                         <div x-show="!manual" class="relative"><input x-ref="schoolInput" type="text" x-model="query" @input.debounce.300ms="search()" @focus="if (query.trim().length >= 2) { open = true; $nextTick(() => positionSchoolMenu()) }" @keydown.escape="open=false" class="admin-input bg-white" autocomplete="off" spellcheck="false" placeholder="Ketik nama SMP/MTs atau NPSN"><template x-teleport="body"><div x-cloak x-show="open" @click.outside="open=false" class="fixed z-[200] overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-2xl" :style="schoolMenuStyle"><p x-show="loading" class="p-3 text-sm font-bold text-slate-500">Mencari SMP/MTs...</p><p x-show="!loading && query.trim().length >= 2 && results.length === 0" class="p-3 text-sm font-semibold leading-relaxed text-slate-600">SMP/MTs tidak ditemukan. Periksa kembali nama sekolah atau NPSN yang diketik.</p><template x-for="school in results" :key="school.id"><button type="button" @click="selectSchool(school)" class="block w-full border-b border-slate-100 px-4 py-3 text-left last:border-b-0 hover:bg-sky-50"><span class="block text-sm font-black text-slate-900" x-text="school.nama"></span><span class="mt-1 block text-xs font-bold text-sky-700" x-text="(school.bentuk_pendidikan || 'SMP/MTs') + ' · NPSN ' + school.npsn"></span></button></template></div></template></div>
                         <div x-cloak x-show="selectedName" class="mt-2 rounded-xl bg-emerald-50 p-3"><p class="font-black" x-text="selectedName"></p><p class="text-xs text-emerald-700" x-text="'NPSN ' + selectedNpsn"></p><button type="button" @click="clearSchool()" class="mt-1 text-xs font-black text-sky-700">Ganti sekolah</button></div>
