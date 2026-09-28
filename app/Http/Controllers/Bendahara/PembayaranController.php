@@ -347,17 +347,6 @@ class PembayaranController extends Controller
         return view('payments.system-proof', ['transaction' => $transaksi]);
     }
 
-    /** Send the official approved-payment invoice again without changing the transaction. */
-    public function resendApprovalNotification(TransaksiPembayaran $transaksi, WhatsappCloudApiService $whatsapp)
-    {
-        abort_unless($transaksi->status === 'verified', 422, 'Notifikasi hanya dapat dikirim ulang untuk pembayaran yang sudah disetujui.');
-
-        $transaksi->load(['tagihan.jenisTagihan', 'tagihan.pendaftar.biodata', 'tagihan.pendaftar.user', 'tagihan.pendaftar.kunjungan.penerima', 'verifier']);
-        $this->sendDecisionNotification($whatsapp, $transaksi);
-
-        return back()->with('success', 'Invoice resmi dan notifikasi pembayaran telah dikirim ulang ke WhatsApp siswa.');
-    }
-
     public function receiptPdf(TransaksiPembayaran $transaksi)
     {
         abort_unless($transaksi->status === 'verified', 404, 'Invoice pembayaran belum tersedia.');
