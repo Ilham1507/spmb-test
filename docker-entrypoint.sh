@@ -1,6 +1,12 @@
 #!/bin/sh
 set -e
 
+# Railway injects APP_URL when the container starts. Clear any configuration
+# cache created by an earlier deployment so asset URLs and form actions keep
+# the current HTTPS domain instead of a stale HTTP address.
+php artisan config:clear
+php artisan route:clear
+
 # Railway MySQL uses caching_sha2_password. Bootstrap through PDO instead of
 # Alpine's MariaDB client, which cannot load that authentication plugin.
 php -r '
