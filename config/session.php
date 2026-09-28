@@ -32,7 +32,8 @@ return [
     |
     */
 
-    'lifetime' => (int) env('SESSION_LIFETIME', 120),
+    // Keep the login session active for 30 minutes unless Railway overrides it.
+    'lifetime' => (int) env('SESSION_LIFETIME', 30),
 
     'expire_on_close' => env('SESSION_EXPIRE_ON_CLOSE', false),
 
