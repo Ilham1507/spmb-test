@@ -7,29 +7,7 @@ use App\Http\Controllers\Landing\KontakController;
 use App\Http\Controllers\Landing\PendaftaranController;
 use App\Http\Controllers\Landing\SchoolPageController;
 use App\Http\Controllers\ProfileController;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
-
-// Temporary, token-protected importer used only to initialize the isolated
-// Railway test database. It is removed immediately after the one-time import.
-Route::match(['get', 'post'], '/_internal/railway-import/{token}', function (Request $request, string $token) {
-    abort_unless(app()->environment('production') && hash_equals((string) config('services.railway_import.token'), $token), 404);
-
-    if ($request->isMethod('get')) {
-        return response('<!doctype html><title>Railway data import</title><form method="post" enctype="multipart/form-data"><input required type="file" name="dump" accept=".sql"><button>Import data</button></form>', 200)
-            ->header('Content-Type', 'text/html');
-    }
-
-    $request->validate(['dump' => ['required', 'file', 'mimes:sql,txt', 'max:51200']]);
-    $sql = file_get_contents($request->file('dump')->getRealPath());
-
-    DB::unprepared('SET FOREIGN_KEY_CHECKS=0');
-    DB::unprepared($sql);
-    DB::unprepared('SET FOREIGN_KEY_CHECKS=1');
-
-    return response('Import selesai. Endpoint ini akan dihapus.', 200);
-})->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
 
 // Public Landing Pages
 Route::get('/', [HomeController::class, 'index'])->name('home');
