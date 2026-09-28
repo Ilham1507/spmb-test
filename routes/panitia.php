@@ -37,6 +37,7 @@ Route::middleware(['web', 'panitia'])->group(function () {
     Route::get('/kunjungan/cari-sekolah', [LayananPiketController::class, 'searchSchool'])->name('kunjungan.sekolah.search');
     Route::post('/kunjungan', [LayananPiketController::class, 'store'])->name('kunjungan.store');
     Route::get('/pembayaran', [PembayaranController::class, 'index'])->name('pembayaran.index');
+    Route::post('/pembayaran', [PembayaranController::class, 'store'])->name('pembayaran.store');
     Route::patch('/pembayaran/transaksi/{transaksi}', [PembayaranController::class, 'verify'])->name('pembayaran.verify');
     Route::get('/pembayaran/transaksi/{transaksi}/bukti', [PembayaranController::class, 'viewProof'])->name('pembayaran.proof');
 

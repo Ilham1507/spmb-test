@@ -5,13 +5,23 @@ namespace App\Http\Controllers\Panitia;
 use App\Http\Controllers\Controller;
 use App\Models\TagihanPendaftar;
 use App\Models\TransaksiPembayaran;
+use App\Models\Pendaftar;
+use App\Models\User;
 use App\Services\WhatsappCloudApiService;
+use App\Services\ParticipantActivationService;
+use App\Support\PendaftarSetup;
+use App\Support\RegistrationFee;
+use App\Support\ReRegistrationFee;
+use App\Support\VerifiedPayment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Throwable;
 use App\Support\Pagination;
 
@@ -29,7 +39,141 @@ class PembayaranController extends Controller
             ->orderByDesc('payment_date')
             ->paginate(Pagination::perPage())->withQueryString();
 
-        return view('panitia.pembayaran.index', compact('transactions'));
+        $applicants = Pendaftar::with(['user', 'biodata'])
+            ->latest('id')->limit(250)->get();
+
+        return view('panitia.pembayaran.index', compact('transactions', 'applicants'));
+    }
+
+    /**
+     * Panitia may record a cash/transfer payment at the school desk. Recording
+     * it is itself the required panitia approval; the proof remains mandatory.
+     */
+    public function store(Request $request, ParticipantActivationService $activation, WhatsappCloudApiService $whatsapp)
+    {
+        $request->merge(['phone' => $this->normalizePhone((string) $request->input('phone'))]);
+        $validated = $request->validate([
+            'applicant_id' => ['nullable', Rule::exists('pendaftar', 'id')],
+            'full_name' => ['required_without:applicant_id', 'nullable', 'string', 'max:150'],
+            'phone' => ['required_without:applicant_id', 'nullable', 'regex:/^08[0-9]{8,13}$/'],
+            'fee_type' => ['required', Rule::in(['formulir', 'daftar_ulang'])],
+            'amount' => ['required', 'integer', 'min:1'],
+            'payment_method' => ['required', Rule::in(['cash', 'transfer'])],
+            'proof_file' => ['required', 'file', 'mimes:jpg,jpeg,png,pdf', 'mimetypes:image/jpeg,image/png,application/pdf', 'max:2048'],
+            'selected_items' => ['nullable', 'array'],
+            'selected_items.*' => ['string', 'max:255'],
+            'reference_number' => ['nullable', 'string', 'max:100'],
+            'notes' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $proofPath = $request->file('proof_file')->store('bukti_pembayaran', 'local');
+
+        try {
+            $result = DB::transaction(function () use ($validated, $proofPath) {
+                $createdAccount = false;
+                if (! empty($validated['applicant_id'])) {
+                    $applicant = Pendaftar::with('user')->lockForUpdate()->findOrFail($validated['applicant_id']);
+                    $user = $applicant->user;
+                } else {
+                    $user = User::where('phone', $validated['phone'])->lockForUpdate()->first();
+                    if (! $user) {
+                        $role = \App\Models\Peran::firstOrCreate(['name' => 'peserta'], ['description' => 'Peserta SPMB']);
+                        $user = User::create([
+                            'name' => $validated['full_name'],
+                            'phone' => $validated['phone'],
+                            'email' => null,
+                            'password' => Hash::make(Str::random(64)),
+                            'role_id' => $role->id,
+                        ]);
+                        $createdAccount = true;
+                    }
+                    $applicant = PendaftarSetup::getOrCreateFor($user);
+                }
+
+                $registrationBill = RegistrationFee::ensureBill($applicant);
+                $isRegistration = $validated['fee_type'] === 'formulir';
+                if ($isRegistration) {
+                    $bill = $registrationBill;
+                } else {
+                    if (! RegistrationFee::isPaid($registrationBill)) {
+                        throw \Illuminate\Validation\ValidationException::withMessages(['fee_type' => 'Pembayaran formulir harus disetujui terlebih dahulu sebelum DU.']);
+                    }
+                    $bill = ReRegistrationFee::ensureBill($applicant);
+                    if ($bill->transaksi()->exists()) {
+                        throw \Illuminate\Validation\ValidationException::withMessages(['fee_type' => 'DU SPMB hanya dapat dicatat satu kali. Pembayaran berikutnya dilakukan di BMT.']);
+                    }
+                }
+
+                if ($bill->transaksi()->where('status', 'pending')->exists()) {
+                    throw \Illuminate\Validation\ValidationException::withMessages(['payment' => 'Masih ada bukti pembayaran yang menunggu approval panitia.']);
+                }
+
+                $duItemNames = collect($bill->rincian_biaya ?? [])->pluck('name')->filter()->values()->all();
+                $quote = $isRegistration
+                    ? \App\Support\PaymentQuote::forBill($bill, $validated['selected_items'] ?? [])
+                    : \App\Support\PaymentQuote::forBill($bill, $duItemNames);
+                if (! $quote['valid_selection']) {
+                    throw \Illuminate\Validation\ValidationException::withMessages(['selected_items' => 'Pilih rincian biaya yang akan dibayar.']);
+                }
+
+                // DU SPMB is a one-time opening payment: all components must be
+                // selected and paid together. Further instalments belong to BMT.
+                if (! $isRegistration) {
+                    $all = \App\Support\PaymentQuote::forBill($bill, $duItemNames);
+                    if ((int) $validated['amount'] !== (int) $all['amount']) {
+                        throw \Illuminate\Validation\ValidationException::withMessages(['amount' => 'DU SPMB harus dibayar satu kali penuh sesuai seluruh rincian biaya.']);
+                    }
+                    $quote = $all;
+                }
+
+                if ((int) $validated['amount'] !== (int) $quote['amount']) {
+                    throw \Illuminate\Validation\ValidationException::withMessages(['amount' => 'Nominal harus sama dengan tagihan dan rincian yang dipilih.']);
+                }
+
+                $transaction = TransaksiPembayaran::create([
+                    'bill_id' => $bill->id,
+                    'transaction_number' => 'TRX-'.strtoupper(uniqid()),
+                    'reference_number' => $validated['reference_number'] ?: 'PAN-'.now()->format('Ymd-His'),
+                    'payment_date' => now(),
+                    'amount' => $quote['amount'],
+                    'received_amount' => $quote['amount'],
+                    'change_amount' => 0,
+                    'selected_items' => $quote['selected_items'],
+                    'discount_amount' => $quote['discount'] ?? 0,
+                    'promotion_name' => $quote['promotion_name'] ?? null,
+                    'bill_total_snapshot' => $bill->total_amount,
+                    'payment_method' => $validated['payment_method'],
+                    'proof_file' => $proofPath,
+                    'status' => 'verified',
+                    'verified_by' => Auth::id(),
+                    'verified_at' => now(),
+                    'notes' => $validated['notes'] ?: 'Diinput dan disetujui panitia.',
+                ]);
+
+                if ($isRegistration) {
+                    VerifiedPayment::apply($bill, $transaction);
+                }
+
+                return compact('transaction', 'user', 'createdAccount', 'isRegistration');
+            }, 3);
+        } catch (Throwable $exception) {
+            Storage::disk('local')->delete($proofPath);
+            throw $exception;
+        }
+
+        $transaction = $result['transaction']->fresh(['tagihan.jenisTagihan', 'tagihan.pendaftar.biodata', 'tagihan.pendaftar.user', 'verifier']);
+        try {
+            if ($result['createdAccount']) {
+                $activation->send($result['user'], $whatsapp);
+            }
+            $this->sendDecisionNotification($whatsapp, $transaction);
+        } catch (Throwable $exception) {
+            Log::warning('Notifikasi pembayaran input panitia gagal dikirim.', ['transaction_id' => $transaction->id, 'error' => $exception->getMessage()]);
+        }
+
+        return back()->with('success', $result['createdAccount']
+            ? 'Pembayaran disetujui dan akun siswa dibuat. Tautan aktivasi sudah dikirim ke WhatsApp.'
+            : 'Pembayaran disetujui oleh panitia. Notifikasi WhatsApp siswa sudah dikirim.');
     }
 
     public function verify(Request $request, TransaksiPembayaran $transaksi, WhatsappCloudApiService $whatsapp)
@@ -132,6 +276,10 @@ class PembayaranController extends Controller
         }
 
         $whatsapp->send((string) $phone, $message);
+        if ($transaction->status === 'verified') {
+            $pdfUrl = URL::temporarySignedRoute('invoice.public.pdf', now()->addMinutes(30), ['transaksi' => $transaction->id]);
+            $whatsapp->sendDocument((string) $phone, $pdfUrl, 'invoice-spmb-'.$transaction->id.'.pdf', 'Invoice pembayaran SPMB');
+        }
     }
 
     private function approvalFeeQuery($query)
@@ -152,5 +300,11 @@ class PembayaranController extends Controller
     {
         $name = strtolower((string) $bill?->jenisTagihan?->name);
         return str_contains($name, 'formulir') || str_contains($name, 'pendaftaran');
+    }
+
+    private function normalizePhone(string $phone): string
+    {
+        $digits = preg_replace('/\D+/', '', $phone) ?? '';
+        return str_starts_with($digits, '62') ? '0'.substr($digits, 2) : $digits;
     }
 }

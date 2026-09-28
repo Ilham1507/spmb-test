@@ -12,7 +12,6 @@ use App\Support\RegistrationFee;
 use App\Support\ReRegistrationFee;
 use App\Support\RegistrationNumber;
 use App\Services\WhatsappCloudApiService;
-use App\Services\PaymentCheckoutService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -50,7 +49,7 @@ class PembayaranController extends Controller
 
         $tagihans = $tagihansQuery->get()->values();
 
-        // Pembayaran digital/Midtrans dihentikan. Semua transfer memakai rekening
+        // Pembayaran digital dihentikan. Semua transfer memakai rekening
         // resmi dan setiap metode menyertakan bukti pembayaran.
         $gatewayReady = false;
         $activeCheckouts = collect();
@@ -132,6 +131,11 @@ class PembayaranController extends Controller
                 ->with('warning', 'Konfirmasi pembayaran kamu sudah dikirim dan sedang dicek panitia. Tunggu sampai diverifikasi, ya.');
         }
 
+        if ($this->isReRegistrationFee($tagihan) && $tagihan->transaksi()->exists()) {
+            return redirect()->route('peserta.pembayaran')
+                ->with('warning', 'Pembayaran DU melalui SPMB hanya satu kali. Pembayaran lanjutan dilakukan di BMT PCM Cileungsi.');
+        }
+
         $request->validate([
             'amount' => 'required|integer|min:1',
             'payment_method' => 'required|in:cash,transfer',
@@ -143,7 +147,11 @@ class PembayaranController extends Controller
         try {
             $transaction = \Illuminate\Support\Facades\DB::transaction(function () use ($tagihan, $request, $proofPath) {
                 $bill = TagihanPendaftar::lockForUpdate()->findOrFail($tagihan->id);
-                $quote = \App\Support\PaymentQuote::forBill($bill, $request->input('selected_items'), (int) $request->amount);
+                $isReRegistration = $this->isReRegistrationFee($bill);
+                $duItemNames = collect($bill->rincian_biaya ?? [])->pluck('name')->filter()->values()->all();
+                $quote = $isReRegistration
+                    ? \App\Support\PaymentQuote::forBill($bill, $duItemNames)
+                    : \App\Support\PaymentQuote::forBill($bill, $request->input('selected_items'), (int) $request->amount);
                 if (! $quote['valid_selection']) {
                     throw \Illuminate\Validation\ValidationException::withMessages(['selected_items' => 'Pilih biaya yang ingin dibayar.']);
                 }
@@ -164,37 +172,25 @@ class PembayaranController extends Controller
         }
 
         $isReRegistrationFee = $this->isReRegistrationFee($tagihan);
-        if (! $isReRegistrationFee) {
-            try {
-                $pendaftar = Auth::user()->pendaftar;
-                RegistrationNumber::ensure($pendaftar);
-                $pendaftar->refresh()->loadMissing('biodata', 'kunjungan.penerima');
-                $name = $pendaftar->biodata?->full_name ?? Auth::user()->name;
-                $linkedVisit = $pendaftar->kunjunganPenerimaanUtama();
-                $notificationTarget = $linkedVisit?->penerima?->phone
-                    ?: (string) config('services.panitia.whatsapp_number');
-                $method = $transaction->payment_method === 'cash' ? 'tunai' : 'transfer';
-                $amount = number_format((float) $transaction->amount, 0, ',', '.');
-                $message = "Halo Panitia SPMB, {$name} sudah mengirim bukti pembayaran {$method} formulir sebesar Rp {$amount}.\n"
-                    ."Nomor pendaftaran: {$pendaftar->registration_number}.\n"
-                    ."Nomor WA siswa: ".Auth::user()->phone.".\n"
-                    .($linkedVisit ? "Kunjungan diterima oleh: {$linkedVisit->penerima?->name}.\n" : '')
-                    ."\nMohon diperiksa melalui menu Approval Pembayaran.";
-                $whatsapp->send($notificationTarget, $message);
-            } catch (Throwable $exception) {
-                Log::warning('Notifikasi pembayaran ke panitia gagal dikirim melalui WhatsApp Business API.', [
-                    'transaction_id' => $transaction->id,
-                    'error' => $exception->getMessage(),
-                ]);
-
-                return redirect()->route('peserta.pembayaran')
-                    ->with('warning', 'Bukti pembayaran sudah tersimpan. Status pembayaran akan diperbarui setelah pemeriksaan selesai.');
-            }
+        try {
+            $pendaftar = Auth::user()->pendaftar;
+            RegistrationNumber::ensure($pendaftar);
+            $pendaftar->refresh()->loadMissing('biodata', 'kunjungan.penerima');
+            $name = $pendaftar->biodata?->full_name ?? Auth::user()->name;
+            $linkedVisit = $pendaftar->kunjunganPenerimaanUtama();
+            $notificationTarget = $linkedVisit?->penerima?->phone ?: (string) config('services.panitia.whatsapp_number');
+            $method = $transaction->payment_method === 'cash' ? 'tunai' : 'transfer';
+            $amount = number_format((float) $transaction->amount, 0, ',', '.');
+            $type = $isReRegistrationFee ? 'daftar ulang' : 'formulir';
+            $whatsapp->send($notificationTarget, "Halo Panitia SPMB, {$name} sudah mengirim bukti pembayaran {$method} {$type} sebesar Rp {$amount}.\nNomor pendaftaran: {$pendaftar->registration_number}.\nNomor WA siswa: ".Auth::user()->phone.".\n\nMohon diperiksa melalui menu Approval Pembayaran.");
+        } catch (Throwable $exception) {
+            Log::warning('Notifikasi pembayaran ke panitia gagal dikirim melalui WhatsApp Business API.', ['transaction_id' => $transaction->id, 'error' => $exception->getMessage()]);
+            return redirect()->route('peserta.pembayaran')->with('warning', 'Bukti pembayaran sudah tersimpan. Status pembayaran akan diperbarui setelah pemeriksaan selesai.');
         }
 
         if ($isReRegistrationFee) {
             return redirect()->route('peserta.pembayaran')
-                ->with('success', 'Bukti pembayaran dikirim. Tunggu bendahara memeriksa; tagihan belum dianggap lunas.');
+                ->with('success', 'Bukti pembayaran dikirim. Tunggu persetujuan panitia; setelah itu transaksi diteruskan ke bendahara.');
         }
 
         // Status menunggu verifikasi sudah ditampilkan pada kartu utama halaman.

@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Validation\Rule;
 use Throwable;
 
@@ -24,8 +25,7 @@ class PembayaranController extends Controller
         $transactionStatus = (string) $request->input('transaction_status', '');
         $relations = [
             'jenisTagihan', 'pendaftar.biodata', 'pendaftar.user', 'pendaftar.gelombangPendaftaran',
-            'transaksi' => fn ($query) => $query->with(['verifier', 'checkout'])->latest('payment_date')->latest('id'),
-            'checkouts' => fn ($query) => $query->where(fn ($checkout) => $checkout->whereNotNull('active_bill_id')->orWhere('status', 'needs_review'))->latest('id'),
+            'transaksi' => fn ($query) => $query->with(['verifier', 'treasurerReceiver'])->latest('payment_date')->latest('id'),
         ];
 
         TagihanPendaftar::with(['jenisTagihan', 'pendaftar'])
@@ -46,7 +46,6 @@ class PembayaranController extends Controller
         }
         if (in_array($billStatus, ['unpaid', 'partial', 'paid'], true)) $billsQuery->where('status', $billStatus);
         if (in_array($transactionStatus, ['pending', 'verified', 'rejected'], true)) $billsQuery->whereHas('transaksi', fn ($transaction) => $transaction->where('status', $transactionStatus));
-        if ($transactionStatus === 'online') $billsQuery->whereHas('checkouts', fn ($checkout) => $checkout->whereNotNull('active_bill_id'));
         $bills = $billsQuery->paginate(Pagination::perPage())->withQueryString();
 
         $inputBills = TagihanPendaftar::with($relations)
@@ -76,6 +75,8 @@ class PembayaranController extends Controller
 
     public function store(Request $request, \App\Services\PaymentReceiptNotifier $receiptNotifier, \App\Services\PaymentCheckoutService $checkoutService, WhatsappCloudApiService $whatsapp)
     {
+        return back()->with('warning', 'Pembayaran dicatat dan disetujui oleh panitia. Bendahara hanya menerima pembayaran yang sudah disetujui panitia.');
+
         $validated = $request->validate([
             'bill_id' => ['required', Rule::exists('tagihan_pendaftar', 'id')],
             'amount' => ['required', 'numeric', 'min:1'],
@@ -232,6 +233,8 @@ class PembayaranController extends Controller
 
     public function verify(Request $request, TransaksiPembayaran $transaksi, WhatsappCloudApiService $whatsapp, \App\Services\PaymentReceiptNotifier $receiptNotifier)
     {
+        return back()->with('warning', 'Approval pembayaran hanya dilakukan oleh panitia. Bendahara menunggu transaksi berstatus Disetujui panitia.');
+
         $validated = $request->validate([
             'status' => ['required', 'in:verified,rejected'],
             'notes' => ['nullable', 'string', 'max:255'],
@@ -286,7 +289,11 @@ class PembayaranController extends Controller
     /** Final handover after panitia approval. Only this step records DU as received. */
     public function receive(Request $request, TransaksiPembayaran $transaksi, WhatsappCloudApiService $whatsapp, \App\Services\PaymentReceiptNotifier $receiptNotifier)
     {
-        $request->validate(['notes' => ['nullable', 'string', 'max:1000']]);
+        $request->validate([
+            'notes' => ['nullable', 'string', 'max:1000'],
+            'selected_items' => ['nullable', 'array'],
+            'selected_items.*' => ['string', 'max:255'],
+        ]);
 
         $result = \Illuminate\Support\Facades\DB::transaction(function () use ($transaksi, $request) {
             $transaction = TransaksiPembayaran::lockForUpdate()->findOrFail($transaksi->id);
@@ -302,10 +309,12 @@ class PembayaranController extends Controller
             // Formulir telah membuka akses setelah persetujuan panitia. DU baru
             // diterapkan saat bendahara menerima rincian yang dipilih.
             if ($this->isReRegistrationFee($bill)) {
-                $quote = \App\Support\PaymentQuote::forBill($bill, $transaction->selected_items ?? []);
+                $selectedItems = $request->input('selected_items', collect($transaction->selected_items ?? [])->pluck('name')->all());
+                $quote = \App\Support\PaymentQuote::forBill($bill, $selectedItems);
                 if (! $quote['valid_selection'] || (float) $quote['amount'] !== (float) $transaction->amount) {
                     throw \Illuminate\Validation\ValidationException::withMessages(['payment' => 'Rincian biaya DU tidak cocok dengan bukti pembayaran.']);
                 }
+                $transaction->update(['selected_items' => $quote['selected_items']]);
                 \App\Support\VerifiedPayment::apply($bill, $transaction);
             }
 
@@ -340,6 +349,18 @@ class PembayaranController extends Controller
     {
         abort_unless($transaksi->status === 'verified', 404, 'Invoice pembayaran belum tersedia.');
         $transaksi->load(['checkout', 'tagihan.jenisTagihan', 'tagihan.pendaftar.biodata', 'tagihan.pendaftar.user', 'tagihan.pendaftar.kunjungan.penerima', 'verifier', 'treasurerReceiver']);
+
+        return \Barryvdh\DomPDF\Facade\Pdf::loadView('payments.system-proof', ['transaction' => $transaksi])
+            ->setPaper('a4')
+            ->download('invoice-spmb-'.$transaksi->id.'.pdf');
+    }
+
+    /** A short-lived signed URL used by Waslah to fetch the invoice PDF. */
+    public function publicInvoicePdf(TransaksiPembayaran $transaksi)
+    {
+        abort_unless($transaksi->status === 'verified', 404, 'Invoice pembayaran belum tersedia.');
+
+        $transaksi->load(['tagihan.jenisTagihan', 'tagihan.pendaftar.biodata', 'tagihan.pendaftar.user', 'verifier', 'treasurerReceiver']);
 
         return \Barryvdh\DomPDF\Facade\Pdf::loadView('payments.system-proof', ['transaction' => $transaksi])
             ->setPaper('a4')
@@ -507,11 +528,12 @@ Silakan unggah ulang bukti pembayaran yang benar melalui sistem.";
         $receivedBy = $transaction->treasurerReceiver?->name ?? Auth::user()?->name ?? 'bendahara sekolah';
         $amount = number_format((float) $transaction->amount, 0, ',', '.');
         $invoice = route($this->routeName('pembayaran.receipt'), $transaction);
-        $pdf = route($this->routeName('pembayaran.receipt.pdf'), $transaction);
+        $pdf = URL::temporarySignedRoute('invoice.public.pdf', now()->addMinutes(30), ['transaksi' => $transaction->id]);
         $message = "Halo {$name}, pembayaran {$type} sebesar Rp {$amount} sudah diterima oleh bendahara {$receivedBy}.\n\n"
             ."Disetujui panitia: ".($transaction->verifier?->name ?? '-')."\n"
             ."Invoice: {$invoice}\nPDF invoice: {$pdf}\n\n"
             ."Untuk pembayaran lanjutan, silakan ke BMT PCM Cileungsi setiap Selasa dan Jumat, Kampus E SMK Muhammadiyah 4 Cileungsi, pukul 07.30–14.30.";
         $whatsapp->send($phone, $message);
+        $whatsapp->sendDocument($phone, $pdf, 'invoice-spmb-'.$transaction->id.'.pdf', 'Invoice pembayaran SPMB');
     }
 }

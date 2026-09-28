@@ -39,6 +39,31 @@ class WhatsappCloudApiService
         $this->throwIfFailed($response->status(), $response->json());
     }
 
+    /** Send a public PDF invoice as an actual WhatsApp document attachment. */
+    public function sendDocument(string $target, string $url, string $filename, string $caption = ''): void
+    {
+        if (! $this->usesWaslah()) {
+            throw new RuntimeException('Lampiran invoice WhatsApp saat ini memerlukan konfigurasi Waslah.');
+        }
+
+        $response = Http::acceptJson()
+            ->withToken(trim((string) config('services.whatsapp.waslah_token')))
+            ->timeout(30)
+            ->post('https://waslah.id/api/v1/messages/media', [
+                'instance_key' => trim((string) config('services.whatsapp.waslah_instance_key')),
+                'to' => $this->normalizeTarget($target),
+                'type' => 'document',
+                'url' => $url,
+                'filename' => $filename,
+                'mimetype' => 'application/pdf',
+                'caption' => $caption,
+            ]);
+
+        if (! $response->successful() || ! $response->json('ok')) {
+            throw new RuntimeException((string) ($response->json('message') ?? 'Waslah gagal mengirim PDF invoice.'));
+        }
+    }
+
     /**
      * Send an approved Meta template. Use this for a conversation started by
      * the school, such as account activation or password reset.

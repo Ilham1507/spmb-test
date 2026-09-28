@@ -7,10 +7,14 @@ use App\Http\Controllers\Landing\KontakController;
 use App\Http\Controllers\Landing\PendaftaranController;
 use App\Http\Controllers\Landing\SchoolPageController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Bendahara\PembayaranController as BendaharaPembayaranController;
 use Illuminate\Support\Facades\Route;
 
 // Public Landing Pages
 Route::get('/', [HomeController::class, 'index'])->name('home');
+Route::get('/invoice/{transaksi}/pdf', [BendaharaPembayaranController::class, 'publicInvoicePdf'])
+    ->middleware('signed')
+    ->name('invoice.public.pdf');
 Route::get('/profil', [ProfilController::class, 'index'])->name('profil');
 Route::get('/jurusan', [JurusanController::class, 'index'])->name('jurusan');
 Route::get('/konsentrasi/{jurusan}', [JurusanController::class, 'show'])->name('konsentrasi.show');

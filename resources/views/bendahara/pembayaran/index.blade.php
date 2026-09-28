@@ -15,17 +15,18 @@
             'billType' => $bill->jenisTagihan?->name ?? 'Tagihan SPMB',
             'total' => (float) $bill->total_amount, 'paid' => (float) $bill->paid_amount, 'remaining' => (float) $bill->remaining_amount,
             'invoiceUrl' => route($routePrefix.'tagihan.invoice', $bill),
-            'canRecord' => $inputBills->contains('id', $bill->id),
-            'online' => ($online = $bill->checkouts->first()) ? ['refreshUrl' => route($routePrefix.'pembayaran.online.refresh', $online)] : null,
-            'pending' => ($pending = $bill->transaksi->firstWhere('status', 'pending')) ? ['verifyUrl' => route($routePrefix.'pembayaran.verify', $pending)] : null,
+            'canRecord' => false,
+            'online' => null,
+            'pending' => null,
             'transactions' => $bill->transaksi->map(fn ($transaction) => [
                 'date' => $transaction->payment_date ? \Illuminate\Support\Carbon::parse($transaction->payment_date)->format('d M Y, H:i') : '-',
-                'amount' => (float) $transaction->amount, 'method' => $transaction->checkout
-                    ? \App\Support\PaymentChannel::label($transaction->checkout->provider_payment_type, $transaction->checkout->provider_bank)
-                    : ($transaction->payment_method === 'cash' ? 'Tunai' : 'Transfer'),
+                'amount' => (float) $transaction->amount,
+                'method' => $transaction->payment_method === 'cash' ? 'Tunai' : 'Transfer',
                 'reference' => $transaction->reference_number ?? $transaction->transaction_number ?? '-',
                 'status' => $transaction->treasurer_received_at ? 'Diterima bendahara' : (match ($transaction->status) { 'verified' => 'Disetujui panitia', 'rejected' => 'Ditolak', default => 'Menunggu persetujuan panitia' }),
                 'received' => (bool) $transaction->treasurer_received_at,
+                'items' => collect($transaction->selected_items ?? [])->values(),
+                'selectedItems' => collect($transaction->selected_items ?? [])->pluck('name')->values(),
                 'receiveUrl' => $transaction->status === 'verified' && ! $transaction->treasurer_received_at ? route($routePrefix.'pembayaran.receive', $transaction) : null,
                 'receiptUrl' => $transaction->status === 'verified' ? route($routePrefix.'pembayaran.receipt', $transaction) : null,
             ])->values(),
@@ -54,7 +55,7 @@
     <section class="payment-table-card overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm" data-no-auto-tools><header class="flex items-center justify-between border-b border-slate-100 px-5 py-4"><div><h3 class="text-lg font-black text-slate-900">Daftar pembayaran</h3></div><span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-600">{{ $bills->total() }} tagihan</span></header><div class="overflow-x-auto" x-init="$nextTick(() => $el.scrollLeft = 0)"><table class="w-full min-w-[980px] table-fixed text-left text-sm"><thead class="bg-slate-50 text-[11px] font-black uppercase tracking-wider text-slate-500"><tr><th class="w-[16%] px-5 py-3">Peserta</th><th class="w-[22%] px-4 py-3">Tagihan</th><th class="w-[16%] px-4 py-3">Nilai tagihan</th><th class="w-[22%] px-4 py-3">Transaksi terakhir</th><th class="w-[11%] px-4 py-3">Status</th><th class="w-[13%] px-5 py-3 text-right">Aksi</th></tr></thead><tbody class="divide-y divide-slate-100 text-slate-700">
         @forelse($bills as $bill)
             @php
-                $online = $bill->checkouts->first(); $latest = $bill->transaksi->first(); $pending = $bill->transaksi->firstWhere('status','pending');
+                $online = null; $latest = $bill->transaksi->first(); $pending = $bill->transaksi->firstWhere('status','pending');
                 $paid = $bill->status === 'paid' || (float)$bill->remaining_amount <= 0; $partial = $bill->status === 'partial' || ((float)$bill->paid_amount > 0 && !$paid);
                 if($online){[$label,$class]=['Menunggu pembayaran','bg-amber-50 text-amber-700'];} elseif($pending){[$label,$class]=['Menunggu verifikasi','bg-violet-50 text-violet-700'];} elseif($paid){[$label,$class]=['Lunas','bg-emerald-50 text-emerald-700'];} elseif($partial){[$label,$class]=['Cicilan','bg-blue-50 text-blue-700'];} else {[$label,$class]=['Belum dibayar','bg-rose-50 text-rose-700'];}
             @endphp

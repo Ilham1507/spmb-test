@@ -100,8 +100,6 @@ Route::middleware(['web', 'admin'])->group(function () {
     Route::get('/tagihan', [BendaharaTagihanController::class, 'index'])->name('tagihan.index');
     Route::get('/tagihan/{bill}/invoice', [BendaharaTagihanController::class, 'invoice'])->name('tagihan.invoice');
     Route::get('/pembayaran', [BendaharaPembayaranController::class, 'index'])->name('pembayaran.index');
-    Route::post('/pembayaran-online/{checkout}/cek', [BendaharaPembayaranController::class, 'refreshCheckout'])
-        ->middleware('throttle:20,1')->name('pembayaran.online.refresh');
     Route::post('/pembayaran', [BendaharaPembayaranController::class, 'store'])->name('pembayaran.store');
     Route::patch('/pembayaran/transaksi/{transaksi}', [BendaharaPembayaranController::class, 'verify'])->name('pembayaran.verify');
     Route::get('/pembayaran/transaksi/{transaksi}/nota', [BendaharaPembayaranController::class, 'receipt'])->name('pembayaran.receipt');
