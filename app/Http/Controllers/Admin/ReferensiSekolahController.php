@@ -22,7 +22,9 @@ class ReferensiSekolahController extends Controller
                 $query = trim((string) $request->search);
                 $queryBuilder->where(function ($builder) use ($query) {
                     $builder->where('nama', 'like', "%{$query}%")
-                        ->orWhere('npsn', 'like', "{$query}%");
+                        ->orWhere('npsn', 'like', "{$query}%")
+                        ->orWhere('kecamatan', 'like', "%{$query}%")
+                        ->orWhere('kabupaten_kota', 'like', "%{$query}%");
                 });
             })
             ->orderBy('nama')
@@ -36,7 +38,7 @@ class ReferensiSekolahController extends Controller
     {
         $query = trim((string) $request->query('q', ''));
 
-        if (mb_strlen($query) < 2) {
+        if (mb_strlen($query) < 1) {
             return response()->json([]);
         }
 
@@ -56,7 +58,7 @@ class ReferensiSekolahController extends Controller
             ->limit(15)
             ->get();
 
-        $officialSchools = $schools->count() < 5
+        $officialSchools = mb_strlen($query) >= 3 && $schools->count() < 5
             ? $this->findAndCacheOfficialSchools($query)
             : collect();
 

@@ -16,7 +16,7 @@ function schoolFinder() {
         closeModal() { this.isOpen = false; },
         async searchSchools() {
             const query = this.query.trim();
-            this.hasSearched = query.length >= 2;
+            this.hasSearched = query.length >= 1;
             if (!this.hasSearched) { this.results = []; return; }
             this.searching = true;
             try {
@@ -35,12 +35,12 @@ function schoolFinder() {
             <div><h2 class="text-lg font-black text-slate-950">Asal Sekolah</h2><p class="mt-1 text-sm text-slate-500">Referensi sekolah asal khusus jenjang SMP dan MTs.</p></div>
             <button type="button" class="btn-primary" @click="openModal()">+ Tambah Sekolah</button>
         </div>
-        <form class="mt-4 flex gap-2"><x-list-search placeholder="Cari nama sekolah atau NPSN" class="flex-1" /><button class="btn-secondary">Cari</button></form>
+        <form class="mt-4 flex gap-2"><x-list-search placeholder="Cari nama sekolah, NPSN, atau kecamatan" class="flex-1" /><button class="btn-secondary">Cari</button></form>
     </section>
     <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div class="overflow-x-auto"><table class="w-full min-w-[680px] text-left text-sm"><thead class="bg-slate-50 text-xs uppercase text-slate-500"><tr><th class="p-4">NPSN</th><th class="p-4">Nama Sekolah</th><th class="p-4">Alamat</th><th class="p-4">Status</th><th class="p-4">Aksi</th></tr></thead><tbody class="divide-y divide-slate-100">
         @forelse($sekolahs as $sekolah)
-            <tr><td class="p-4 font-bold">{{ $sekolah->npsn }}</td><td class="p-4 font-bold text-slate-900">{{ $sekolah->nama }}<span class="ml-2 rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-black text-blue-700">{{ strtoupper($sekolah->bentuk_pendidikan) }}</span></td><td class="p-4 text-slate-600">{{ $sekolah->alamat ?: '-' }}</td><td class="p-4"><span class="rounded-full bg-emerald-100 px-2 py-1 text-xs font-bold text-emerald-700">{{ ucfirst($sekolah->status ?: 'aktif') }}</span></td><td class="p-4"><div class="flex gap-3"><button type="button" class="text-xs font-bold text-sky-700" onclick="document.getElementById('edit-sekolah-{{ $sekolah->id }}').showModal()">Edit</button>@if(($sekolah->status ?: 'aktif') !== 'nonaktif')<form method="POST" action="{{ route('admin.master.sekolah.destroy', $sekolah) }}" onsubmit="return confirm('Nonaktifkan sekolah ini?')">@csrf @method('DELETE')<button class="text-xs font-bold text-rose-600">Hapus</button></form>@endif</div></td></tr>
+            <tr><td class="p-4 font-bold">{{ $sekolah->npsn }}</td><td class="p-4 font-bold text-slate-900">{{ $sekolah->nama }}<span class="ml-2 rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-black text-blue-700">{{ strtoupper($sekolah->bentuk_pendidikan) }}</span><p class="mt-1 text-xs font-semibold text-slate-500">{{ collect([$sekolah->kecamatan ? 'Kec. '.$sekolah->kecamatan : null, $sekolah->kabupaten_kota])->filter()->join(', ') ?: '-' }}</p></td><td class="p-4 text-slate-600">{{ $sekolah->alamat ?: '-' }}</td><td class="p-4"><span class="rounded-full bg-emerald-100 px-2 py-1 text-xs font-bold text-emerald-700">{{ ucfirst($sekolah->status ?: 'aktif') }}</span></td><td class="p-4"><div class="flex gap-3"><button type="button" class="text-xs font-bold text-sky-700" onclick="document.getElementById('edit-sekolah-{{ $sekolah->id }}').showModal()">Edit</button>@if(($sekolah->status ?: 'aktif') !== 'nonaktif')<form method="POST" action="{{ route('admin.master.sekolah.destroy', $sekolah) }}" onsubmit="return confirm('Nonaktifkan sekolah ini?')">@csrf @method('DELETE')<button class="text-xs font-bold text-rose-600">Hapus</button></form>@endif</div></td></tr>
             <dialog id="edit-sekolah-{{ $sekolah->id }}" class="w-[min(94vw,520px)] rounded-2xl p-0 shadow-2xl"><form method="POST" action="{{ route('admin.master.sekolah.update', $sekolah) }}" class="p-6">@csrf @method('PUT')<h3 class="text-lg font-black">Edit Asal Sekolah</h3><div class="mt-4 grid gap-3"><input name="npsn" value="{{ $sekolah->npsn }}" required maxlength="8" class="admin-input" placeholder="NPSN"><input name="nama" value="{{ $sekolah->nama }}" required class="admin-input" placeholder="Nama sekolah"><input name="alamat" value="{{ $sekolah->alamat }}" class="admin-input" placeholder="Alamat"><select name="status" class="admin-input"><option value="aktif" @selected(($sekolah->status ?: 'aktif') === 'aktif')>Aktif</option><option value="nonaktif" @selected($sekolah->status === 'nonaktif')>Nonaktif</option></select></div><div class="mt-5 flex justify-end gap-2"><button type="button" class="btn-secondary" onclick="this.closest('dialog').close()">Batal</button><button class="btn-primary">Simpan</button></div></form></dialog>
         @empty<tr><td colspan="5" class="p-8 text-center text-slate-500">Belum ada referensi sekolah SMP atau MTs.</td></tr>@endforelse
         </tbody></table></div><x-per-page-pagination :paginator="$sekolahs" />
@@ -70,16 +70,16 @@ function schoolFinder() {
                         <label class="text-sm font-black text-slate-800">Pencarian sekolah</label>
                         <div class="mt-2 flex items-center gap-2 rounded-xl border border-blue-200 bg-white px-3 shadow-sm" :class="searching ? 'ring-2 ring-blue-200' : ''">
                             <svg class="h-5 w-5 shrink-0 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-                            <input x-ref="schoolQuery" type="search" x-model="query" @input.debounce.350ms="searchSchools()" class="min-w-0 flex-1 border-0 bg-transparent py-3 text-sm font-semibold outline-none" placeholder="Ketik nama sekolah, NPSN, kecamatan, atau kabupaten">
+                            <input x-ref="schoolQuery" type="search" x-model="query" @input.debounce.150ms="searchSchools()" class="min-w-0 flex-1 border-0 bg-transparent py-3 text-sm font-semibold outline-none" placeholder="Ketik nama sekolah, NPSN, kecamatan, atau kabupaten">
                             <span x-show="searching" class="text-xs font-bold text-blue-700">Mencari…</span>
                         </div>
-                        <p class="mt-2 text-xs text-slate-500">Masukkan minimal 2 karakter. Sistem hanya menampilkan jenjang SMP dan MTs.</p>
+                        <p class="mt-2 text-xs text-slate-500">Ketik nama sekolah, NPSN, kecamatan, atau kabupaten. Sistem hanya menampilkan jenjang SMP dan MTs.</p>
 
                         <div x-show="hasSearched" class="mt-3 max-h-64 overflow-y-auto rounded-xl border border-blue-100 bg-white p-1">
                             <template x-for="school in results" :key="school.npsn">
                                 <button type="button" @click="selectSchool(school)" class="block w-full rounded-lg px-3 py-3 text-left hover:bg-blue-50" :class="selected.npsn === school.npsn ? 'bg-blue-50 ring-1 ring-inset ring-blue-300' : ''">
                                     <span class="flex items-center justify-between gap-2"><span class="font-black text-slate-900" x-text="school.nama"></span><span class="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-black text-blue-700" x-text="school.bentuk_pendidikan"></span></span>
-                                    <span class="mt-1 block text-xs text-slate-500"><span x-text="school.npsn"></span><span x-show="school.alamat_lengkap"> · <span x-text="school.alamat_lengkap"></span></span></span>
+                                    <span class="mt-1 block text-xs text-slate-500"><span x-text="school.npsn"></span><span x-show="school.kecamatan"> · Kec. <span x-text="school.kecamatan"></span></span><span x-show="school.kabupaten_kota">, <span x-text="school.kabupaten_kota"></span></span></span>
                                 </button>
                             </template>
                             <p x-show="!searching && results.length === 0" class="px-3 py-4 text-center text-sm text-slate-500">Tidak ada SMP atau MTs yang cocok.</p>

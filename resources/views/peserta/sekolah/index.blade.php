@@ -33,7 +33,7 @@
             <input type="hidden" name="referensi_sekolah_id" :value="selectedId">
 
             <div class="rounded-2xl border border-sky-100 bg-sky-50/70 p-4">
-                <label for="search_sekolah" class="mb-2 block text-xs font-black uppercase tracking-wide text-sky-800">Cari SMP / MTs berdasarkan nama atau NPSN <span class="text-rose-500">*</span></label>
+                <label for="search_sekolah" class="mb-2 block text-xs font-black uppercase tracking-wide text-sky-800">Cari SMP / MTs berdasarkan nama, NPSN, atau kecamatan <span class="text-rose-500">*</span></label>
 
                 <div class="relative">
                     <input id="search_sekolah" type="text" x-model="query" @input.debounce.150ms="search()" @focus="open = true"
@@ -57,7 +57,7 @@
                                 <span class="mt-1 flex flex-wrap gap-2 text-[11px] font-bold text-slate-500">
                                     <span class="rounded-full bg-slate-100 px-2 py-0.5" x-text="'NPSN ' + school.npsn"></span>
                                     <span class="rounded-full bg-slate-100 px-2 py-0.5" x-text="school.bentuk_pendidikan || 'Sekolah'"></span>
-                                    <span class="rounded-full bg-sky-100 px-2 py-0.5 text-sky-800" x-show="school.kecamatan" x-text="'Kec. ' + school.kecamatan"></span>
+                                    <span class="rounded-full bg-sky-100 px-2 py-0.5 text-sky-800" x-show="school.kecamatan" x-text="'Kec. ' + school.kecamatan"></span><span class="rounded-full bg-slate-100 px-2 py-0.5" x-show="school.kabupaten_kota" x-text="school.kabupaten_kota"></span>
                                 </span>
                                 <span class="mt-1 block text-xs leading-relaxed text-slate-500" x-text="school.alamat_lengkap || 'Alamat belum tersedia di referensi.'"></span>
                             </button>
