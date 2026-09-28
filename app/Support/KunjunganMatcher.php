@@ -14,13 +14,15 @@ class KunjunganMatcher
         }
 
         $normalizedName = FullNameNormalizer::normalize($pendaftar->user?->name);
-        if ($normalizedName === '') {
+        $phone = preg_replace('/\D+/', '', (string) $pendaftar->user?->phone) ?? '';
+        if ($normalizedName === '' || $phone === '') {
             return null;
         }
 
         $candidates = KunjunganPendaftar::with(['penerima', 'referensiSekolah'])
             ->whereNull('applicant_id')
             ->where('normalized_full_name', $normalizedName)
+            ->where('visitor_phone', $phone)
             ->whereDoesntHave('matchVerifications', fn ($query) => $query
                 ->where('applicant_id', $pendaftar->id)
                 ->where('status', 'dismissed'))
