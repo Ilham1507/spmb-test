@@ -52,18 +52,20 @@ if (document.readyState === 'loading') {
     enhanceGlobalInteractions();
 }
 
-function showGlobalLoading(title = 'Sedang memuat', message = 'Mohon tunggu sebentar.') {
+function showGlobalLoading(title = 'Sedang memuat', message = 'Mohon tunggu sebentar.', source = 'manual') {
     const overlay = document.getElementById('global-loading');
     if (!overlay) return;
     const titleNode = document.getElementById('global-loading-title');
     const messageNode = document.getElementById('global-loading-message');
     if (titleNode) titleNode.textContent = title;
     if (messageNode) messageNode.textContent = message;
+    overlay.dataset.loadingSource = source;
     overlay.hidden = false;
 }
 
-function hideGlobalLoading() {
+function hideGlobalLoading(source = null) {
     const overlay = document.getElementById('global-loading');
+    if (source && overlay?.dataset.loadingSource !== source) return;
     if (overlay) overlay.hidden = true;
 }
 
@@ -80,7 +82,7 @@ window.addEventListener('pageshow', (event) => {
     }
 });
 document.addEventListener('global-loading:show', (event) => {
-    showGlobalLoading(event.detail?.title, event.detail?.message);
+    showGlobalLoading(event.detail?.title, event.detail?.message, event.detail?.source || 'manual');
 });
 document.addEventListener('global-loading:hide', hideGlobalLoading);
 
@@ -91,7 +93,8 @@ document.addEventListener('submit', (event) => {
         if (event.defaultPrevented || !form.checkValidity()) return;
         showGlobalLoading(
             form.dataset.loadingTitle || 'Sedang memproses',
-            form.dataset.loadingMessage || 'Mohon tunggu sebentar.'
+            form.dataset.loadingMessage || 'Mohon tunggu sebentar.',
+            'navigation'
         );
     });
 }, true);
@@ -109,7 +112,8 @@ document.addEventListener('click', (event) => {
         if (event.defaultPrevented) return;
         showGlobalLoading(
             link.dataset.loadingTitle || 'Sedang membuka halaman',
-            link.dataset.loadingMessage || 'Mohon tunggu sebentar.'
+            link.dataset.loadingMessage || 'Mohon tunggu sebentar.',
+            'navigation'
         );
     });
 }, true);
@@ -289,7 +293,8 @@ function startIdleLogout() {
         if (window.showGlobalLoading) {
             window.showGlobalLoading(
                 'Sesi hampir habis',
-                'Tidak ada aktivitas. Sistem akan keluar otomatis sebentar lagi.'
+                'Tidak ada aktivitas. Sistem akan keluar otomatis sebentar lagi.',
+                'idle-warning'
             );
         }
     };
@@ -322,7 +327,7 @@ function startIdleLogout() {
         lastActivityAt = Date.now();
         if (warningTimer) clearTimeout(warningTimer);
         if (logoutTimer) clearTimeout(logoutTimer);
-        if (window.hideGlobalLoading) window.hideGlobalLoading();
+        if (window.hideGlobalLoading) window.hideGlobalLoading('idle-warning');
         warningTimer = setTimeout(showWarning, warningMs);
         logoutTimer = setTimeout(logout, idleLimitMs);
     };
