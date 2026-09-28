@@ -285,11 +285,10 @@ class PembayaranController extends Controller
             if ($this->isRegistrationFee($transaction)) {
                 $formUrl = URL::temporarySignedRoute('formulir.lanjut', now()->addMinutes(30));
                 $message = "Assalamu'alaikum wr. wb.\n\n"
-                    ."🎉 Selamat, kamu berhasil melakukan pembayaran Formulir SPMB 🎉\n\n"
-                    ."*Berikut terlampir bukti pembayaran digital.*\n\n"
-                    ."Selanjutnya, silakan kamu mengisi formulir pada link di bawah ini 👇🏻\n{$formUrl}\n\n"
-                    ."Jika ada kendala silakan hubungi {$receiverContact}.\n\n"
-                    ."Jika tautan tidak dapat dibuka, silakan masuk melalui: ".route('login')."\n\n"
+                    ."🎉 Selamat, anda berhasil melakukan pembayaran Formulir SPMB 🎉\n\n"
+                    ."Berikut terlampir bukti pembayaran.\n\n"
+                    ."Selanjutnya, silahkan kamu mengisi formulir pada link dibawah ini 👇🏻\n{$formUrl}\n\n"
+                    ."Jika ada kendala silahkan hubungi {$receiverContact}.\n\n"
                     ."Terima kasih 🙏🏻\nSenang berkenalan denganmu 🌹";
             } else {
                 $message = "Halo {$name}, pembayaran daftar ulang SPMB kamu sudah disetujui oleh {$approver}.\n\n"
@@ -301,17 +300,22 @@ class PembayaranController extends Controller
                 ."Silakan periksa kembali dan kirim bukti pembayaran yang benar melalui sistem.";
         }
 
-        $whatsapp->send((string) $phone, $message);
         if ($transaction->status === 'verified') {
             $pdfUrl = URL::temporarySignedRoute('invoice.public.pdf', now()->addMinutes(30), ['transaksi' => $transaction->id]);
-            $caption = $this->isRegistrationFee($transaction)
-                ? 'Invoice digital pembayaran formulir SPMB'
-                : 'Invoice digital pembayaran daftar ulang SPMB';
-            $whatsapp->sendDocument((string) $phone, $pdfUrl, 'invoice-spmb-'.$transaction->id.'.pdf', $caption);
-            if (! $this->isRegistrationFee($transaction)) {
-                $this->notifyTreasurer($whatsapp, $transaction, $approver);
+            if ($this->isRegistrationFee($transaction)) {
+                // A document caption is rendered as one WhatsApp bubble with the PDF.
+                $whatsapp->sendDocument((string) $phone, $pdfUrl, 'invoice-spmb-'.$transaction->id.'.pdf', $message);
+                return;
             }
+
+            $whatsapp->send((string) $phone, $message);
+            $caption = 'Invoice digital pembayaran daftar ulang SPMB';
+            $whatsapp->sendDocument((string) $phone, $pdfUrl, 'invoice-spmb-'.$transaction->id.'.pdf', $caption);
+            $this->notifyTreasurer($whatsapp, $transaction, $approver);
+            return;
         }
+
+        $whatsapp->send((string) $phone, $message);
     }
 
     private function notifyTreasurer(WhatsappCloudApiService $whatsapp, TransaksiPembayaran $transaction, string $approver): void
