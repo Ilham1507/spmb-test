@@ -309,8 +309,8 @@ class PembayaranController extends Controller
             // Formulir telah membuka akses setelah persetujuan panitia. DU baru
             // diterapkan saat bendahara menerima rincian yang dipilih.
             if ($this->isReRegistrationFee($bill)) {
-                $selectedItems = $request->input('selected_items', collect($transaction->selected_items ?? [])->pluck('name')->all());
-                $quote = \App\Support\PaymentQuote::forBill($bill, $selectedItems);
+                $selectedItems = $request->input('selected_items', collect($bill->rincian_biaya ?? [])->pluck('name')->filter()->all());
+                $quote = \App\Support\PaymentQuote::forBill($bill, $selectedItems, (int) $transaction->amount);
                 if (! $quote['valid_selection'] || (float) $quote['amount'] !== (float) $transaction->amount) {
                     throw \Illuminate\Validation\ValidationException::withMessages(['payment' => 'Rincian biaya DU tidak cocok dengan bukti pembayaran.']);
                 }
@@ -532,7 +532,7 @@ Silakan unggah ulang bukti pembayaran yang benar melalui sistem.";
         $message = "Halo {$name}, pembayaran {$type} sebesar Rp {$amount} sudah diterima oleh bendahara {$receivedBy}.\n\n"
             ."Disetujui panitia: ".($transaction->verifier?->name ?? '-')."\n"
             ."Invoice: {$invoice}\nPDF invoice: {$pdf}\n\n"
-            ."Untuk pembayaran lanjutan, silakan ke BMT PCM Cileungsi setiap Selasa dan Jumat, Kampus E SMK Muhammadiyah 4 Cileungsi, pukul 07.30–14.30.";
+            ."Untuk pembayaran lanjutan, silakan ke BMT PCM Cileungsi setiap Senin dan Selasa, Kampus E SMK Muhammadiyah 4 Cileungsi, pukul 07.30–14.30.";
         $whatsapp->send($phone, $message);
         $whatsapp->sendDocument($phone, $pdf, 'invoice-spmb-'.$transaction->id.'.pdf', 'Invoice pembayaran SPMB');
     }

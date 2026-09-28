@@ -108,22 +108,26 @@ class PembayaranController extends Controller
                     throw \Illuminate\Validation\ValidationException::withMessages(['payment' => 'Masih ada bukti pembayaran yang menunggu approval panitia.']);
                 }
 
-                $duItemNames = collect($bill->rincian_biaya ?? [])->pluck('name')->filter()->values()->all();
                 $quote = $isRegistration
                     ? \App\Support\PaymentQuote::forBill($bill, $validated['selected_items'] ?? [])
-                    : \App\Support\PaymentQuote::forBill($bill, $duItemNames);
+                    : [
+                        'amount' => (int) $validated['amount'],
+                        'discount' => 0,
+                        'promotion_name' => null,
+                        'selected_items' => null,
+                        'valid_selection' => true,
+                    ];
                 if (! $quote['valid_selection']) {
                     throw \Illuminate\Validation\ValidationException::withMessages(['selected_items' => 'Pilih rincian biaya yang akan dibayar.']);
                 }
 
-                // DU SPMB is a one-time opening payment: all components must be
-                // selected and paid together. Further instalments belong to BMT.
+                // DU SPMB is a single initial payment. Its amount can be partial;
+                // the treasurer allocates it to the selected cost details on receipt.
                 if (! $isRegistration) {
-                    $all = \App\Support\PaymentQuote::forBill($bill, $duItemNames);
-                    if ((int) $validated['amount'] !== (int) $all['amount']) {
-                        throw \Illuminate\Validation\ValidationException::withMessages(['amount' => 'DU SPMB harus dibayar satu kali penuh sesuai seluruh rincian biaya.']);
+                    $remaining = max(0, (int) round((float) $bill->remaining_amount));
+                    if ((int) $validated['amount'] > $remaining) {
+                        throw \Illuminate\Validation\ValidationException::withMessages(['amount' => 'Nominal DU tidak boleh melebihi sisa tagihan.']);
                     }
-                    $quote = $all;
                 }
 
                 if ((int) $validated['amount'] !== (int) $quote['amount']) {
@@ -276,7 +280,25 @@ class PembayaranController extends Controller
         if ($transaction->status === 'verified') {
             $pdfUrl = URL::temporarySignedRoute('invoice.public.pdf', now()->addMinutes(30), ['transaksi' => $transaction->id]);
             $whatsapp->sendDocument((string) $phone, $pdfUrl, 'invoice-spmb-'.$transaction->id.'.pdf', 'Invoice pembayaran SPMB');
+            if (! $this->isRegistrationFee($transaction)) {
+                $this->notifyTreasurer($whatsapp, $transaction, $approver);
+            }
         }
+    }
+
+    private function notifyTreasurer(WhatsappCloudApiService $whatsapp, TransaksiPembayaran $transaction, string $approver): void
+    {
+        $target = (string) config('services.payments.admin_whatsapp_number');
+        if ($target === '') {
+            $target = (string) User::whereHas('role', fn ($query) => $query->where('name', 'bendahara'))->value('phone');
+        }
+        if ($target === '') return;
+
+        $applicant = $transaction->tagihan?->pendaftar;
+        $student = $applicant?->biodata?->full_name ?? $applicant?->user?->name ?? 'Calon siswa';
+        $amount = number_format((float) $transaction->amount, 0, ',', '.');
+        $url = route('bendahara.pembayaran.index');
+        $whatsapp->send($target, "Pembayaran DU menunggu penerimaan bendahara\n\nSiswa: {$student}\nNominal diterima: Rp {$amount}\nDisetujui panitia: {$approver}\n\nSilakan buka pembayaran untuk memilih rincian biaya dan klik Terima bendahara:\n{$url}");
     }
 
     private function approvalFeeQuery($query)

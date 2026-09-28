@@ -148,12 +148,17 @@ class PembayaranController extends Controller
             $transaction = \Illuminate\Support\Facades\DB::transaction(function () use ($tagihan, $request, $proofPath) {
                 $bill = TagihanPendaftar::lockForUpdate()->findOrFail($tagihan->id);
                 $isReRegistration = $this->isReRegistrationFee($bill);
-                $duItemNames = collect($bill->rincian_biaya ?? [])->pluck('name')->filter()->values()->all();
                 $quote = $isReRegistration
-                    ? \App\Support\PaymentQuote::forBill($bill, $duItemNames)
+                    ? [
+                        'amount' => (int) $request->amount,
+                        'discount' => 0,
+                        'promotion_name' => null,
+                        'selected_items' => null,
+                        'valid_selection' => (int) $request->amount <= (int) round((float) $bill->remaining_amount),
+                    ]
                     : \App\Support\PaymentQuote::forBill($bill, $request->input('selected_items'), (int) $request->amount);
                 if (! $quote['valid_selection']) {
-                    throw \Illuminate\Validation\ValidationException::withMessages(['selected_items' => 'Pilih biaya yang ingin dibayar.']);
+                    throw \Illuminate\Validation\ValidationException::withMessages(['selected_items' => 'Nominal DU tidak boleh melebihi sisa tagihan.']);
                 }
                 if ((int) $request->amount !== $quote['amount']) {
                     throw \Illuminate\Validation\ValidationException::withMessages(['payment' => 'Pilihan biaya atau nominal berubah. Muat ulang halaman sebelum mengirim bukti.']);
