@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\TagihanPendaftar;
 use App\Models\TransaksiPembayaran;
 use App\Models\Pendaftar;
+use App\Models\KunjunganPendaftar;
 use App\Models\User;
 use App\Services\WhatsappCloudApiService;
 use App\Services\ParticipantActivationService;
@@ -41,8 +42,12 @@ class PembayaranController extends Controller
 
         $applicants = Pendaftar::with(['user', 'biodata'])
             ->latest('id')->limit(250)->get();
+        $visits = KunjunganPendaftar::query()
+            ->whereNull('applicant_id')
+            ->whereNotNull('visitor_phone')
+            ->latest('visited_at')->limit(250)->get();
 
-        return view('panitia.pembayaran.index', compact('transactions', 'applicants'));
+        return view('panitia.pembayaran.index', compact('transactions', 'applicants', 'visits'));
     }
 
     /**
@@ -51,13 +56,10 @@ class PembayaranController extends Controller
      */
     public function store(Request $request, ParticipantActivationService $activation, WhatsappCloudApiService $whatsapp)
     {
-        $request->merge(['phone' => $this->normalizePhone((string) $request->input('phone'))]);
         $validated = $request->validate([
-            'applicant_id' => ['nullable', Rule::exists('pendaftar', 'id')],
-            'full_name' => ['required_without:applicant_id', 'nullable', 'string', 'max:150'],
-            'phone' => ['required_without:applicant_id', 'nullable', 'regex:/^08[0-9]{8,13}$/'],
+            'candidate' => ['required', 'string', 'max:40'],
             'fee_type' => ['required', Rule::in(['formulir', 'daftar_ulang'])],
-            'amount' => ['required', 'integer', 'min:1'],
+            'amount' => ['nullable', 'integer', 'min:1'],
             'payment_method' => ['required', Rule::in(['cash', 'transfer'])],
             'proof_file' => ['required', 'file', 'mimes:jpg,jpeg,png,pdf', 'mimetypes:image/jpeg,image/png,application/pdf', 'max:2048'],
             'selected_items' => ['nullable', 'array'],
@@ -71,16 +73,26 @@ class PembayaranController extends Controller
         try {
             $result = DB::transaction(function () use ($validated, $proofPath) {
                 $createdAccount = false;
-                if (! empty($validated['applicant_id'])) {
-                    $applicant = Pendaftar::with('user')->lockForUpdate()->findOrFail($validated['applicant_id']);
+                [$candidateType, $candidateId] = array_pad(explode(':', (string) $validated['candidate'], 2), 2, null);
+                if (! in_array($candidateType, ['applicant', 'visit'], true) || ! ctype_digit((string) $candidateId)) {
+                    throw \Illuminate\Validation\ValidationException::withMessages(['candidate' => 'Pilih calon siswa dari data kunjungan atau pendaftar.']);
+                }
+
+                if ($candidateType === 'applicant') {
+                    $applicant = Pendaftar::with('user')->lockForUpdate()->findOrFail($candidateId);
                     $user = $applicant->user;
                 } else {
-                    $user = User::where('phone', $validated['phone'])->lockForUpdate()->first();
+                    $visit = KunjunganPendaftar::lockForUpdate()->findOrFail($candidateId);
+                    if ($visit->applicant_id || ! $visit->visitor_phone) {
+                        throw \Illuminate\Validation\ValidationException::withMessages(['candidate' => 'Data kunjungan ini sudah diproses atau tidak memiliki nomor WhatsApp.']);
+                    }
+                    $phone = $this->normalizePhone((string) $visit->visitor_phone);
+                    $user = User::where('phone', $phone)->lockForUpdate()->first();
                     if (! $user) {
                         $role = \App\Models\Peran::firstOrCreate(['name' => 'peserta'], ['description' => 'Peserta SPMB']);
                         $user = User::create([
-                            'name' => $validated['full_name'],
-                            'phone' => $validated['phone'],
+                            'name' => $visit->full_name,
+                            'phone' => $phone,
                             'email' => null,
                             'password' => Hash::make(Str::random(64)),
                             'role_id' => $role->id,
@@ -88,6 +100,8 @@ class PembayaranController extends Controller
                         $createdAccount = true;
                     }
                     $applicant = PendaftarSetup::getOrCreateFor($user);
+                    $applicant->biodata()->updateOrCreate([], ['full_name' => $visit->full_name]);
+                    $visit->update(['applicant_id' => $applicant->id]);
                 }
 
                 $registrationBill = RegistrationFee::ensureBill($applicant);
@@ -121,6 +135,10 @@ class PembayaranController extends Controller
                     throw \Illuminate\Validation\ValidationException::withMessages(['selected_items' => 'Pilih rincian biaya yang akan dibayar.']);
                 }
 
+                if (! $isRegistration && empty($validated['amount'])) {
+                    throw \Illuminate\Validation\ValidationException::withMessages(['amount' => 'Masukkan nominal DU yang diterima.']);
+                }
+
                 // DU SPMB is a single initial payment. Its amount can be partial;
                 // the treasurer allocates it to the selected cost details on receipt.
                 if (! $isRegistration) {
@@ -130,7 +148,7 @@ class PembayaranController extends Controller
                     }
                 }
 
-                if ((int) $validated['amount'] !== (int) $quote['amount']) {
+                if (! $isRegistration && (int) $validated['amount'] !== (int) $quote['amount']) {
                     throw \Illuminate\Validation\ValidationException::withMessages(['amount' => 'Nominal harus sama dengan tagihan dan rincian yang dipilih.']);
                 }
 
