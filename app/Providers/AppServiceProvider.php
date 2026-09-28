@@ -19,6 +19,7 @@ use App\Observers\AuditTrailObserver;
 use App\Support\SpmbConfiguration;
 use App\Models\TahunAjaran;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
@@ -37,6 +38,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Railway terminates HTTPS at its proxy and forwards requests to PHP
+        // over HTTP. Force public links, assets, and form actions to retain
+        // HTTPS so browsers never submit credentials over an insecure URL.
+        if ($this->app->environment('production')) {
+            URL::forceScheme('https');
+        }
+
         $observer = AuditTrailObserver::class;
         foreach ([Pendaftar::class, BiodataPendaftar::class, AlamatPendaftar::class, DataAyah::class, DataIbu::class, DataWali::class, SekolahAsal::class, KontakPendaftar::class, GelombangJurusan::class, PesertaTes::class, HasilPemeriksaanKesehatanPendaftar::class, HasilUkurSeragamPendaftar::class] as $model) {
             $model::observe($observer);
