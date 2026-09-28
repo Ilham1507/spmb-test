@@ -320,17 +320,34 @@ class PembayaranController extends Controller
 
     private function notifyTreasurer(WhatsappCloudApiService $whatsapp, TransaksiPembayaran $transaction, string $approver): void
     {
-        $target = (string) config('services.payments.admin_whatsapp_number');
-        if ($target === '') {
-            $target = (string) User::whereHas('role', fn ($query) => $query->where('name', 'bendahara'))->value('phone');
-        }
-        if ($target === '') return;
-
         $applicant = $transaction->tagihan?->pendaftar;
         $student = $applicant?->biodata?->full_name ?? $applicant?->user?->name ?? 'Calon siswa';
         $amount = number_format((float) $transaction->amount, 0, ',', '.');
         $url = route('bendahara.pembayaran.index');
-        $whatsapp->send($target, "Pembayaran DU menunggu penerimaan bendahara\n\nSiswa: {$student}\nNominal diterima: Rp {$amount}\nDisetujui panitia: {$approver}\n\nSilakan buka pembayaran untuk memilih rincian biaya dan klik Terima bendahara:\n{$url}");
+        $message = "Pembayaran DU menunggu penerimaan bendahara\n\nSiswa: {$student}\nNominal diterima: Rp {$amount}\nDisetujui panitia: {$approver}\n\nSilakan buka pembayaran untuk memilih rincian biaya dan klik Terima bendahara:\n{$url}";
+
+        // DU is handled by the treasurer. Never direct this notice to a
+        // generic admin number while a bendahara account is available.
+        $targets = User::query()
+            ->whereHas('role', fn ($query) => $query->where('name', 'bendahara'))
+            ->whereNotNull('phone')
+            ->where('phone', '!=', '')
+            ->pluck('phone')
+            ->map(fn ($phone) => trim((string) $phone))
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($targets->isEmpty()) {
+            $fallback = trim((string) config('services.payments.admin_whatsapp_number'));
+            if ($fallback !== '') {
+                $targets->push($fallback);
+            }
+        }
+
+        foreach ($targets as $target) {
+            $whatsapp->send($target, $message);
+        }
     }
 
     private function approvalFeeQuery($query)
