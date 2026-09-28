@@ -23,8 +23,9 @@ class PaymentReceiptNotifier
             $bill = $transaction->tagihan;
             $applicant = $bill?->pendaftar;
             $visit = $applicant?->kunjunganPenerimaanUtama();
-            $target = (string) config('services.payments.admin_whatsapp_number');
-            $target = $target ?: ($visit?->penerima?->phone ?: (string) config('services.panitia.whatsapp_number'));
+            // The teacher who received the visit owns the first follow-up,
+            // not a generic administrator number.
+            $target = (string) ($visit?->penerima?->phone ?: config('services.panitia.whatsapp_number'));
             if ($target === '') return;
 
             $student = $applicant?->biodata?->full_name ?? $applicant?->user?->name ?? 'Calon siswa';
@@ -39,7 +40,7 @@ class PaymentReceiptNotifier
 
             $this->whatsapp->send($target, "Pembayaran SPMB diterima\n\nSiswa: {$student}\nNo. pendaftaran: {$registrationNumber}\nBiaya: {$feeNames}\nNominal: Rp {$amount}\nMetode: {$channel}\nPenerima kunjungan: {$visitReceiver}\nDiverifikasi oleh: {$receivedBy}\nSisa tagihan: Rp {$remaining}");
         } catch (\Throwable $exception) {
-            Log::warning('Notifikasi penerimaan pembayaran ke admin gagal dikirim.', [
+            Log::warning('Notifikasi penerimaan pembayaran ke penerima kunjungan gagal dikirim.', [
                 'transaction_id' => $transaction->id,
                 'error' => $exception->getMessage(),
             ]);

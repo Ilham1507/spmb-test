@@ -273,16 +273,24 @@ class PembayaranController extends Controller
         $name = $applicant?->biodata?->full_name ?? $applicant?->user?->name ?? 'Calon siswa';
         $phone = $applicant?->user?->phone;
         $approver = $transaction->verifier?->name ?? Auth::user()?->name ?? 'panitia sekolah';
+        $receiver = $applicant?->kunjunganPenerimaanUtama()?->penerima;
+        $receiverName = $receiver?->name ?? 'Panitia SPMB';
+        $receiverPhone = (string) ($receiver?->phone ?: config('services.panitia.whatsapp_number'));
+        $receiverContact = $receiverPhone !== '' ? "{$receiverName} ({$receiverPhone})" : $receiverName;
         if (! $phone) {
             throw new \RuntimeException('Nomor WhatsApp siswa tidak tersedia.');
         }
 
         if ($transaction->status === 'verified') {
             if ($this->isRegistrationFee($transaction)) {
-                $formUrl = URL::temporarySignedRoute('formulir.lanjut', now()->addMinutes(5));
-                $message = "Halo {$name}, pembayaran formulir SPMB kamu sudah disetujui oleh {$approver}.\n\n"
-                    ."Silakan lanjutkan pengisian formulir melalui tautan ini:\n{$formUrl}\n\n"
-                    ."Jika tautan tidak dapat dibuka, silakan masuk melalui: ".route('login');
+                $formUrl = URL::temporarySignedRoute('formulir.lanjut', now()->addMinutes(30));
+                $message = "Assalamu'alaikum wr. wb.\n\n"
+                    ."🎉 Selamat, kamu berhasil melakukan pembayaran Formulir SPMB 🎉\n\n"
+                    ."*Berikut terlampir bukti pembayaran digital.*\n\n"
+                    ."Selanjutnya, silakan kamu mengisi formulir pada link di bawah ini 👇🏻\n{$formUrl}\n\n"
+                    ."Jika ada kendala silakan hubungi {$receiverContact}.\n\n"
+                    ."Jika tautan tidak dapat dibuka, silakan masuk melalui: ".route('login')."\n\n"
+                    ."Terima kasih 🙏🏻\nSenang berkenalan denganmu 🌹";
             } else {
                 $message = "Halo {$name}, pembayaran daftar ulang SPMB kamu sudah disetujui oleh {$approver}.\n\n"
                     ."Pembayaran sedang diteruskan ke bendahara untuk penerimaan dan rincian biaya. Status dapat dipantau di: ".route('login');
@@ -296,7 +304,10 @@ class PembayaranController extends Controller
         $whatsapp->send((string) $phone, $message);
         if ($transaction->status === 'verified') {
             $pdfUrl = URL::temporarySignedRoute('invoice.public.pdf', now()->addMinutes(30), ['transaksi' => $transaction->id]);
-            $whatsapp->sendDocument((string) $phone, $pdfUrl, 'invoice-spmb-'.$transaction->id.'.pdf', 'Invoice pembayaran SPMB');
+            $caption = $this->isRegistrationFee($transaction)
+                ? 'Invoice digital pembayaran formulir SPMB'
+                : 'Invoice digital pembayaran daftar ulang SPMB';
+            $whatsapp->sendDocument((string) $phone, $pdfUrl, 'invoice-spmb-'.$transaction->id.'.pdf', $caption);
             if (! $this->isRegistrationFee($transaction)) {
                 $this->notifyTreasurer($whatsapp, $transaction, $approver);
             }

@@ -184,10 +184,11 @@ class PembayaranController extends Controller
             $name = $pendaftar->biodata?->full_name ?? Auth::user()->name;
             $linkedVisit = $pendaftar->kunjunganPenerimaanUtama();
             $notificationTarget = $linkedVisit?->penerima?->phone ?: (string) config('services.panitia.whatsapp_number');
+            $receiverName = $linkedVisit?->penerima?->name ?? 'Panitia SPMB';
             $method = $transaction->payment_method === 'cash' ? 'tunai' : 'transfer';
             $amount = number_format((float) $transaction->amount, 0, ',', '.');
             $type = $isReRegistrationFee ? 'daftar ulang' : 'formulir';
-            $whatsapp->send($notificationTarget, "Halo Panitia SPMB, {$name} sudah mengirim bukti pembayaran {$method} {$type} sebesar Rp {$amount}.\nNomor pendaftaran: {$pendaftar->registration_number}.\nNomor WA siswa: ".Auth::user()->phone.".\n\nMohon diperiksa melalui menu Approval Pembayaran.");
+            $whatsapp->send($notificationTarget, "Assalamu'alaikum {$receiverName},\n\nAda permintaan approval pembayaran {$type}.\n\nSiswa: {$name}\nNo. pendaftaran: {$pendaftar->registration_number}\nNominal: Rp {$amount}\nMetode: {$method}\nWA siswa: ".Auth::user()->phone."\n\nMohon periksa dan setujui melalui menu Approval Pembayaran.");
         } catch (Throwable $exception) {
             Log::warning('Notifikasi pembayaran ke panitia gagal dikirim melalui WhatsApp Business API.', ['transaction_id' => $transaction->id, 'error' => $exception->getMessage()]);
             return redirect()->route('peserta.pembayaran')->with('warning', 'Bukti pembayaran sudah tersimpan. Status pembayaran akan diperbarui setelah pemeriksaan selesai.');
