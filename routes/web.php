@@ -7,7 +7,40 @@ use App\Http\Controllers\Landing\KontakController;
 use App\Http\Controllers\Landing\PendaftaranController;
 use App\Http\Controllers\Landing\SchoolPageController;
 use App\Http\Controllers\ProfileController;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
+
+// One-time, token-protected data replacement for the isolated Railway test
+// database. This route is removed immediately after the sync completes.
+Route::post('/_internal/railway-sync/{token}', function (Request $request, string $token) {
+    abort_unless(app()->environment('production') && hash_equals((string) config('services.railway_import.token'), $token), 404);
+
+    $request->validate(['dump' => ['required', 'file', 'mimes:sql,txt', 'max:51200']]);
+    $sql = file_get_contents($request->file('dump')->getRealPath());
+
+    DB::statement('SET FOREIGN_KEY_CHECKS=0');
+
+    try {
+        $tables = DB::select("SHOW FULL TABLES WHERE Table_type = 'BASE TABLE'");
+        $database = DB::getDatabaseName();
+        $tableKey = 'Tables_in_'.$database;
+
+        foreach ($tables as $table) {
+            $name = $table->{$tableKey};
+
+            if ($name !== 'migrations') {
+                DB::unprepared('DELETE FROM `'.str_replace('`', '``', $name).'`');
+            }
+        }
+
+        DB::getPdo()->exec($sql);
+    } finally {
+        DB::statement('SET FOREIGN_KEY_CHECKS=1');
+    }
+
+    return response()->json(['ok' => true, 'message' => 'Data Railway sudah disinkronkan.']);
+})->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
 
 // Public Landing Pages
 Route::get('/', [HomeController::class, 'index'])->name('home');
