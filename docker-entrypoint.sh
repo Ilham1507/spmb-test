@@ -33,6 +33,7 @@ php artisan migrate --force --path=database/migrations/2026_09_28_143000_add_par
 php artisan migrate --force --path=database/migrations/2026_09_28_144000_remove_ilham_test_data.php
 php artisan migrate --force --path=database/migrations/2026_09_28_161000_reset_ilham_registration_keep_one_visit.php
 php artisan migrate --force --path=database/migrations/2026_09_28_180000_resend_ilham_official_form_invoice.php
+php artisan migrate --force --path=database/migrations/2026_09_28_181000_retry_ilham_official_form_invoice.php
 # The school finder depends on this SMP/MTs reference data. It is idempotent
 # (matched by NPSN), so it can safely run again whenever Railway restarts.
 php artisan db:seed --force --class=Database\\Seeders\\CileungsiSmpSeeder

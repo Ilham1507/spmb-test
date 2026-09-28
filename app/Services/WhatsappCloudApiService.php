@@ -9,14 +9,16 @@ use RuntimeException;
 /** Sends outbound messages through Meta's official WhatsApp Business Cloud API. */
 class WhatsappCloudApiService
 {
+    private ?string $resolvedWaslahInstanceKey = null;
+
     public function send(string $target, string $message): void
     {
         if ($this->usesWaslah()) {
             $response = Http::acceptJson()
-                ->withToken(trim((string) config('services.whatsapp.waslah_token')))
+                ->withToken($this->waslahToken())
                 ->timeout(20)
                 ->post('https://waslah.id/api/v1/messages/text', [
-                    'instance_key' => trim((string) config('services.whatsapp.waslah_instance_key')),
+                    'instance_key' => $this->waslahInstanceKey(),
                     'to' => $this->normalizeTarget($target),
                     'text' => $message,
                 ]);
@@ -47,10 +49,10 @@ class WhatsappCloudApiService
         }
 
         $response = Http::acceptJson()
-            ->withToken(trim((string) config('services.whatsapp.waslah_token')))
+            ->withToken($this->waslahToken())
             ->timeout(30)
             ->post('https://waslah.id/api/v1/messages/media', [
-                'instance_key' => trim((string) config('services.whatsapp.waslah_instance_key')),
+                'instance_key' => $this->waslahInstanceKey(),
                 'to' => $this->normalizeTarget($target),
                 'type' => 'document',
                 'url' => $url,
@@ -129,10 +131,53 @@ class WhatsappCloudApiService
     private function usesWaslah(): bool
     {
         if (config('services.whatsapp.provider') !== 'waslah') return false;
-        if (trim((string) config('services.whatsapp.waslah_token')) === '' || trim((string) config('services.whatsapp.waslah_instance_key')) === '') {
-            throw new RuntimeException('Waslah belum dikonfigurasi pada server.');
-        }
+        $this->waslahToken();
         return true;
+    }
+
+    private function waslahToken(): string
+    {
+        $token = trim((string) config('services.whatsapp.waslah_token'));
+
+        if ($token === '') {
+            throw new RuntimeException('Token Waslah belum dikonfigurasi pada server.');
+        }
+
+        return $token;
+    }
+
+    private function waslahInstanceKey(): string
+    {
+        $configuredKey = trim((string) config('services.whatsapp.waslah_instance_key'));
+
+        if ($configuredKey !== '') {
+            return $configuredKey;
+        }
+
+        if ($this->resolvedWaslahInstanceKey !== null) {
+            return $this->resolvedWaslahInstanceKey;
+        }
+
+        $response = Http::acceptJson()
+            ->withToken($this->waslahToken())
+            ->timeout(20)
+            ->get('https://waslah.id/api/v1/instances');
+
+        if (! $response->successful()) {
+            throw new RuntimeException('Gagal membaca instance WhatsApp yang terhubung.');
+        }
+
+        $instances = $response->json('data', []);
+        $connectedInstance = collect(is_array($instances) ? $instances : [])
+            ->first(fn (array $instance): bool => ($instance['status'] ?? null) === 'connected'
+                && filled($instance['key'] ?? null));
+        $instanceKey = trim((string) ($connectedInstance['key'] ?? ''));
+
+        if ($instanceKey === '') {
+            throw new RuntimeException('Tidak ada instance WhatsApp Waslah yang terhubung.');
+        }
+
+        return $this->resolvedWaslahInstanceKey = $instanceKey;
     }
 
     private function normalizeTarget(string $target): string
