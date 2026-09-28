@@ -50,6 +50,14 @@ class AppServiceProvider extends ServiceProvider
 
         View::composer('*', function ($view) {
             $settings = Schema::hasTable('system_settings') ? SystemSetting::publicValues() : SystemSetting::defaults();
+            // Upload logo lives on the local storage disk. The isolated Railway
+            // test service does not retain that disk between builds, so fall
+            // back to the identical tracked school logo when an uploaded file
+            // is not present there.
+            $logo = (string) ($settings['school_logo'] ?? '');
+            if (str_starts_with($logo, 'storage/') && ! is_file(public_path($logo))) {
+                $settings['school_logo'] = 'images/logo-sekolah.png';
+            }
             $activeYear = Schema::hasTable('tahun_ajaran') ? TahunAjaran::query()->where('is_active', true)->first() : null;
             $configuration = Schema::hasTable('pengaturan_spmb') ? SpmbConfiguration::forAcademicYear($activeYear?->id) : null;
             $view->with('siteSettings', $settings)->with('activeAcademicYear', $activeYear)->with('spmbConfiguration', $configuration);
