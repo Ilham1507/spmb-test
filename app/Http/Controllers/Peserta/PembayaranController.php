@@ -188,7 +188,8 @@ class PembayaranController extends Controller
             $method = $transaction->payment_method === 'cash' ? 'tunai' : 'transfer';
             $amount = number_format((float) $transaction->amount, 0, ',', '.');
             $type = $isReRegistrationFee ? 'daftar ulang' : 'formulir';
-            $whatsapp->send($notificationTarget, "Assalamu'alaikum {$receiverName},\n\nAda permintaan approval pembayaran {$type}.\n\nSiswa: {$name}\nNo. pendaftaran: {$pendaftar->registration_number}\nNominal: Rp {$amount}\nMetode: {$method}\nWA siswa: ".Auth::user()->phone."\n\nMohon periksa dan setujui melalui menu Approval Pembayaran.");
+            $whatsapp->send($notificationTarget, \App\Support\WhatsappGreeting::opening()."\n\n"
+                ."Ada permintaan approval pembayaran {$type}.\n\nSiswa: {$name}\nNo. pendaftaran: {$pendaftar->registration_number}\nNominal: Rp {$amount}\nMetode: {$method}\nWA siswa: ".Auth::user()->phone."\n\nMohon periksa dan setujui melalui menu Approval Pembayaran.");
         } catch (Throwable $exception) {
             Log::warning('Notifikasi pembayaran ke panitia gagal dikirim melalui WhatsApp Business API.', ['transaction_id' => $transaction->id, 'error' => $exception->getMessage()]);
             return redirect()->route('peserta.pembayaran')->with('warning', 'Bukti pembayaran sudah tersimpan. Status pembayaran akan diperbarui setelah pemeriksaan selesai.');

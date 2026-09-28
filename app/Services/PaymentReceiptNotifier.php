@@ -38,7 +38,8 @@ class PaymentReceiptNotifier
             $amount = number_format((float) $transaction->amount, 0, ',', '.');
             $remaining = number_format((float) ($bill?->remaining_amount ?? 0), 0, ',', '.');
 
-            $this->whatsapp->send($target, "Pembayaran SPMB diterima\n\nSiswa: {$student}\nNo. pendaftaran: {$registrationNumber}\nBiaya: {$feeNames}\nNominal: Rp {$amount}\nMetode: {$channel}\nPenerima kunjungan: {$visitReceiver}\nDiverifikasi oleh: {$receivedBy}\nSisa tagihan: Rp {$remaining}");
+            $this->whatsapp->send($target, \App\Support\WhatsappGreeting::opening()."\n\n"
+                ."Informasi pembayaran SPMB\n\nSiswa: {$student}\nNo. pendaftaran: {$registrationNumber}\nBiaya: {$feeNames}\nNominal: Rp {$amount}\nMetode: {$channel}\nPenerima kunjungan: {$visitReceiver}\nDiverifikasi oleh: {$receivedBy}\nSisa tagihan: Rp {$remaining}");
         } catch (\Throwable $exception) {
             Log::warning('Notifikasi penerimaan pembayaran ke penerima kunjungan gagal dikirim.', [
                 'transaction_id' => $transaction->id,

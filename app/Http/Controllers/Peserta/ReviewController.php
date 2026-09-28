@@ -111,9 +111,7 @@ class ReviewController extends Controller
 
         $receiverName = $receivingVisit?->penerima?->name ?? 'Panitia SPMB';
         $scheduleDate = \Illuminate\Support\Carbon::parse($selectedSchedule->tanggal_mulai)->translatedFormat('l, d F Y · H:i') . ' WIB';
-        $message = "Halo {$receiverName},
-
-"
+        $message = \App\Support\WhatsappGreeting::opening()."\n\n"
             ."Formulir pendaftaran baru perlu diperiksa.
 
 "

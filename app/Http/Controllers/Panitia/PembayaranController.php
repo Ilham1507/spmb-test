@@ -291,12 +291,14 @@ class PembayaranController extends Controller
                     ."Jika ada kendala silahkan hubungi {$receiverContact}.\n\n"
                     ."Terima kasih 🙏🏻\nSenang berkenalan denganmu 🌹";
             } else {
-                $message = "Halo {$name}, pembayaran daftar ulang SPMB kamu sudah disetujui oleh {$approver}.\n\n"
+                $message = \App\Support\WhatsappGreeting::opening()."\n\n"
+                    ."Pembayaran daftar ulang SPMB atas nama {$name} sudah disetujui oleh {$approver}.\n\n"
                     ."Pembayaran sedang diteruskan ke bendahara untuk penerimaan dan rincian biaya. Status dapat dipantau di: ".route('login');
             }
         } else {
             $reason = $transaction->notes ? "\nCatatan: {$transaction->notes}" : '';
-            $message = "Halo {$name}, pembayaran formulir SPMB kamu belum dapat disetujui oleh {$approver}.{$reason}\n\n"
+            $message = \App\Support\WhatsappGreeting::opening()."\n\n"
+                ."Pembayaran formulir SPMB atas nama {$name} belum dapat disetujui oleh {$approver}.{$reason}\n\n"
                 ."Silakan periksa kembali dan kirim bukti pembayaran yang benar melalui sistem.";
         }
 
@@ -324,7 +326,8 @@ class PembayaranController extends Controller
         $student = $applicant?->biodata?->full_name ?? $applicant?->user?->name ?? 'Calon siswa';
         $amount = number_format((float) $transaction->amount, 0, ',', '.');
         $url = route('bendahara.pembayaran.index');
-        $message = "Pembayaran DU menunggu penerimaan bendahara\n\nSiswa: {$student}\nNominal diterima: Rp {$amount}\nDisetujui panitia: {$approver}\n\nSilakan buka pembayaran untuk memilih rincian biaya dan klik Terima bendahara:\n{$url}";
+        $message = \App\Support\WhatsappGreeting::opening()."\n\n"
+            ."Pembayaran DU menunggu penerimaan bendahara.\n\nSiswa: {$student}\nNominal diterima: Rp {$amount}\nDisetujui panitia: {$approver}\n\nSilakan buka pembayaran untuk memilih rincian biaya dan klik Terima bendahara:\n{$url}";
 
         // DU is handled by the treasurer. Never direct this notice to a
         // generic admin number while a bendahara account is available.

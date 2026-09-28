@@ -239,7 +239,8 @@ class PaymentCheckoutService
             $channel = PaymentChannel::label($transaction->checkout?->provider_payment_type, $transaction->checkout?->provider_bank);
             $amount = number_format((float) $transaction->amount, 0, ',', '.');
             if ($adminTarget !== '') {
-                $this->whatsapp->send($adminTarget, "Halo {$receiverName},\n\nAda pembayaran {$feeName} yang perlu diperiksa.\n\nSiswa: {$name}\nNo. pendaftaran: {$registrationNumber}\nNominal: Rp {$amount}\nMetode: {$channel}\nPenerima kunjungan: {$receiverName}\n\nSilakan buka menu Approval Pembayaran untuk menyetujui pembayaran. Setelah disetujui, siswa akan menerima notifikasi WhatsApp.");
+                $this->whatsapp->send($adminTarget, \App\Support\WhatsappGreeting::opening()."\n\n"
+                    ."Ada pembayaran {$feeName} yang perlu diperiksa.\n\nSiswa: {$name}\nNo. pendaftaran: {$registrationNumber}\nNominal: Rp {$amount}\nMetode: {$channel}\nPenerima kunjungan: {$receiverName}\n\nSilakan buka menu Approval Pembayaran untuk menyetujui pembayaran. Setelah disetujui, siswa akan menerima notifikasi WhatsApp.");
             }
         } catch (Throwable $exception) {
             Log::warning('Notifikasi approval pembayaran formulir VA gagal dikirim.', ['transaction_id' => $transaction->id, 'error' => $exception->getMessage()]);

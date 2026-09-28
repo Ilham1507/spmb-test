@@ -482,7 +482,8 @@ class PembayaranController extends Controller
             ? "Tagihan formulir sudah lunas. Silakan masuk untuk melanjutkan pengisian formulir:\n" . route('login')
             : "Sisa tagihan formulir: Rp {$remainingText}. Formulir dapat dilanjutkan setelah tagihan lunas.";
 
-        return "Halo {$name}, pembayaran formulir SPMB telah dicatat oleh {$recordedBy}.\n\nNominal diterima: Rp {$amount}\nMetode: {$method}\nReferensi: " . ($transaction->reference_number ?? $transaction->transaction_number) . "\n\n{$nextStep}";
+        return \App\Support\WhatsappGreeting::opening()."\n\n"
+            ."Pembayaran formulir SPMB atas nama {$name} telah dicatat oleh {$recordedBy}.\n\nNominal diterima: Rp {$amount}\nMetode: {$method}\nReferensi: " . ($transaction->reference_number ?? $transaction->transaction_number) . "\n\n{$nextStep}";
     }
 
     private function sendDecisionNotification(WhatsappCloudApiService $whatsapp, TransaksiPembayaran $transaction): void
@@ -512,13 +513,15 @@ class PembayaranController extends Controller
                     ."Jika ada kendala silahkan hubungi {$receiverContact}.\n\n"
                     ."Terima kasih 🙏🏻\nSenang berkenalan denganmu 🌹";
             } else {
-                $message = "Halo {$name}, pembayaran SPMB kamu sudah dicatat/disetujui oleh {$approver}.\n\n"
+                $message = \App\Support\WhatsappGreeting::opening()."\n\n"
+                    ."Pembayaran SPMB atas nama {$name} sudah dicatat/disetujui oleh {$approver}.\n\n"
                     .'Silakan pantau status pendaftaran melalui sistem: '.route('login');
             }
         } else {
             $reason = $transaction->notes ? "
 Catatan: {$transaction->notes}" : '';
-            $message = "Halo {$name}, bukti pembayaran SPMB kamu belum dapat disetujui oleh {$approver}.{$reason}
+            $message = \App\Support\WhatsappGreeting::opening()."\n\n"
+                ."Bukti pembayaran SPMB atas nama {$name} belum dapat disetujui oleh {$approver}.{$reason}
 
 Silakan unggah ulang bukti pembayaran yang benar melalui sistem.";
         }
@@ -543,7 +546,8 @@ Silakan unggah ulang bukti pembayaran yang benar melalui sistem.";
         $amount = number_format((float) $transaction->amount, 0, ',', '.');
         $invoice = route($this->routeName('pembayaran.receipt'), $transaction);
         $pdf = URL::temporarySignedRoute('invoice.public.pdf', now()->addMinutes(30), ['transaksi' => $transaction->id]);
-        $message = "Halo {$name}, pembayaran {$type} sebesar Rp {$amount} sudah diterima oleh bendahara {$receivedBy}.\n\n"
+        $message = \App\Support\WhatsappGreeting::opening()."\n\n"
+            ."Pembayaran {$type} atas nama {$name} sebesar Rp {$amount} sudah diterima oleh bendahara {$receivedBy}.\n\n"
             ."Disetujui panitia: ".($transaction->verifier?->name ?? '-')."\n"
             ."Invoice: {$invoice}\nPDF invoice: {$pdf}\n\n"
             ."Untuk pembayaran lanjutan, silakan ke BMT PCM Cileungsi setiap Senin dan Selasa, Kampus E SMK Muhammadiyah 4 Cileungsi, pukul 07.30–14.30.";

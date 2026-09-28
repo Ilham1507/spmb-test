@@ -329,13 +329,14 @@ class PendaftarController extends Controller
                     . "Mohon hadir 30 menit sebelum tes dimulai.\n\n"
                 : "Jadwal Tes SPMB akan muncul di dashboard setelah ditetapkan sekolah.\n\n";
 
-            $whatsappMessage = "Halo {$studentName},\n\n"
-                . "Formulir pendaftaranmu sudah diverifikasi oleh panitia.\n"
+            $whatsappMessage = \App\Support\WhatsappGreeting::opening()."\n\n"
+                . "Formulir pendaftaran atas nama {$studentName} sudah diverifikasi oleh panitia.\n"
                 . "No. pendaftaran: {$pendaftar->registration_number}\n\n"
                 . $scheduleInfo
                 . "Buka dashboard untuk melihat informasi proses pendaftaran: {$dashboardUrl}";
         } else {
-            $whatsappMessage = "Halo {$studentName}, formulir SPMB dengan nomor {$pendaftar->registration_number} perlu diperbaiki oleh {$approverName}.\n"
+            $whatsappMessage = \App\Support\WhatsappGreeting::opening()."\n\n"
+                ."Formulir SPMB atas nama {$studentName} dengan nomor {$pendaftar->registration_number} perlu diperbaiki oleh {$approverName}.\n"
                 ."Catatan: {$validated['notes']}\n\n"
                 ."Silakan masuk, perbaiki bagian yang diminta, lalu kirim ulang formulir melalui: {$dashboardUrl}";
         }

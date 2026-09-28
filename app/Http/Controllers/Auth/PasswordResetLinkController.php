@@ -40,7 +40,9 @@ class PasswordResetLinkController extends Controller
             ['token' => Hash::make($plainToken), 'created_at' => now()]
         );
         $url = route('password.reset', ['token' => $plainToken, 'phone' => $request->phone]);
-        $message = "Halo {$user->name}, buka tautan berikut untuk membuat kata sandi baru akun SPMB (berlaku 5 menit):\n{$url}\n\nJika kamu tidak meminta ini, abaikan pesan ini.";
+        $message = \App\Support\WhatsappGreeting::opening()."\n\n"
+            ."{$user->name}, buat kata sandi baru akun SPMB melalui tautan berikut:\n{$url}\n\n"
+            .'Jika kamu tidak meminta perubahan kata sandi, abaikan pesan ini.';
 
         try {
             $template = trim((string) config('services.whatsapp.templates.password_reset'));
