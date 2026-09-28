@@ -8,6 +8,7 @@
     'id' => null,
     'menuClass' => '',
     'forceDown' => false,
+    'menuZIndex' => 200,
 ])
 
 @php
@@ -135,9 +136,9 @@
             x-show="open"
             @click.outside="open = false"
             x-ref="menu"
-            class="form-select-menu fixed z-[200] overflow-y-auto rounded-2xl border bg-white p-2 shadow-2xl shadow-slate-900/12 {{ $menuClass }}"
+            class="form-select-menu fixed overflow-y-auto rounded-2xl border bg-white p-2 shadow-2xl shadow-slate-900/12 {{ $menuClass }}"
             :class="openUp ? 'origin-bottom' : 'origin-top'"
-            :style="menuStyle"
+            :style="`z-index:{{ (int) $menuZIndex }};${menuStyle}`"
         >
             <button type="button" class="form-select-option flex w-full items-center rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-slate-400" @click="choose('')">
                 {{ $placeholder }}
