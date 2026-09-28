@@ -354,7 +354,7 @@ class PembayaranController extends Controller
 
         return \Barryvdh\DomPDF\Facade\Pdf::loadView('payments.system-proof', ['transaction' => $transaksi])
             ->setPaper('a4')
-            ->download('invoice-spmb-'.$transaksi->id.'.pdf');
+            ->download('Bukti Pembayaran SPMB - '.($transaksi->tagihan?->pendaftar?->registration_number ?: $transaksi->id).'.pdf');
     }
 
     /** A short-lived signed URL used by Waslah to fetch the invoice PDF. */
@@ -366,7 +366,7 @@ class PembayaranController extends Controller
 
         return \Barryvdh\DomPDF\Facade\Pdf::loadView('payments.system-proof', ['transaction' => $transaksi])
             ->setPaper('a4')
-            ->download('invoice-spmb-'.$transaksi->id.'.pdf');
+            ->download('Bukti Pembayaran SPMB - '.($transaksi->tagihan?->pendaftar?->registration_number ?: $transaksi->id).'.pdf');
     }
 
     public function viewProof(TransaksiPembayaran $transaksi)
@@ -525,7 +525,7 @@ Silakan unggah ulang bukti pembayaran yang benar melalui sistem.";
 
         if ($transaction->status === 'verified' && $isRegistrationFee) {
             $pdfUrl = URL::temporarySignedRoute('invoice.public.pdf', now()->addMinutes(30), ['transaksi' => $transaction->id]);
-            $whatsapp->sendDocument((string) $phone, $pdfUrl, 'invoice-spmb-'.$transaction->id.'.pdf', $message);
+            $whatsapp->sendDocument((string) $phone, $pdfUrl, 'Bukti Pembayaran SPMB - '.($transaction->tagihan?->pendaftar?->registration_number ?: $transaction->id).'.pdf', $message);
             return;
         }
 
@@ -548,6 +548,6 @@ Silakan unggah ulang bukti pembayaran yang benar melalui sistem.";
             ."Invoice: {$invoice}\nPDF invoice: {$pdf}\n\n"
             ."Untuk pembayaran lanjutan, silakan ke BMT PCM Cileungsi setiap Senin dan Selasa, Kampus E SMK Muhammadiyah 4 Cileungsi, pukul 07.30–14.30.";
         $whatsapp->send($phone, $message);
-        $whatsapp->sendDocument($phone, $pdf, 'invoice-spmb-'.$transaction->id.'.pdf', 'Invoice pembayaran SPMB');
+        $whatsapp->sendDocument($phone, $pdf, 'Bukti Pembayaran SPMB - '.($transaction->tagihan?->pendaftar?->registration_number ?: $transaction->id).'.pdf', 'Bukti pembayaran SPMB');
     }
 }

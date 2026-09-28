@@ -304,13 +304,13 @@ class PembayaranController extends Controller
             $pdfUrl = URL::temporarySignedRoute('invoice.public.pdf', now()->addMinutes(30), ['transaksi' => $transaction->id]);
             if ($this->isRegistrationFee($transaction)) {
                 // A document caption is rendered as one WhatsApp bubble with the PDF.
-                $whatsapp->sendDocument((string) $phone, $pdfUrl, 'invoice-spmb-'.$transaction->id.'.pdf', $message);
+                $whatsapp->sendDocument((string) $phone, $pdfUrl, 'Bukti Pembayaran SPMB - '.($transaction->tagihan?->pendaftar?->registration_number ?: $transaction->id).'.pdf', $message);
                 return;
             }
 
             $whatsapp->send((string) $phone, $message);
             $caption = 'Invoice digital pembayaran daftar ulang SPMB';
-            $whatsapp->sendDocument((string) $phone, $pdfUrl, 'invoice-spmb-'.$transaction->id.'.pdf', $caption);
+            $whatsapp->sendDocument((string) $phone, $pdfUrl, 'Bukti Pembayaran SPMB - '.($transaction->tagihan?->pendaftar?->registration_number ?: $transaction->id).'.pdf', $caption);
             $this->notifyTreasurer($whatsapp, $transaction, $approver);
             return;
         }
