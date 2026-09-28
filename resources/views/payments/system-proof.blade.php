@@ -10,7 +10,9 @@
         : (['cash' => 'Tunai di sekolah', 'transfer' => 'Transfer bank'][$transaction->payment_method] ?? 'Pembayaran sekolah');
     $status = $transaction->status === 'rejected' ? 'PERLU DITINDAKLANJUTI' : ($transaction->treasurer_received_at ? 'DITERIMA BENDAHARA' : ($transaction->status === 'verified' ? 'DISETUJUI PANITIA' : 'MENUNGGU PERSETUJUAN'));
     $settings = \App\Models\SystemSetting::publicValues();
-    $letterhead = $settings['letterhead_path'] ?? null;
+    // Admin-uploaded letterhead takes priority. The official school letterhead
+    // remains the default so every invoice has a proper kop surat.
+    $letterhead = $settings['letterhead_path'] ?? 'images/kop-surat-resmi.png';
     $reference = $checkout?->provider_transaction_id ?: $checkout?->order_id ?: $transaction->reference_number ?: $transaction->transaction_number;
     $noteNumber = 'NT-'.str_pad((string) $transaction->id, 6, '0', STR_PAD_LEFT);
     $receivedAmount = (float) ($transaction->received_amount ?? $transaction->amount);
