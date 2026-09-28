@@ -51,7 +51,7 @@
                             <td><p class="font-bold text-slate-700">{{ $visit->visited_at?->format('d M Y') ?? '-' }}</p><p class="text-xs text-slate-400">{{ $visit->visited_at?->format('H:i') ?? '' }} WIB</p></td>
                             <td><p class="font-bold text-slate-800">{{ $visit->penerima?->name ?? 'Tidak tercatat' }}</p><p class="text-xs text-slate-500">{{ $visit->penerima?->role?->description ?? 'Petugas penerima' }}</p></td>
                             <td>@if($visit->pendaftar)<span class="visit-status is-linked">Terhubung</span>@else<span class="visit-status">Belum daftar</span>@endif</td>
-                            <td class="text-right">@if($visit->pendaftar)<a href="{{ route($prefix . 'pendaftar.show', $visit->pendaftar) }}" class="visit-detail-link">Lihat siswa →</a>@else<span class="text-xs font-semibold text-slate-400">Menunggu daftar</span>@endif</td>
+                            <td class="text-right"><div class="flex justify-end gap-2">@if($visit->pendaftar)<a href="{{ route($prefix . 'pendaftar.show', $visit->pendaftar) }}" class="visit-detail-link">Lihat siswa →</a>@endif @unless($readOnly)<button type="button" onclick="document.getElementById('edit-kunjungan-{{ $visit->id }}').showModal()" class="visit-detail-link">Edit</button>@if(! $visit->pendaftar)<form method="POST" action="{{ route($prefix.'kunjungan.destroy', $visit) }}" onsubmit="return confirm('Hapus data kunjungan {{ addslashes($visit->full_name) }}? Data yang sudah dihapus tidak dapat dikembalikan.')">@csrf @method('DELETE')<button class="text-xs font-black text-rose-600 hover:text-rose-800">Hapus</button></form>@endif @endunless @if(! $visit->pendaftar)<span class="text-xs font-semibold text-slate-400">Menunggu daftar</span>@endif</div></td>
                         </tr>
                     @empty
                         <tr><td colspan="8" class="text-center text-slate-400">Belum ada kunjungan.</td></tr>
@@ -59,6 +59,28 @@
                 </tbody>
             </table>
         </div>
+
+        @unless($readOnly)
+            @foreach($visits as $visit)
+                <dialog id="edit-kunjungan-{{ $visit->id }}" class="w-[min(94vw,720px)] rounded-2xl p-0 shadow-2xl backdrop:bg-slate-950/50">
+                    <form method="POST" action="{{ route($prefix.'kunjungan.update', $visit) }}" class="p-5 sm:p-6">
+                        @csrf @method('PUT')
+                        <div class="flex items-start justify-between gap-4 border-b border-slate-100 pb-4"><div><p class="text-xs font-black uppercase tracking-[.14em] text-violet-700">Perbaiki data</p><h3 class="mt-1 text-lg font-black text-slate-950">Edit kunjungan siswa</h3><p class="mt-1 text-sm text-slate-500">Gunakan edit bila ada salah ketik atau data dobel.</p></div><button type="button" onclick="this.closest('dialog').close()" class="rounded-lg px-3 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100">Tutup</button></div>
+                        <div class="mt-5 grid gap-3 sm:grid-cols-2">
+                            <label class="admin-label sm:col-span-2">Tujuan kedatangan<select name="visit_purpose" required class="admin-input mt-1"><option value="information" @selected($visit->visit_purpose === 'information')>Bertanya</option><option value="plan_to_register" @selected($visit->visit_purpose === 'plan_to_register')>Rencana daftar</option><option value="direct_registration" @selected($visit->visit_purpose === 'direct_registration')>Langsung daftar</option></select></label>
+                            <label class="admin-label">Nama calon siswa<input name="full_name" value="{{ $visit->full_name }}" required class="admin-input mt-1"></label>
+                            <label class="admin-label">No. WhatsApp<input name="visitor_phone" value="{{ $visit->visitor_phone }}" required inputmode="numeric" class="admin-input mt-1"></label>
+                            <label class="admin-label">Nama orang tua/wali<input name="parent_name" value="{{ $visit->parent_name }}" class="admin-input mt-1"></label>
+                            <label class="admin-label">No. HP orang tua/wali<input name="parent_phone" value="{{ $visit->parent_phone }}" inputmode="numeric" class="admin-input mt-1"></label>
+                            <label class="admin-label sm:col-span-2">Sekolah asal<select name="referensi_sekolah_id" required class="admin-input mt-1"><option value="">Pilih sekolah</option>@foreach($schools as $school)<option value="{{ $school->id }}" @selected($visit->school_reference_id === $school->id)>{{ $school->nama }} · {{ $school->npsn }}{{ $school->kecamatan ? ' · Kec. '.$school->kecamatan : '' }}</option>@endforeach</select></label>
+                            <label class="admin-label">Jurusan diminati<select name="interested_major_id" required class="admin-input mt-1">@foreach($jurusans as $jurusan)<option value="{{ $jurusan->id }}" @selected($visit->major_interest === $jurusan->name)>{{ $jurusan->name }}</option>@endforeach</select></label>
+                            <label class="admin-label">Catatan<input name="notes" value="{{ $visit->notes }}" class="admin-input mt-1"></label>
+                        </div>
+                        <div class="mt-6 flex justify-end gap-2 border-t border-slate-100 pt-4"><button type="button" onclick="this.closest('dialog').close()" class="rounded-xl px-4 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100">Batal</button><button class="rounded-xl bg-violet-700 px-4 py-2.5 text-sm font-black text-white hover:bg-violet-800">Simpan perubahan</button></div>
+                    </form>
+                </dialog>
+            @endforeach
+        @endunless
     </section>
 
     @unless($readOnly)

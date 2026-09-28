@@ -26,7 +26,11 @@ class LayananPiketController extends Controller
         $visitsToday = KunjunganPendaftar::whereDate('visited_at', today())->count();
         $unregisteredCount = KunjunganPendaftar::whereNull('applicant_id')->count();
 
-        return view('panitia.kunjungan.index', compact('visits', 'jurusans', 'visitsToday', 'unregisteredCount'));
+        $schools = ReferensiSekolah::query()
+            ->where(fn ($query) => $query->whereNull('status')->orWhere('status', '!=', 'nonaktif'))
+            ->orderBy('nama')->get(['id', 'nama', 'npsn', 'kecamatan', 'kabupaten_kota']);
+
+        return view('panitia.kunjungan.index', compact('visits', 'jurusans', 'schools', 'visitsToday', 'unregisteredCount'));
     }
 
     public function searchSchool(Request $request)
@@ -37,6 +41,41 @@ class LayananPiketController extends Controller
     }
 
     public function store(Request $request)
+    {
+        $validated = $this->visitData($request);
+        if (KunjunganPendaftar::where('visitor_phone', $validated['visitor_phone'])
+            ->whereDate('visited_at', today())->exists()) {
+            return back()->withInput()->withErrors(['visitor_phone' => 'Kunjungan dengan nomor WhatsApp ini sudah tercatat hari ini. Periksa daftar kunjungan untuk mengedit data yang ada.']);
+        }
+
+        KunjunganPendaftar::create($validated + [
+            'applicant_id' => null,
+            'visited_at' => now(),
+            'received_by' => Auth::id(),
+        ]);
+
+        return back()->with('success', 'Data calon siswa berhasil dicatat. Guru penerima: '.Auth::user()->name.'. Siswa dapat melakukan registrasi biasa dari perangkatnya.');
+    }
+
+    public function update(Request $request, KunjunganPendaftar $kunjungan)
+    {
+        $kunjungan->update($this->visitData($request));
+
+        return back()->with('success', 'Data kunjungan '.$kunjungan->full_name.' berhasil diperbarui.');
+    }
+
+    public function destroy(KunjunganPendaftar $kunjungan)
+    {
+        if ($kunjungan->applicant_id) {
+            return back()->with('warning', 'Kunjungan yang sudah terhubung ke siswa tidak dapat dihapus agar data pendaftaran dan pembayaran tetap aman.');
+        }
+
+        $kunjungan->delete();
+
+        return back()->with('success', 'Data kunjungan berhasil dihapus.');
+    }
+
+    private function visitData(Request $request): array
     {
         $validated = $request->validate([
             'visit_purpose' => ['required', 'in:information,plan_to_register,direct_registration'],
@@ -66,13 +105,7 @@ class LayananPiketController extends Controller
         $validated['major_interest'] = $major->name;
         unset($validated['referensi_sekolah_id']);
 
-        KunjunganPendaftar::create($validated + [
-            'applicant_id' => null,
-            'visited_at' => now(),
-            'received_by' => Auth::id(),
-        ]);
-
-        return back()->with('success', 'Data calon siswa berhasil dicatat. Guru penerima: '.Auth::user()->name.'. Siswa dapat melakukan registrasi biasa dari perangkatnya.');
+        return $validated;
     }
 
     private function normalizePhone(string $phone): string

@@ -36,6 +36,8 @@ Route::middleware(['web', 'panitia'])->group(function () {
     Route::get('/kunjungan', [LayananPiketController::class, 'index'])->name('kunjungan.index');
     Route::get('/kunjungan/cari-sekolah', [LayananPiketController::class, 'searchSchool'])->name('kunjungan.sekolah.search');
     Route::post('/kunjungan', [LayananPiketController::class, 'store'])->name('kunjungan.store');
+    Route::put('/kunjungan/{kunjungan}', [LayananPiketController::class, 'update'])->name('kunjungan.update');
+    Route::delete('/kunjungan/{kunjungan}', [LayananPiketController::class, 'destroy'])->name('kunjungan.destroy');
     Route::get('/pembayaran', [PembayaranController::class, 'index'])->name('pembayaran.index');
     Route::post('/pembayaran', [PembayaranController::class, 'store'])->name('pembayaran.store');
     Route::patch('/pembayaran/transaksi/{transaksi}', [PembayaranController::class, 'verify'])->name('pembayaran.verify');

@@ -96,6 +96,8 @@ Route::middleware(['web', 'admin'])->group(function () {
     Route::get('/kunjungan', [PanitiaLayananPiketController::class, 'index'])->name('kunjungan.index');
     Route::get('/kunjungan/cari-sekolah', [PanitiaLayananPiketController::class, 'searchSchool'])->name('kunjungan.sekolah.search');
     Route::post('/kunjungan', [PanitiaLayananPiketController::class, 'store'])->name('kunjungan.store');
+    Route::put('/kunjungan/{kunjungan}', [PanitiaLayananPiketController::class, 'update'])->name('kunjungan.update');
+    Route::delete('/kunjungan/{kunjungan}', [PanitiaLayananPiketController::class, 'destroy'])->name('kunjungan.destroy');
 
     Route::get('/tagihan', [BendaharaTagihanController::class, 'index'])->name('tagihan.index');
     Route::get('/tagihan/{bill}/invoice', [BendaharaTagihanController::class, 'invoice'])->name('tagihan.invoice');
