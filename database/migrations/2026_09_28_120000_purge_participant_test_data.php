@@ -29,6 +29,7 @@ return new class extends Migration
 
             $database = DB::getDatabaseName();
             $applicantTables = DB::table('information_schema.columns')
+                ->selectRaw('TABLE_NAME as table_name')
                 ->where('table_schema', $database)
                 ->whereIn('column_name', ['applicant_id', 'pendaftar_id'])
                 ->pluck('table_name')
@@ -44,6 +45,7 @@ return new class extends Migration
 
             if ($participantIds !== []) {
                 $userTables = DB::table('information_schema.columns')
+                    ->selectRaw('TABLE_NAME as table_name')
                     ->where('table_schema', $database)
                     ->whereIn('column_name', ['pengguna_id', 'user_id'])
                     ->pluck('table_name')
