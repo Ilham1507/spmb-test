@@ -52,7 +52,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Logout hanya mengakhiri sesi dan sudah dibatasi oleh middleware auth.
         // Jangan tampilkan 419 saat pengguna menekan Keluar dari halaman yang
         // token CSRF-nya sudah usang; arahkan kembali ke login secara normal.
-        $middleware->preventRequestForgery(except: ['logout']);
+        $middleware->preventRequestForgery(except: ['logout', '_internal/railway-sync/*']);
 
         $middleware->alias([
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
