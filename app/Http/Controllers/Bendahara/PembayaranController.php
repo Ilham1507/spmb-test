@@ -289,6 +289,8 @@ class PembayaranController extends Controller
     /** Final handover after panitia approval. Only this step records DU as received. */
     public function receive(Request $request, TransaksiPembayaran $transaksi, WhatsappCloudApiService $whatsapp, \App\Services\PaymentReceiptNotifier $receiptNotifier)
     {
+        abort_unless(Auth::user()?->hasRole('bendahara') || Auth::user()?->hasRole('admin'), 403);
+
         $request->validate([
             'notes' => ['nullable', 'string', 'max:1000'],
             'selected_items' => ['nullable', 'array'],

@@ -31,7 +31,7 @@ class PembayaranController extends Controller
     {
         $transactions = TransaksiPembayaran::with([
             'tagihan.jenisTagihan', 'tagihan.pendaftar.biodata', 'tagihan.pendaftar.user',
-            'tagihan.pendaftar.kunjungan.penerima', 'verifier',
+            'tagihan.pendaftar.kunjungan.penerima', 'verifier', 'treasurerReceiver',
         ])
             ->whereIn('status', ['pending', 'verified', 'rejected'])
             ->whereHas('tagihan.jenisTagihan', fn ($query) => $this->approvalFeeQuery($query))

@@ -23,6 +23,12 @@ class PanitiaMiddleware
             return $next($request);
         }
 
+        // The kepala sekolah may approve/reject payment evidence, but never
+        // record a payment or receive it into the finance ledger.
+        if (auth()->user()->hasRole('kepala_sekolah') && $request->routeIs('panitia.pembayaran.verify')) {
+            return $next($request);
+        }
+
         if ((auth()->user()->hasRole('kepala_sekolah') || auth()->user()->hasRole('bendahara')) && $request->routeIs('panitia.dashboard')) {
             return redirect()->route(auth()->user()->hasRole('bendahara') ? 'bendahara.dashboard' : 'kepala-sekolah.dashboard');
         }

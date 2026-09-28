@@ -4,7 +4,9 @@
 @section('page_title', 'Approve Pembayaran')
 
 @section('content')
+    @php($canRecordPayment = auth()->user()?->hasRole('panitia') || auth()->user()?->hasRole('admin'))
     <div class="payment-review mx-auto max-w-[1360px]">
+        @if($canRecordPayment)
         <section class="mb-6 rounded-3xl border border-violet-100 bg-white p-5 shadow-sm">
             <div class="mb-4"><p class="text-xs font-black uppercase tracking-[.14em] text-violet-700">Meja Panitia</p><h2 class="mt-1 text-xl font-black text-slate-950">Input & setujui pembayaran</h2><p class="mt-1 text-sm text-slate-500">Bukti wajib diunggah. Jika siswa belum memiliki akun, isi nama dan nomor WhatsApp; akun serta tautan aktivasi dibuat otomatis.</p></div>
             <form method="POST" action="{{ route(request()->routeIs('admin.*') ? 'admin.pembayaran.store' : 'panitia.pembayaran.store') }}" enctype="multipart/form-data" class="grid gap-4 md:grid-cols-2">@csrf
@@ -20,6 +22,9 @@
                 <div class="md:col-span-2"><button class="rounded-xl bg-violet-700 px-5 py-3 text-sm font-black text-white hover:bg-violet-800">Simpan & setujui pembayaran</button></div>
             </form>
         </section>
+        @else
+        <section class="mb-6 rounded-3xl border border-violet-100 bg-white p-5 shadow-sm"><p class="text-xs font-black uppercase tracking-[.14em] text-violet-700">Persetujuan pembayaran</p><h2 class="mt-1 text-xl font-black text-slate-950">Periksa dan setujui bukti pembayaran</h2><p class="mt-1 text-sm text-slate-500">Kepala sekolah dapat menyetujui atau menolak pembayaran yang masuk. Pencatatan pembayaran dilakukan oleh panitia.</p></section>
+        @endif
         <x-payment-transaction-table :transactions="$transactions" :route-prefix="request()->routeIs('admin.*') ? 'admin.' : 'panitia.'" accent="violet" show-pagination />
     </div>
 @endsection
