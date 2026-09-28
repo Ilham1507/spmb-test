@@ -115,9 +115,6 @@ class PembayaranController extends Controller
                         throw \Illuminate\Validation\ValidationException::withMessages(['fee_type' => 'Pembayaran formulir harus disetujui terlebih dahulu sebelum DU.']);
                     }
                     $bill = ReRegistrationFee::ensureBill($applicant);
-                    if ($bill->transaksi()->exists()) {
-                        throw \Illuminate\Validation\ValidationException::withMessages(['fee_type' => 'DU SPMB hanya dapat dicatat satu kali. Pembayaran berikutnya dilakukan di BMT.']);
-                    }
                 }
 
                 if ($bill->transaksi()->where('status', 'pending')->exists()) {
@@ -141,8 +138,8 @@ class PembayaranController extends Controller
                     throw \Illuminate\Validation\ValidationException::withMessages(['amount' => 'Masukkan nominal DU yang diterima.']);
                 }
 
-                // DU SPMB is a single initial payment. Its amount can be partial;
-                // the treasurer allocates it to the selected cost details on receipt.
+                // DU may be paid in installments. The treasurer allocates each
+                // installment to the selected cost details when receiving it.
                 if (! $isRegistration) {
                     $remaining = max(0, (int) round((float) $bill->remaining_amount));
                     if ((int) $validated['amount'] > $remaining) {

@@ -18,7 +18,7 @@
                 <div><label class="admin-label">Metode</label><select name="payment_method" required class="admin-input"><option value="cash">Tunai</option><option value="transfer">Transfer</option></select></div>
                 <div><label class="admin-label">Bukti pembayaran</label><input type="file" name="proof_file" accept=".jpg,.jpeg,.png,.pdf" required class="admin-input"><p class="mt-1 text-xs text-slate-500">JPG, PNG, atau PDF; maksimal 2 MB.</p></div>
                 <div><label class="admin-label">Nomor referensi / catatan</label><input name="reference_number" value="{{ old('reference_number') }}" class="admin-input" placeholder="Opsional"></div>
-                <div class="md:col-span-2"><p class="rounded-xl bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-900">Untuk DU, pilih siswa yang sudah membayar formulir. Nominal boleh sebagian; bendahara memilih rincian biaya saat menerima pembayaran, lalu invoice BMT diterbitkan.</p></div>
+                <div class="md:col-span-2"><p class="rounded-xl bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-900">Untuk DU, pilih siswa yang sudah membayar formulir. Nominal dapat diisi sesuai cicilan yang diterima; bendahara memilih rincian biaya saat menerima setiap pembayaran, lalu invoice BMT diterbitkan.</p></div>
                 <div class="md:col-span-2"><button class="rounded-xl bg-violet-700 px-5 py-3 text-sm font-black text-white hover:bg-violet-800">Simpan & setujui pembayaran</button></div>
             </form>
         </section>
