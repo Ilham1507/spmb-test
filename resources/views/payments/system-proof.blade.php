@@ -10,13 +10,74 @@
     $letterhead = $settings['letterhead_path'] ?? 'images/kop-surat-resmi.png';
     $reference = $checkout?->provider_transaction_id ?: $checkout?->order_id ?: $transaction->reference_number ?: $transaction->transaction_number;
     $invoiceNumber = 'INV-SPMB-'.str_pad((string) $transaction->id, 6, '0', STR_PAD_LEFT);
-    $receivedAmount = (float) ($transaction->received_amount ?? $transaction->amount);
     $paidAt = \Illuminate\Support\Carbon::parse($transaction->payment_date ?? $transaction->created_at);
+    $receivedAmount = (float) ($transaction->received_amount ?? $transaction->amount);
     $treasurerStatus = $transaction->treasurer_received_at
         ? 'Diterima oleh '.($transaction->treasurerReceiver?->name ?? 'Bendahara')
         : 'Menunggu penerimaan bendahara';
 @endphp
 <!doctype html>
-<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{{ $invoiceNumber }} · {{ $student?->registration_number }}</title><style>
-@page{margin:0}*{box-sizing:border-box}body{margin:0;background:#e8edf5;color:#172033;font-family:Arial,sans-serif;font-size:11px;line-height:1.45}.invoice{position:relative;width:210mm;min-height:297mm;margin:18px auto;padding-bottom:12mm;background:#fff;box-shadow:0 12px 38px rgba(21,42,78,.16)}.letterhead{display:block;width:100%;height:auto;max-height:38mm;object-fit:fill}.content{padding:15mm 17mm 13mm}.document-kicker{margin:0 0 4px;color:#8a6500;font-size:9px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase}.document-head{display:table;width:100%;padding-bottom:12px;border-bottom:2px solid #123d7d}.document-head>div{display:table-cell;vertical-align:top}.document-head>div:last-child{text-align:right}h1{margin:0;color:#102d61;font-size:21px;line-height:1.15;letter-spacing:.15px}.subtitle{margin:5px 0 0;color:#64748b;font-size:10px}.invoice-no{display:inline-block;padding:7px 10px;border:1px solid #b8c8df;color:#102d61;font-size:10px;font-weight:700}.approved{display:inline-block;margin-top:7px;padding:5px 9px;background:#e9f7ee;color:#147044;font-size:9px;font-weight:700}.section-title{margin:20px 0 7px;color:#102d61;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px}.identity,.payment{width:100%;border-collapse:collapse}.identity td{width:50%;padding:9px 11px;border:1px solid #d8e1ee;vertical-align:top}.label{display:block;margin-bottom:3px;color:#748299;font-size:8px;font-weight:700;letter-spacing:.45px;text-transform:uppercase}.value{color:#172033;font-size:11px;font-weight:700}.payment th{padding:9px 10px;background:#102d61;color:#fff;font-size:9px;text-align:left;text-transform:uppercase;letter-spacing:.35px}.payment td{padding:10px;border:1px solid #d8e1ee;vertical-align:top}.payment .amount{text-align:right;white-space:nowrap}.total{display:table;width:100%;margin-top:14px;padding:14px 16px;background:#eef7f5;border:1px solid #bddfd8}.total>div{display:table-cell;vertical-align:middle}.total>div:last-child{text-align:right}.total small{color:#37786d;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.55px}.total strong{color:#08796d;font-size:22px}.verification{margin-top:20px;padding:12px 14px;border-left:3px solid #123d7d;background:#f5f8fc}.verification p{margin:2px 0;color:#46566f;font-size:10px}.verification strong{color:#172033}.notice{margin:18px 0 0;color:#68778d;font-size:9px;line-height:1.55}.footer{position:absolute;right:0;bottom:0;left:0;padding:9px 17mm;background:#102d61;color:#fff;font-size:8px;text-align:center}.actions{margin:18px auto 26px;text-align:center}.actions button{border:0;padding:10px 17px;background:#123d7d;color:#fff;cursor:pointer;font-weight:700}@media print{body{background:#fff}.invoice{width:210mm;min-height:297mm;margin:0;box-shadow:none}.actions{display:none}}@media screen and (max-width:850px){.invoice{width:100%;min-height:0;margin:0;padding-bottom:0}.content{padding:28px 20px}.footer{position:static;padding:9px 20px}}
-</style></head><body><main class="invoice"><img class="letterhead" src="{{ asset($letterhead) }}" alt="Kop surat resmi sekolah"><div class="content"><section class="document-head"><div><p class="document-kicker">Sistem Penerimaan Murid Baru</p><h1>BUKTI PEMBAYARAN FORMULIR</h1><p class="subtitle">Dokumen pembayaran resmi SPMB Tahun Ajaran 2027/2028</p></div><div><span class="invoice-no">{{ $invoiceNumber }}</span><br><span class="approved">DISETUJUI PANITIA</span></div></section><p class="section-title">Data calon siswa</p><table class="identity"><tr><td><span class="label">Nama calon siswa</span><span class="value">{{ $name }}</span></td><td><span class="label">Nomor pendaftaran</span><span class="value">{{ $student?->registration_number ?? '-' }}</span></td></tr></table><p class="section-title">Rincian transaksi</p><table class="payment"><thead><tr><th>Tagihan</th><th>Metode</th><th>Referensi</th><th class="amount">Nominal</th></tr></thead><tbody><tr><td>{{ collect($transaction->selected_items ?? [])->pluck('name')->join(', ') ?: ($bill?->jenisTagihan?->name ?? 'Pembayaran formulir SPMB') }}</td><td>{{ $channel }}</td><td>{{ $reference ?: '-' }}<br><span style="color:#718096;font-size:9px">{{ $paidAt->translatedFormat('d F Y, H:i') }} WIB</span></td><td class="amount"><strong>Rp {{ number_format($transaction->amount, 0, ',', '.') }}</strong></td></tr></tbody></table><div class="total"><div><small>Total pembayaran diterima</small></div><div><strong>Rp {{ number_format($receivedAmount, 0, ',', '.') }}</strong></div></div><div class="verification"><p><strong>Persetujuan panitia:</strong> {{ $transaction->verifier?->name ?? '-' }}</p><p><strong>Status bendahara:</strong> {{ $treasurerStatus }}</p></div><p class="notice">Dokumen ini diterbitkan otomatis berdasarkan transaksi yang tercatat pada Sistem SPMB dan sah sebagai bukti pembayaran elektronik.</p></div><footer class="footer">{{ $settings['school_name'] ?? 'SMK Muhammadiyah 4 Cileungsi' }} · {{ $settings['school_address'] ?? 'Cileungsi, Bogor' }}</footer></main><div class="actions"><button onclick="window.print()">Cetak bukti pembayaran</button></div></body></html>
+<html lang="id">
+<head>
+    <meta charset="utf-8">
+    <title>{{ $invoiceNumber }} · {{ $student?->registration_number }}</title>
+    <style>
+        @page { margin: 0; }
+        * { box-sizing: border-box; }
+        body { margin: 0; background: #edf1f6; color: #172033; font-family: Arial, sans-serif; font-size: 12px; line-height: 1.45; }
+        .invoice { position: relative; width: 210mm; min-height: 297mm; margin: 18px auto; padding-bottom: 13mm; background: #fff; box-shadow: 0 12px 38px rgba(21,42,78,.16); }
+        .letterhead { display: block; width: 100%; height: auto; max-height: 38mm; object-fit: fill; }
+        .content { padding: 17mm 17mm 14mm; }
+        .head { display: table; width: 100%; padding-bottom: 13px; border-bottom: 2px solid #163f7d; }
+        .head > div { display: table-cell; vertical-align: top; }
+        .head > div:last-child { text-align: right; }
+        .kicker { margin: 0 0 5px; color: #8a6500; font-size: 10px; font-weight: 700; letter-spacing: 1px; }
+        h1 { margin: 0; color: #102d61; font-size: 24px; line-height: 1.18; }
+        .sub { margin: 4px 0 0; color: #64748b; font-size: 11px; }
+        .number { display: inline-block; padding: 8px 10px; border: 1px solid #b8c8df; color: #102d61; font-size: 11px; font-weight: 700; }
+        .status { display: inline-block; margin-top: 7px; padding: 6px 10px; background: #e9f7ee; color: #147044; font-size: 10px; font-weight: 700; }
+        .section { margin: 25px 0 8px; color: #64748b; font-size: 11px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; }
+        table { width: 100%; border-collapse: collapse; }
+        .identity td { width: 50%; padding: 12px 13px; border: 1px solid #d8e1ee; background: #f8fafd; }
+        .label { display: block; margin-bottom: 3px; color: #748299; font-size: 9px; font-weight: 700; text-transform: uppercase; }
+        .value { font-size: 13px; font-weight: 700; }
+        .payment th { padding: 11px; background: #102d61; color: #fff; font-size: 10px; text-align: left; letter-spacing: .35px; }
+        .payment td { padding: 13px 11px; border: 1px solid #d8e1ee; vertical-align: top; }
+        .amount { text-align: right; white-space: nowrap; }
+        .muted { color: #718096; font-size: 10px; }
+        .total { display: table; width: 100%; margin-top: 18px; padding: 17px 18px; border: 1px solid #bddfd8; background: #eef7f5; }
+        .total > span { display: table-cell; vertical-align: middle; color: #37786d; font-size: 10px; font-weight: 700; letter-spacing: .5px; }
+        .total > strong { display: table-cell; color: #08796d; font-size: 27px; text-align: right; }
+        .verification, .next { margin-top: 22px; padding: 14px 16px; }
+        .verification { border-left: 4px solid #163f7d; background: #f5f8fc; }
+        .next { margin-top: 14px; border-left: 4px solid #d8a900; background: #fff9e7; }
+        .verification p, .next p { margin: 2px 0; }
+        .notice { margin: 20px 0 0; color: #66758b; font-size: 11px; }
+        .footer { position: absolute; right: 0; bottom: 0; left: 0; padding: 10px 17mm; background: #102d61; color: #fff; font-size: 9px; }
+        .actions { margin: 18px auto; text-align: center; }
+        .actions button { border: 0; padding: 11px 18px; background: #123d7d; color: #fff; font-weight: 700; cursor: pointer; }
+        @media print { body { background: #fff; } .invoice { margin: 0; box-shadow: none; } .actions { display: none; } }
+    </style>
+</head>
+<body>
+    <main class="invoice">
+        <img class="letterhead" src="{{ asset($letterhead) }}" alt="Kop surat resmi sekolah">
+        <div class="content">
+            <section class="head">
+                <div><p class="kicker">SISTEM PENERIMAAN MURID BARU</p><h1>BUKTI PEMBAYARAN FORMULIR</h1><p class="sub">Dokumen pembayaran resmi SPMB Tahun Ajaran 2027/2028</p></div>
+                <div><span class="number">{{ $invoiceNumber }}</span><br><span class="status">DISETUJUI PANITIA</span></div>
+            </section>
+            <p class="section">Data calon siswa</p>
+            <table class="identity"><tr><td><span class="label">Nama calon siswa</span><span class="value">{{ $name }}</span></td><td><span class="label">Nomor pendaftaran</span><span class="value">{{ $student?->registration_number ?? '-' }}</span></td></tr></table>
+            <p class="section">Rincian transaksi</p>
+            <table class="payment"><thead><tr><th>TAGIHAN</th><th>METODE</th><th>REFERENSI</th><th class="amount">NOMINAL</th></tr></thead><tbody><tr><td>{{ collect($transaction->selected_items ?? [])->pluck('name')->join(', ') ?: ($bill?->jenisTagihan?->name ?? 'Pembayaran formulir SPMB') }}</td><td>{{ $channel }}</td><td>{{ $reference ?: '-' }}<br><span class="muted">{{ $paidAt->translatedFormat('d F Y, H:i') }} WIB</span></td><td class="amount"><strong>Rp {{ number_format($transaction->amount, 0, ',', '.') }}</strong></td></tr></tbody></table>
+            <div class="total"><span>TOTAL PEMBAYARAN DITERIMA</span><strong>Rp {{ number_format($receivedAmount, 0, ',', '.') }}</strong></div>
+            <div class="verification"><p><strong>Persetujuan panitia:</strong> {{ $transaction->verifier?->name ?? '-' }}</p><p><strong>Status bendahara:</strong> {{ $treasurerStatus }}</p></div>
+            <div class="next"><p><strong>INFORMASI LANJUTAN</strong></p><p>Pembayaran formulir telah dicatat. Silakan lanjutkan pengisian formulir SPMB melalui tautan yang dikirimkan ke WhatsApp.</p></div>
+            <p class="notice">Dokumen ini diterbitkan otomatis berdasarkan transaksi yang tercatat pada Sistem SPMB dan sah sebagai bukti pembayaran elektronik.</p>
+        </div>
+        <footer class="footer">{{ $settings['school_name'] ?? 'SMK Muhammadiyah 4 Cileungsi' }} · {{ $settings['school_address'] ?? 'Cileungsi, Bogor' }}</footer>
+    </main>
+    <div class="actions"><button onclick="window.print()">Cetak bukti pembayaran</button></div>
+</body>
+</html>
