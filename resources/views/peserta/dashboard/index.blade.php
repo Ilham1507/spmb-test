@@ -204,6 +204,7 @@
 @if($visitMatchCandidate)
     @php
         $visitPhone = preg_replace('/^(\d{4})\d+(\d{3})$/', '$1••••$2', (string) $visitMatchCandidate->visitor_phone);
+        $matchedContact = \App\Support\KunjunganMatcher::matchedContact($visitMatchCandidate, auth()->user()->phone);
         $otpMode = (int) session('visit_otp_visit_id') === (int) $visitMatchCandidate->id;
     @endphp
     <div x-data="{ open: true, otpMode: @js($otpMode) }" x-cloak x-show="open" class="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm" role="dialog" aria-modal="true">
@@ -212,12 +213,12 @@
             <div class="p-5 sm:p-7">
                 <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-xl font-black text-emerald-700">✓</div>
                 <h2 class="mt-4 text-2xl font-black text-slate-950">Kami menemukan data kunjunganmu</h2>
-                <p class="mt-2 text-sm leading-relaxed text-slate-600">Nama lengkap pada akun cocok dengan buku kunjungan sekolah. Pastikan informasi berikut memang milikmu.</p>
+                <p class="mt-2 text-sm leading-relaxed text-slate-600">Nama dan {{ strtolower($matchedContact) }} cocok dengan buku kunjungan. Pastikan informasi berikut memang milikmu.</p>
 
                 <div class="mt-5 grid gap-3 rounded-2xl bg-slate-50 p-4 text-sm sm:grid-cols-2">
                     <div><p class="text-xs font-bold uppercase text-slate-400">Nama calon siswa</p><p class="mt-1 font-black text-slate-900">{{ $visitMatchCandidate->full_name }}</p></div>
                     <div><p class="text-xs font-bold uppercase text-slate-400">Sekolah asal</p><p class="mt-1 font-black text-slate-900">{{ $visitMatchCandidate->origin_school }}</p></div>
-                    <div><p class="text-xs font-bold uppercase text-slate-400">WA saat kunjungan</p><p class="mt-1 font-black text-slate-900">{{ $visitPhone }}</p></div>
+                    <div><p class="text-xs font-bold uppercase text-slate-400">WA siswa saat kunjungan</p><p class="mt-1 font-black text-slate-900">{{ $visitPhone }}</p></div>
                     <div><p class="text-xs font-bold uppercase text-slate-400">Guru penerima</p><p class="mt-1 font-black text-emerald-700">{{ $visitMatchCandidate->penerima?->name ?? '-' }}</p></div>
                 </div>
 
