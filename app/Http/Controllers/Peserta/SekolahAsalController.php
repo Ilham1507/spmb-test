@@ -30,6 +30,7 @@ class SekolahAsalController extends Controller
     {
         $query = trim((string) $request->query('q', ''));
         $juniorHighOnly = true;
+        $terms = $this->searchTerms($query);
 
         if (mb_strlen($query) < 1) {
             return response()->json([]);
@@ -39,11 +40,17 @@ class SekolahAsalController extends Controller
             ->where(function ($builder) {
                 $builder->whereNull('status')->orWhere('status', '!=', 'nonaktif');
             })
-            ->where(function ($builder) use ($query) {
-                $builder->where('nama', 'like', "%{$query}%")
-                    ->orWhere('npsn', 'like', "{$query}%")
-                    ->orWhere('kecamatan', 'like', "%{$query}%")
-                    ->orWhere('kabupaten_kota', 'like', "%{$query}%");
+            ->where(function ($builder) use ($query, $terms) {
+                $builder->where('npsn', 'like', preg_replace('/\s+/', '', $query).'%')
+                    ->orWhere(function ($names) use ($terms) {
+                        foreach ($terms as $term) $names->where('nama', 'like', "%{$term}%");
+                    })
+                    ->orWhere(function ($districts) use ($terms) {
+                        foreach ($terms as $term) $districts->where('kecamatan', 'like', "%{$term}%");
+                    })
+                    ->orWhere(function ($cities) use ($terms) {
+                        foreach ($terms as $term) $cities->where('kabupaten_kota', 'like', "%{$term}%");
+                    });
             })
             ->when($juniorHighOnly, fn ($builder) => $builder->whereRaw("UPPER(TRIM(bentuk_pendidikan)) IN (?, ?)", ['SMP', 'MTS']))
             ->orderByRaw("CASE WHEN npsn = ? THEN 0 WHEN npsn LIKE ? THEN 1 ELSE 2 END", [$query, "{$query}%"])
@@ -166,21 +173,39 @@ class SekolahAsalController extends Controller
         return str_starts_with($npsn, $query) || str_starts_with($name, $query) ? 1 : 2;
     }
 
+    private function searchTerms(string $query): array
+    {
+        $terms = collect(preg_split('/[^\pL\pN]+/u', mb_strtolower($query)) ?: [])
+            ->filter(fn (string $term) => $term !== '')
+            ->unique()
+            ->take(5)
+            ->values()
+            ->all();
+
+        return $terms ?: [mb_strtolower($query)];
+    }
+
     private function findAndCacheOfficialSchools(string $query)
     {
         return Cache::remember('official-school-search:'.sha1(mb_strtolower($query)), now()->addMinutes(15), function () use ($query) {
             try {
-            $search = $this->officialHttpClient()
-                ->timeout(8)
-                ->accept('text/html')
-                ->get('https://referensi.data.kemendikdasmen.go.id/pendidikan/cari/'.rawurlencode($query));
+                // The official directory is less forgiving with multi-word names.
+                // Retry each meaningful word, e.g. "al furqon" also searches "furqon".
+                $lookups = collect([$query])
+                    ->concat(collect($this->searchTerms($query))->filter(fn (string $term) => mb_strlen($term) >= 3))
+                    ->unique()
+                    ->values();
+                $npsns = $lookups->flatMap(function (string $lookup) {
+                    $search = $this->officialHttpClient()
+                        ->timeout(8)
+                        ->accept('text/html')
+                        ->get('https://referensi.data.kemendikdasmen.go.id/pendidikan/cari/'.rawurlencode($lookup));
 
-            if (! $search->successful()) {
-                return collect();
-            }
+                    if (! $search->successful()) return [];
 
-            preg_match_all('~pendidikan/npsn/(\d{8})~', $search->body(), $matches);
-            $npsns = collect($matches[1] ?? [])->unique()->take(10);
+                    preg_match_all('~pendidikan/npsn/(\d{8})~', $search->body(), $matches);
+                    return $matches[1] ?? [];
+                })->unique()->take(10);
 
                 return $npsns->map(fn (string $npsn) => $this->fetchAndCacheOfficialSchool($npsn))
                 ->filter()

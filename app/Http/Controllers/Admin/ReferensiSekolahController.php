@@ -37,6 +37,7 @@ class ReferensiSekolahController extends Controller
     public function search(Request $request)
     {
         $query = trim((string) $request->query('q', ''));
+        $terms = $this->searchTerms($query);
 
         if (mb_strlen($query) < 1) {
             return response()->json([]);
@@ -46,11 +47,17 @@ class ReferensiSekolahController extends Controller
             ->where(function ($builder) {
                 $builder->whereNull('status')->orWhere('status', '!=', 'nonaktif');
             })
-            ->where(function ($builder) use ($query) {
-                $builder->where('nama', 'like', "%{$query}%")
-                    ->orWhere('npsn', 'like', "{$query}%")
-                    ->orWhere('kecamatan', 'like', "%{$query}%")
-                    ->orWhere('kabupaten_kota', 'like', "%{$query}%");
+            ->where(function ($builder) use ($query, $terms) {
+                $builder->where('npsn', 'like', preg_replace('/\s+/', '', $query).'%')
+                    ->orWhere(function ($names) use ($terms) {
+                        foreach ($terms as $term) $names->where('nama', 'like', "%{$term}%");
+                    })
+                    ->orWhere(function ($districts) use ($terms) {
+                        foreach ($terms as $term) $districts->where('kecamatan', 'like', "%{$term}%");
+                    })
+                    ->orWhere(function ($cities) use ($terms) {
+                        foreach ($terms as $term) $cities->where('kabupaten_kota', 'like', "%{$term}%");
+                    });
             })
             ->whereRaw("UPPER(TRIM(bentuk_pendidikan)) IN (?, ?)", self::JUNIOR_HIGH_FORMS)
             ->orderByRaw("CASE WHEN npsn = ? THEN 0 WHEN npsn LIKE ? THEN 1 ELSE 2 END", [$query, "{$query}%"])
@@ -99,6 +106,18 @@ class ReferensiSekolahController extends Controller
         if ($npsn === $query || $name === $query) return 0;
 
         return str_starts_with($npsn, $query) || str_starts_with($name, $query) ? 1 : 2;
+    }
+
+    private function searchTerms(string $query): array
+    {
+        $terms = collect(preg_split('/[^\pL\pN]+/u', mb_strtolower($query)) ?: [])
+            ->filter(fn (string $term) => $term !== '')
+            ->unique()
+            ->take(5)
+            ->values()
+            ->all();
+
+        return $terms ?: [mb_strtolower($query)];
     }
 
     public function store(Request $request)
