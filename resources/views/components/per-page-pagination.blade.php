@@ -2,7 +2,7 @@
 
 @php
     $pageName = $paginator->getPageName();
-    $accent = request()->routeIs('bendahara.*') ? '#b45309' : (request()->routeIs('admin.*') ? '#15468c' : '#047b73');
+    $accent = request()->routeIs('bendahara.*') ? '#b45309' : (request()->routeIs('panitia.*') ? '#6d28d9' : (request()->routeIs('admin.*') ? '#15468c' : '#047b73'));
     $query = request()->except(['per_page', $pageName]);
     $selected = \App\Support\Pagination::perPage($paginator->perPage());
 @endphp
