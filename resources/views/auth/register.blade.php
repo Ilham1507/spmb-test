@@ -112,51 +112,12 @@
                 closeCheck() { this.checkOpen = false; this.checking = false; },
                 confirmVisit() { if (this.selectedVisit) this.submitForm(); },
                 registerAsNew() { this.selectedVisit = ''; this.submitForm(); },
-                async submitForm() {
+                submitForm() {
                     this.checkOpen = false;
                     this.checking = true;
                     window.showGlobalLoading?.('Membuat akun', 'Mohon tunggu sebentar.');
-                    const controller = new AbortController();
-                    const timeout = window.setTimeout(() => controller.abort(), 30000);
-
-                    try {
-                        const response = await fetch(this.$el.action, {
-                            method: 'POST',
-                            body: new FormData(this.$el),
-                            credentials: 'same-origin',
-                            signal: controller.signal,
-                            headers: {
-                                Accept: 'application/json',
-                                'X-Requested-With': 'XMLHttpRequest',
-                            },
-                        });
-
-                        if (response.ok && response.redirected) {
-                            window.location.assign(response.url);
-                            return;
-                        }
-
-                        const result = await response.json().catch(() => null);
-                        if (!response.ok) {
-                            const errors = result?.errors ? Object.values(result.errors).flat() : [];
-                            this.submitError = errors[0] || (response.status === 419
-                                ? 'Sesi halaman sudah berakhir. Muat ulang halaman lalu coba lagi.'
-                                : 'Pendaftaran belum dapat diproses. Periksa kembali data kamu.');
-                            return;
-                        }
-
-                        window.location.assign(response.url || '{{ route('peserta.dashboard') }}');
-                    } catch (error) {
-                        this.submitError = error?.name === 'AbortError'
-                            ? 'Pendaftaran terlalu lama diproses. Periksa koneksi lalu coba lagi.'
-                            : 'Koneksi ke server terputus. Periksa internet lalu coba lagi.';
-                    } finally {
-                        window.clearTimeout(timeout);
-                        if (this.submitError) {
-                            this.checking = false;
-                            window.hideGlobalLoading?.();
-                        }
-                    }
+                    // Gunakan method asli form agar tidak memicu ulang @submit.prevent Alpine.
+                    HTMLFormElement.prototype.submit.call(this.$el);
                 },
             };
         }
