@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\BeritaLandingController;
 use App\Http\Controllers\Shared\ExecutiveReportController;
 use App\Http\Controllers\Panitia\PendaftarController;
 use App\Http\Controllers\Panitia\AssistedRegistrationController;
+use App\Http\Controllers\Panitia\LayananPiketController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['web', 'kepala_sekolah'])->group(function () {
@@ -20,6 +21,9 @@ Route::middleware(['web', 'kepala_sekolah'])->group(function () {
     Route::get('/pendaftar/{pendaftar}/cetak', [PendaftarController::class, 'cetak'])->name('pendaftar.cetak');
     Route::get('/pendaftar/{pendaftar}/pdf', [PendaftarController::class, 'pdf'])->name('pendaftar.pdf');
     Route::put('/pendaftar/{pendaftar}/verifikasi', [PendaftarController::class, 'verify'])->name('pendaftar.verify');
+    Route::get('/kunjungan/export-excel', [LayananPiketController::class, 'export'])->name('kunjungan.export');
+    Route::get('/kunjungan', [LayananPiketController::class, 'index'])->name('kunjungan.index');
+    Route::get('/kunjungan/cari-sekolah', [LayananPiketController::class, 'searchSchool'])->name('kunjungan.sekolah.search');
     Route::get('/berita-artikel', [BeritaLandingController::class, 'index'])->name('berita-landing.index');
     Route::get('/berita-artikel/buat', [BeritaLandingController::class, 'create'])->name('berita-landing.create');
     Route::post('/berita-artikel', [BeritaLandingController::class, 'store'])->name('berita-landing.store');

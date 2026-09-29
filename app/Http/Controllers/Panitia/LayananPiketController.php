@@ -11,16 +11,17 @@ use Illuminate\Support\Facades\Auth;
 use App\Support\FullNameNormalizer;
 use App\Support\Pagination;
 use App\Http\Controllers\Peserta\SekolahAsalController;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
 
 class LayananPiketController extends Controller
 {
     public function index(Request $request)
     {
-        $visits = KunjunganPendaftar::with(['penerima.role', 'pendaftar'])
-            ->when($request->filled('search'), fn ($query) => $query->where(fn ($inner) => $inner
-                ->where('full_name', 'like', '%'.$request->search.'%')
-                ->orWhere('visitor_phone', 'like', '%'.$request->search.'%')
-                ->orWhere('origin_school', 'like', '%'.$request->search.'%')))
+        $visits = $this->filteredVisitQuery($request)
             ->latest('visited_at')->paginate(Pagination::perPage())->withQueryString();
         $jurusans = Jurusan::where('status', 'aktif')->orderBy('name')->get();
         $visitsToday = KunjunganPendaftar::whereDate('visited_at', today())->count();
@@ -31,6 +32,44 @@ class LayananPiketController extends Controller
             ->orderBy('nama')->get(['id', 'nama', 'npsn', 'kecamatan', 'kabupaten_kota']);
 
         return view('panitia.kunjungan.index', compact('visits', 'jurusans', 'schools', 'visitsToday', 'unregisteredCount'));
+    }
+
+    public function export(Request $request)
+    {
+        $visits = $this->filteredVisitQuery($request)->with('referensiSekolah')->latest('visited_at')->get();
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Kunjungan Siswa');
+        $headers = ['No.', 'Nama calon siswa', 'No. WhatsApp siswa', 'Nama orang tua/wali', 'No. HP orang tua/wali', 'Sekolah asal', 'NPSN', 'Kecamatan', 'Kabupaten/Kota', 'Minat jurusan', 'Tujuan kedatangan', 'Tanggal kunjungan', 'Waktu', 'Petugas penerima', 'Status pendaftaran', 'Catatan'];
+        $sheet->fromArray([$headers], null, 'A1');
+        $purposeLabels = ['information' => 'Bertanya', 'plan_to_register' => 'Rencana daftar', 'direct_registration' => 'Langsung daftar'];
+
+        $row = 2;
+        foreach ($visits as $index => $visit) {
+            $school = $visit->referensiSekolah;
+            $sheet->fromArray([[$index + 1, $visit->full_name, $visit->visitor_phone, $visit->parent_name, $visit->parent_phone, $visit->origin_school, $visit->origin_school_npsn, $school?->kecamatan, $school?->kabupaten_kota, $visit->major_interest, $purposeLabels[$visit->visit_purpose] ?? $visit->visit_purpose, $visit->visited_at?->format('d-m-Y'), ($visit->visited_at?->format('H:i') ?? '').' WIB', $visit->penerima?->name, $visit->pendaftar ? 'Terhubung / terdaftar' : 'Belum daftar', $visit->notes]], null, 'A'.$row);
+            $sheet->setCellValueExplicit('C'.$row, (string) $visit->visitor_phone, DataType::TYPE_STRING);
+            $sheet->setCellValueExplicit('E'.$row, (string) $visit->parent_phone, DataType::TYPE_STRING);
+            $sheet->setCellValueExplicit('G'.$row, (string) $visit->origin_school_npsn, DataType::TYPE_STRING);
+            $row++;
+        }
+
+        $lastRow = max($row - 1, 1);
+        $sheet->getStyle('A1:P1')->applyFromArray(['font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']], 'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '173B78']], 'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER]]);
+        $sheet->getStyle('A1:P'.$lastRow)->getAlignment()->setVertical(Alignment::VERTICAL_TOP)->setWrapText(true);
+        if ($lastRow >= 2) {
+            $sheet->getStyle('A2:A'.$lastRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        }
+        $sheet->getRowDimension(1)->setRowHeight(26);
+        $sheet->freezePane('A2');
+        $sheet->setAutoFilter('A1:P'.$lastRow);
+        foreach ([5, 26, 21, 24, 21, 32, 14, 18, 20, 28, 22, 17, 12, 24, 22, 36] as $index => $width) {
+            $sheet->getColumnDimension(chr(65 + $index))->setWidth($width);
+        }
+
+        return response()->streamDownload(function () use ($spreadsheet) {
+            IOFactory::createWriter($spreadsheet, 'Xlsx')->save('php://output');
+        }, 'kunjungan-calon-siswa-'.now()->format('Ymd-His').'.xlsx', ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
     }
 
     public function searchSchool(Request $request)
@@ -112,5 +151,15 @@ class LayananPiketController extends Controller
     {
         $digits = preg_replace('/\D+/', '', $phone) ?? '';
         return str_starts_with($digits, '62') ? '0'.substr($digits, 2) : $digits;
+    }
+
+    private function filteredVisitQuery(Request $request)
+    {
+        return KunjunganPendaftar::with(['penerima.role', 'pendaftar'])
+            ->when($request->filled('search'), fn ($query) => $query->where(fn ($inner) => $inner
+                ->where('full_name', 'like', '%'.$request->search.'%')
+                ->orWhere('visitor_phone', 'like', '%'.$request->search.'%')
+                ->orWhere('parent_phone', 'like', '%'.$request->search.'%')
+                ->orWhere('origin_school', 'like', '%'.$request->search.'%')));
     }
 }

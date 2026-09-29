@@ -34,7 +34,7 @@
                     [route('panitia.pembayaran.index'), 'Pembayaran', 'M3 7h18v10H3z M3 10h18 M7 15h4'],
                     [route('panitia.hasil-tes.index'), 'Hasil Tes', 'M5 3h14v18H5z M8 7h8 M8 11h8 M8 15h5'],
                     [route('panitia.seleksi.index'), 'Seleksi Akhir', 'M12 3l2.6 5.3 5.9.9-4.2 4.1 1 5.8L12 16.4 6.7 19.1l1-5.8L3.5 9.2l5.9-.9z'],
-                    [route('panitia.kunjungan.index'), 'Kunjungan Siswa', 'M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4z M4 21a8 8 0 0 1 16 0'],
+                    [route('kepala-sekolah.kunjungan.index'), 'Kunjungan Siswa', 'M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4z M4 21a8 8 0 0 1 16 0'],
                 ] as [$url, $label, $icon])
                     <a href="{{ $url }}" class="sidebar-link {{ request()->url() === $url ? 'is-active' : '' }}" data-tooltip="{{ $label }}" :class="sidebarMini ? 'is-mini' : ''"><span class="sidebar-icon"><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="{{ $icon }}"/></svg></span><span class="sidebar-text">{{ $label }}</span></a>
                     @if($label === 'Pendaftar')

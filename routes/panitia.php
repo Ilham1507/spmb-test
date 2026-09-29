@@ -33,6 +33,7 @@ Route::middleware(['web', 'panitia'])->group(function () {
 
     // Meja guru panitia piket: penerimaan calon siswa dan pembayaran formulir
     Route::redirect('/layanan-piket', '/panitia/kunjungan')->name('layanan-piket.redirect');
+    Route::get('/kunjungan/export-excel', [LayananPiketController::class, 'export'])->name('kunjungan.export');
     Route::get('/kunjungan', [LayananPiketController::class, 'index'])->name('kunjungan.index');
     Route::get('/kunjungan/cari-sekolah', [LayananPiketController::class, 'searchSchool'])->name('kunjungan.sekolah.search');
     Route::post('/kunjungan', [LayananPiketController::class, 'store'])->name('kunjungan.store');

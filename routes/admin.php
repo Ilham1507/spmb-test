@@ -93,6 +93,7 @@ Route::middleware(['web', 'admin'])->group(function () {
     Route::delete('/tes-spmb/{pendaftar}/hasil/{testKey}', [PanitiaTesSpmbController::class, 'destroyResult'])->name('tes.hasil.destroy');
     Route::get('/seleksi', [PanitiaSeleksiController::class, 'index'])->name('seleksi.index');
     Route::put('/seleksi/{pendaftar}', [PanitiaSeleksiController::class, 'decide'])->name('seleksi.decide');
+    Route::get('/kunjungan/export-excel', [PanitiaLayananPiketController::class, 'export'])->name('kunjungan.export');
     Route::get('/kunjungan', [PanitiaLayananPiketController::class, 'index'])->name('kunjungan.index');
     Route::get('/kunjungan/cari-sekolah', [PanitiaLayananPiketController::class, 'searchSchool'])->name('kunjungan.sekolah.search');
     Route::post('/kunjungan', [PanitiaLayananPiketController::class, 'store'])->name('kunjungan.store');

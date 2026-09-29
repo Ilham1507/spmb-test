@@ -6,8 +6,20 @@
 
 @section('content')
 @php
-    $prefix = request()->routeIs('admin.*') ? 'admin.' : 'panitia.';
-    $readOnly = auth()->user()?->hasRole('bendahara');
+    $role = auth()->user()?->role?->name;
+    $prefix = match (true) {
+        request()->routeIs('admin.*') => 'admin.',
+        request()->routeIs('bendahara.*') => 'bendahara.',
+        request()->routeIs('kepala-sekolah.*') => 'kepala-sekolah.',
+        default => 'panitia.',
+    };
+    $readOnly = in_array($role, ['bendahara', 'kepala_sekolah'], true);
+    $exportButtonClass = match ($role) {
+        'panitia' => 'bg-violet-700 hover:bg-violet-800 focus:ring-violet-200',
+        'kepala_sekolah' => 'bg-teal-700 hover:bg-teal-800 focus:ring-teal-200',
+        'bendahara' => 'bg-amber-600 hover:bg-amber-700 focus:ring-amber-200',
+        default => 'bg-blue-700 hover:bg-blue-800 focus:ring-blue-200',
+    };
 @endphp
 <div class="visit-workspace mx-auto max-w-[1180px]" x-data="Object.assign({ createOpen: {{ $errors->any() ? 'true' : 'false' }} }, visitSchoolPicker(@js(route($prefix . 'kunjungan.sekolah.search'))))">
     <section class="visit-overview">
@@ -25,9 +37,15 @@
                 <h2 class="text-xl font-black text-slate-950">Daftar kunjungan</h2>
                 <p class="mt-1 text-sm text-slate-500">{{ $visits->total() }} data · Ditampilkan untuk seluruh petugas</p>
             </div>
-            @unless($readOnly)
-                <button type="button" @click="createOpen = true" class="visit-create-button">+ Catat kunjungan</button>
-            @endunless
+            <div class="flex flex-wrap items-center justify-end gap-2">
+                <a href="{{ route($prefix.'kunjungan.export', request()->only('search')) }}" class="inline-flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-black text-white shadow-sm transition focus:outline-none focus:ring-4 {{ $exportButtonClass }}" title="Unduh daftar kunjungan ke Excel">
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    Export Excel
+                </a>
+                @unless($readOnly)
+                    <button type="button" @click="createOpen = true" class="visit-create-button">+ Catat kunjungan</button>
+                @endunless
+            </div>
         </div>
         <div class="mx-4 mb-3 flex flex-col gap-2 lg:flex-row lg:items-center">
             <form method="GET" class="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center">

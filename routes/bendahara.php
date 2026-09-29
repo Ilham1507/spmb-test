@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\PengaturanController;
 use App\Http\Controllers\Admin\GelombangController;
 use App\Http\Controllers\Panitia\PendaftarController;
 use App\Http\Controllers\Panitia\AssistedRegistrationController;
+use App\Http\Controllers\Panitia\LayananPiketController;
 use App\Http\Controllers\Panitia\VerifikasiBerkasController;
 use App\Http\Controllers\Shared\HasilTesController;
 use App\Http\Controllers\Shared\DaftarHadirTesController;
@@ -36,6 +37,9 @@ Route::middleware(['web', 'bendahara'])->group(function () {
     Route::get('/pendaftar/{pendaftar}/cetak', [PendaftarController::class, 'cetak'])->name('pendaftar.cetak');
     Route::get('/pendaftar/{pendaftar}/pdf', [PendaftarController::class, 'pdf'])->name('pendaftar.pdf');
     Route::put('/pendaftar/{pendaftar}/verifikasi', [PendaftarController::class, 'verify'])->name('pendaftar.verify');
+    Route::get('/kunjungan/export-excel', [LayananPiketController::class, 'export'])->name('kunjungan.export');
+    Route::get('/kunjungan', [LayananPiketController::class, 'index'])->name('kunjungan.index');
+    Route::get('/kunjungan/cari-sekolah', [LayananPiketController::class, 'searchSchool'])->name('kunjungan.sekolah.search');
     Route::get('/dokumen/{dokumen}/lihat', [VerifikasiBerkasController::class, 'viewDocument'])->name('dokumen.show');
     Route::get('/tagihan', [TagihanController::class, 'index'])->name('tagihan.index');
     Route::get('/tagihan/{bill}/invoice', [TagihanController::class, 'invoice'])->name('tagihan.invoice');
