@@ -328,47 +328,46 @@
     <script>
         window.positionParticipantTourTip = function (tip, target) {
             if (!tip || !target) return;
-            const gap = 18;
             const viewportPadding = 16;
             if (window.innerWidth < 640) {
+                // Mulai dari bagian atas layar. Jika kartu tidak menabrak target,
+                // posisi ini dipakai. Jika menabrak, pindahkan ke bawah. Dengan
+                // begitu target selalu terlihat, termasuk saat halaman berada
+                // paling atas dan tidak bisa digulir lagi.
                 tip.style.left = `${viewportPadding}px`;
                 tip.style.right = `${viewportPadding}px`;
                 tip.style.width = 'auto';
-                tip.style.top = 'auto';
-                tip.style.bottom = `${viewportPadding}px`;
+                tip.style.top = `${viewportPadding}px`;
+                tip.style.bottom = 'auto';
                 tip.style.maxHeight = 'min(38dvh, 300px)';
                 tip.style.overflowY = 'auto';
+                const topCard = tip.getBoundingClientRect();
+                const focus = target.getBoundingClientRect();
+                const overlapsTopCard = focus.top < topCard.bottom + 16 && focus.bottom > topCard.top - 16;
+
+                if (overlapsTopCard) {
+                    tip.style.top = 'auto';
+                    tip.style.bottom = `${viewportPadding}px`;
+                }
                 tip.dataset.placement = 'mobile';
                 return;
             }
-            // Beri ukuran dan lokasi awal terlebih dahulu, baru ukur kartu yang sudah dirender.
-            // Ini mencegah kartu keluar layar ketika target berada di sisi kanan atau bawah.
-            const maxWidth = window.innerWidth - (viewportPadding * 2);
-            tip.style.width = `${Math.min(400, maxWidth)}px`;
-            tip.style.maxHeight = `${window.innerHeight - (viewportPadding * 2)}px`;
-            tip.style.overflowY = 'auto';
-            tip.style.left = `${viewportPadding}px`;
-            tip.style.right = 'auto';
-            tip.style.top = `${viewportPadding}px`;
-            tip.style.bottom = 'auto';
-
             const targetRect = target.getBoundingClientRect();
-            const renderedTip = tip.getBoundingClientRect();
-            const width = Math.min(renderedTip.width || Math.min(400, maxWidth), maxWidth);
-            const height = Math.min(renderedTip.height || 160, window.innerHeight - (viewportPadding * 2));
-            const left = Math.max(viewportPadding, Math.min(
-                targetRect.left + (targetRect.width / 2) - (width / 2),
-                window.innerWidth - width - viewportPadding
-            ));
-            const roomBelow = window.innerHeight - targetRect.bottom - gap;
-            const roomAbove = targetRect.top - gap;
-            const putBelow = roomBelow >= height || roomBelow >= roomAbove;
-            const preferredTop = putBelow ? targetRect.bottom + gap : targetRect.top - height - gap;
-            const top = Math.max(viewportPadding, Math.min(preferredTop, window.innerHeight - height - viewportPadding));
+            const viewportWidth = window.visualViewport?.width || window.innerWidth;
+            const viewportHeight = window.visualViewport?.height || window.innerHeight;
+            const focusIsRight = targetRect.left + (targetRect.width / 2) > viewportWidth / 2;
+            const focusIsUpper = targetRect.top + (targetRect.height / 2) < viewportHeight / 2;
 
-            tip.style.left = `${Math.round(left)}px`;
-            tip.style.top = `${Math.round(top)}px`;
-            tip.dataset.placement = putBelow ? 'bottom' : 'top';
+            // Selalu letakkan kartu di sudut berlawanan dari target. Properti right/bottom
+            // dipakai langsung agar kartu tidak bisa keluar layar pada browser yang dizoom.
+            tip.style.width = 'min(400px, calc(100vw - 32px))';
+            tip.style.maxHeight = 'calc(100dvh - 32px)';
+            tip.style.overflowY = 'auto';
+            tip.style.left = focusIsRight ? `${viewportPadding}px` : 'auto';
+            tip.style.right = focusIsRight ? 'auto' : `${viewportPadding}px`;
+            tip.style.top = focusIsUpper ? 'auto' : `${viewportPadding}px`;
+            tip.style.bottom = focusIsUpper ? `${viewportPadding}px` : 'auto';
+            tip.dataset.placement = focusIsUpper ? 'bottom' : 'top';
         };
         window.positionParticipantTourPointer = function (pointer, tip, target) {
             if (!pointer || !tip || !target || window.innerWidth < 640) {
