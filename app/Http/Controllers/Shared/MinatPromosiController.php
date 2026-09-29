@@ -7,6 +7,7 @@ use App\Models\Jurusan;
 use App\Models\MinatPromosi;
 use App\Support\Pagination;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\IOFactory;
@@ -111,6 +112,7 @@ class MinatPromosiController extends Controller
             'school_name.max' => 'Nama SMP/MTs terlalu panjang.',
             'interested_major_id.exists' => 'Jurusan yang dipilih tidak tersedia. Silakan pilih lagi.',
         ]);
+        $data['full_name'] = Str::title(Str::lower(trim(preg_replace('/\s+/', ' ', $data['full_name']) ?? '')));
         $data['student_phone'] = $this->normalizePhone($data['student_phone']);
         $data['major_interest'] = filled($data['interested_major_id'] ?? null)
             ? Jurusan::find($data['interested_major_id'])?->name
