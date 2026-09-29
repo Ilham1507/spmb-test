@@ -93,7 +93,7 @@
             tutorialOpen: false,
             tutorialStep: 0,
             tutorialForce: @js($forceTutorial ?? false),
-            tutorialKey: 'spmb-dashboard-tour-v8-{{ auth()->id() }}-{{ $pendaftar?->id }}',
+            tutorialKey: 'spmb-dashboard-tour-v9-{{ auth()->id() }}-{{ $pendaftar?->id }}',
             activeTarget: null,
             activeLayer: null,
             steps: [
@@ -106,7 +106,7 @@
                 { target: '[data-participant-shortcut-form]', title: 'Formulir data', text: 'Tekan ini untuk mengisi data diri, keluarga, sekolah asal, dan pilihan jurusan.' },
                 { target: '[data-participant-shortcut-documents]', title: 'Dokumen', text: 'Tekan ini untuk mengunggah berkas yang diminta dalam pendaftaran.' },
                 { target: '[data-participant-shortcut-test]', title: 'Tes SPMB', text: 'Tekan ini untuk melihat jadwal tes, mengikuti tes saat dibuka, dan melihat hasilnya.' },
-                { target: '[data-participant-profile-button]', title: 'Profil akun', text: 'Tekan bagian ini untuk melihat dan mengubah profil akunmu.' },
+                { target: '[data-participant-profile-link]', title: 'Profil akun', text: 'Pilih Profil Saya pada menu akun untuk melihat dan mengubah profil akunmu.', openProfile: true },
                 { target: '[data-participant-logout]', title: 'Keluar dari akun', text: 'Gunakan tombol ini jika ingin keluar dengan aman dari akunmu.', openProfile: true },
             ],
             init() {
@@ -127,10 +127,11 @@
                 this.tutorialStep = Math.max(0, Math.min(index, this.steps.length - 1));
                 const step = this.steps[this.tutorialStep];
                 if (step.openProfile) {
-                    const profileButton = document.querySelector('[data-participant-profile-button]');
-                    if (profileButton?.getAttribute('aria-expanded') !== 'true') profileButton?.click();
+                    window.dispatchEvent(new CustomEvent('participant-tour-open-account'));
+                } else {
+                    window.dispatchEvent(new CustomEvent('participant-tour-close-account'));
                 }
-                this.$nextTick(() => window.setTimeout(() => this.activateStep(step), step.openProfile ? 80 : 0));
+                this.$nextTick(() => window.setTimeout(() => this.activateStep(step), step.openProfile ? 180 : 0));
             },
             activateStep(step) {
                 const selector = typeof step.target === 'function' ? step.target() : step.target;
@@ -144,7 +145,7 @@
                     }
                 }
                 this.activeTarget = target;
-                this.activeLayer = target.closest('.portal-topbar, .participant-sidebar');
+                this.activeLayer = target.closest('[data-participant-account-menu], .portal-topbar, .participant-sidebar');
                 this.activeTarget.classList.add('participant-page-tour-target');
                 this.activeLayer?.classList.add('participant-tour-layer');
                 requestAnimationFrame(() => this.reposition());
@@ -168,6 +169,7 @@
             },
             finishTutorial() {
                 this.clearHighlight();
+                window.dispatchEvent(new CustomEvent('participant-tour-close-account'));
                 try { localStorage.setItem(this.tutorialKey, 'done') } catch (e) {}
                 this.tutorialOpen = false;
             },

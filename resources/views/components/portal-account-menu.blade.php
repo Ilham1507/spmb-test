@@ -8,7 +8,7 @@
         default => ['hover:border-emerald-300 hover:bg-emerald-50', 'bg-emerald-100 text-emerald-700'],
     };
 @endphp
-<div x-data="{ profileMenu:false }" class="relative" @click.outside="profileMenu=false">
+<div x-data="{ profileMenu:false }" data-participant-account-menu class="relative" @participant-tour-open-account.window="profileMenu=true" @participant-tour-close-account.window="profileMenu=false" @click.outside="profileMenu=false">
     <button type="button" data-participant-profile-button @click="profileMenu=!profileMenu" class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-2 py-1.5 text-left transition {{ $tone[0] }}" :aria-expanded="profileMenu">
         <x-user-avatar :user="auth()->user()" size="h-8 w-8" class="border {{ $tone[1] }}" />
         <span class="hidden max-w-32 md:block"><strong class="block truncate text-xs font-black text-slate-900">{{ auth()->user()?->name }}</strong><small class="block truncate text-[10px] text-slate-500">{{ auth()->user()?->phone }}</small></span>
