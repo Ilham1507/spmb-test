@@ -33,7 +33,16 @@ class MinatPromosiController extends Controller
 
         MinatPromosi::create($data + ['submitted_at' => now()]);
 
-        return redirect()->route('promosi.minat.success');
+        $selectedMajor = filled($data['interested_major_id'] ?? null)
+            ? Jurusan::find($data['interested_major_id'])
+            : null;
+
+        return redirect()->route('promosi.minat.success')->with([
+            'selected_major_name' => $selectedMajor?->name,
+            'selected_major_url' => $selectedMajor
+                ? route('konsentrasi.show', $selectedMajor)
+                : route('jurusan'),
+        ]);
     }
 
     public function success()
