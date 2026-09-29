@@ -93,7 +93,7 @@
             tutorialOpen: false,
             tutorialStep: 0,
             tutorialForce: @js($forceTutorial ?? false),
-            tutorialKey: 'spmb-dashboard-tour-v2-{{ auth()->id() }}-{{ $pendaftar?->id }}',
+            tutorialKey: 'spmb-dashboard-tour-v3-{{ auth()->id() }}-{{ $pendaftar?->id }}',
             activeTarget: null,
             activeLayer: null,
             steps: [
@@ -191,7 +191,7 @@
             </div>
         </div>
         @if($status !== 'rejected')
-            <a id="participant-primary-action" href="{{ route($nextRoute) }}{{ $nextRoute === 'peserta.pembayaran' ? '?tour=1' : '' }}" @click="tutorialOpen && finishTutorial()" :class="tutorialOpen ? 'participant-page-tour-target relative z-[130]' : ''" class="participant-main-action mt-5 inline-flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-3.5 text-sm font-black md:w-auto">
+            <a id="participant-primary-action" href="{{ route($nextRoute) }}{{ $nextRoute === 'peserta.pembayaran' ? '?tour=1' : '' }}" @click="tutorialOpen && finishTutorial()" class="participant-main-action mt-5 inline-flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-3.5 text-sm font-black md:w-auto">
                 {{ $nextTarget }} <span aria-hidden="true">→</span>
             </a>
             @if($status === 'draft' && !$visitMatchCandidate)
