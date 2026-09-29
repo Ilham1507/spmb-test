@@ -51,13 +51,21 @@
                         <h2 class="mt-4 text-xl font-black text-slate-950">Pilih data kunjungan</h2>
                         <div class="mt-5 space-y-2">
                             <template x-for="visit in visits" :key="visit.id">
-                                <label class="block cursor-pointer rounded-2xl border-2 p-4 transition" :class="selectedVisit == visit.id ? 'border-blue-500 bg-blue-50' : 'border-slate-200 bg-white hover:border-blue-200'">
+                                <label class="block cursor-pointer rounded-2xl border-2 p-4 transition" :class="selectedVisit == visit.id ? 'border-blue-500 bg-blue-50 shadow-[0_10px_25px_rgba(37,99,235,.10)]' : 'border-slate-200 bg-white hover:border-blue-200'">
                                     <span class="flex items-start gap-3">
-                                        <input type="radio" name="visit_choice" :value="visit.id" x-model="selectedVisit" class="mt-1">
+                                        <input type="radio" name="visit_choice" :value="visit.id" x-model="selectedVisit" class="mt-2">
                                         <span class="min-w-0 flex-1">
-                                            <strong class="block text-base text-slate-900" x-text="visit.name"></strong>
-                                            <small class="mt-1 block font-semibold text-slate-600" x-text="visit.school"></small>
-                                            <small x-show="visit.matched_phone" class="mt-3 block font-bold text-blue-700" x-text="'Nomor yang sama: '+visit.matched_phone"></small>
+                                            <span class="flex items-center gap-3">
+                                                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-base font-black text-white shadow-sm" x-text="visit.name?.charAt(0).toUpperCase()"></span>
+                                                <span class="min-w-0">
+                                                    <strong class="block truncate text-base text-slate-900" x-text="visit.name"></strong>
+                                                    <small class="mt-1 inline-flex max-w-full rounded-lg bg-white px-2 py-1 text-xs font-bold text-slate-600 ring-1 ring-slate-200" x-text="visit.school"></small>
+                                                </span>
+                                            </span>
+                                            <span x-show="visit.matched_phone" class="mt-4 flex items-center gap-2 rounded-xl bg-white px-3 py-2.5 text-sm font-black text-blue-700 ring-1 ring-blue-100">
+                                                <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-xs text-white">✓</span>
+                                                <span class="min-w-0 truncate" x-text="'Nomor yang sama: '+visit.matched_phone"></span>
+                                            </span>
                                             <small x-show="!visit.matched_phone" class="mt-3 block font-semibold text-slate-500" x-text="'Cocok: '+visit.match_reason"></small>
                                         </span>
                                     </span>
