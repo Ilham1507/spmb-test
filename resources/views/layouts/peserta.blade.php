@@ -57,6 +57,7 @@
     <!-- Sidebar -->
     @unless($isCbtExam || $isPrintPage)
     <aside
+        id="participant-sidebar-shell"
         class="sidebar-shell participant-sidebar fixed top-0 bottom-0 left-0 z-[70] flex w-[288px] shrink-0 flex-col border-r border-slate-300 bg-white shadow-2xl shadow-slate-950/20 transition-all duration-200 md:static md:z-auto md:translate-x-0"
         :class="{
             'translate-x-0': mobileMenuOpen,
@@ -67,7 +68,7 @@
     >
         <x-portal-sidebar-brand title="SPMB ONLINE" accent="teal" storage-key="spmb-sidebar-mini" />
         
-        <nav class="sidebar-nav flex-1 py-6 flex flex-col gap-1 overflow-y-auto overflow-x-hidden">
+        <nav id="participant-sidebar-navigation" class="sidebar-nav flex-1 py-6 flex flex-col gap-1 overflow-y-auto overflow-x-hidden">
             @php $route = Route::currentRouteName(); @endphp
 
             <a href="{{ route('peserta.dashboard') }}"
@@ -329,6 +330,16 @@
             if (!tip || !target) return;
             const gap = 18;
             const viewportPadding = 16;
+            if (window.innerWidth < 640) {
+                tip.style.left = `${viewportPadding}px`;
+                tip.style.right = `${viewportPadding}px`;
+                tip.style.top = 'auto';
+                tip.style.bottom = `${viewportPadding}px`;
+                tip.style.maxHeight = 'min(48dvh, 360px)';
+                tip.style.overflowY = 'auto';
+                tip.dataset.placement = 'mobile';
+                return;
+            }
             const targetRect = target.getBoundingClientRect();
             const tipRect = tip.getBoundingClientRect();
             const width = tip.offsetWidth || tipRect.width || Math.min(384, window.innerWidth - (viewportPadding * 2));
@@ -345,6 +356,8 @@
                 tip.style.right = 'auto';
                 tip.style.top = `${Math.round(top)}px`;
                 tip.style.bottom = 'auto';
+                tip.style.maxHeight = '';
+                tip.style.overflowY = '';
                 tip.dataset.placement = putBelow ? 'bottom' : 'top';
         };
         document.addEventListener('DOMContentLoaded', function () {

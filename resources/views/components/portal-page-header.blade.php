@@ -29,7 +29,7 @@
 @unless($headingOnly)
 <nav x-data="{ profileMenu:false }" class="portal-topbar portal-topbar-{{ $accent }} relative z-50 flex h-[76px] shrink-0 items-center gap-3 border-b border-slate-200 bg-white px-4 shadow-sm lg:px-7">
     @if($showMenu)
-        <button type="button" class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition md:hidden {{ $accentClasses }}" @click="mobileMenuOpen=true" aria-label="Buka menu"><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path stroke-linecap="round" d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+        <button type="button" data-participant-mobile-menu class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition md:hidden {{ $accentClasses }}" @click="mobileMenuOpen=true" aria-label="Buka menu"><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path stroke-linecap="round" d="M4 7h16M4 12h16M4 17h16"/></svg></button>
     @endif
     <a href="{{ route('dashboard') }}" class="flex min-w-0 items-center gap-3 text-slate-950 no-underline">
         <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-emerald-100 bg-white shadow-sm"><img src="{{ asset($siteSettings['school_logo']) }}" alt="Logo {{ $siteSettings['school_short_name'] }}" class="h-9 w-9 object-contain"></span>

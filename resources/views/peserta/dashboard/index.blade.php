@@ -87,7 +87,79 @@
     ];
 @endphp
 
-<div x-data="{ tutorialOpen: false, tutorialForce: @js($forceTutorial ?? false), tutorialKey: 'spmb-action-tour-v5-{{ auth()->id() }}-{{ $pendaftar?->id }}-{{ $tutorialStage }}', init() { if (this.tutorialForce) { this.tutorialOpen = true; return } try { this.tutorialOpen = !localStorage.getItem(this.tutorialKey) } catch (e) { this.tutorialOpen = true } }, startTutorial() { this.tutorialOpen = true }, finishTutorial() { try { localStorage.setItem(this.tutorialKey, 'done') } catch (e) {} this.tutorialOpen = false } }" x-init="init()" class="participant-dashboard mx-auto max-w-5xl space-y-4">
+<script>
+    function participantDashboardTour() {
+        return {
+            tutorialOpen: false,
+            tutorialStep: 0,
+            tutorialForce: @js($forceTutorial ?? false),
+            tutorialKey: 'spmb-dashboard-tour-v1-{{ auth()->id() }}-{{ $pendaftar?->id }}',
+            activeTarget: null,
+            activeLayer: null,
+            steps: [
+                { target: () => window.innerWidth < 768 ? '[data-participant-mobile-menu]' : '#participant-sidebar-navigation', title: 'Menu pendaftaran', text: 'Ini menu untuk membuka halaman pembayaran, formulir data, dokumen, dan Tes SPMB.' },
+                { target: '#participant-progress', title: 'Progres kamu', text: 'Bagian ini menunjukkan berapa langkah pendaftaran yang sudah kamu selesaikan.' },
+                { target: '#participant-primary-action', title: 'Tombol langkah berikutnya', text: 'Tekan tombol ini untuk melanjutkan proses yang perlu kamu kerjakan sekarang.' },
+                { target: '[data-participant-profile-button]', title: 'Profil akun', text: 'Tekan bagian ini untuk melihat dan mengubah profil akunmu.' },
+                { target: '[data-participant-logout]', title: 'Keluar dari akun', text: 'Gunakan tombol ini jika ingin keluar dengan aman dari akunmu.', openProfile: true },
+            ],
+            init() {
+                const shouldStart = this.tutorialForce || (() => { try { return !localStorage.getItem(this.tutorialKey) } catch (e) { return true } })();
+                if (shouldStart) this.startTutorial();
+                document.querySelector('.portal-page-content')?.addEventListener('scroll', () => this.reposition(), { passive: true });
+            },
+            startTutorial() {
+                this.tutorialOpen = true;
+                this.tutorialStep = 0;
+                this.$nextTick(() => this.showStep(0));
+            },
+            showStep(index) {
+                this.clearHighlight();
+                this.tutorialStep = Math.max(0, Math.min(index, this.steps.length - 1));
+                const step = this.steps[this.tutorialStep];
+                if (step.openProfile) {
+                    const profileButton = document.querySelector('[data-participant-profile-button]');
+                    if (profileButton?.getAttribute('aria-expanded') !== 'true') profileButton?.click();
+                }
+                this.$nextTick(() => window.setTimeout(() => this.activateStep(step), step.openProfile ? 80 : 0));
+            },
+            activateStep(step) {
+                const selector = typeof step.target === 'function' ? step.target() : step.target;
+                const target = document.querySelector(selector);
+                if (!target) return;
+                if (target.closest('.portal-page-content')) {
+                    const rect = target.getBoundingClientRect();
+                    if (rect.top < 12 || rect.bottom > window.innerHeight - 12) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                this.activeTarget = target;
+                this.activeLayer = target.closest('.portal-topbar, .participant-sidebar');
+                this.activeTarget.classList.add('participant-page-tour-target');
+                this.activeLayer?.classList.add('participant-tour-layer');
+                requestAnimationFrame(() => this.reposition());
+            },
+            reposition() {
+                if (this.tutorialOpen && this.activeTarget && this.$refs.tourTip) {
+                    window.positionParticipantTourTip?.(this.$refs.tourTip, this.activeTarget);
+                }
+            },
+            previous() { this.showStep(this.tutorialStep - 1); },
+            next() { this.tutorialStep + 1 >= this.steps.length ? this.finishTutorial() : this.showStep(this.tutorialStep + 1); },
+            clearHighlight() {
+                this.activeTarget?.classList.remove('participant-page-tour-target');
+                this.activeLayer?.classList.remove('participant-tour-layer');
+                this.activeTarget = null;
+                this.activeLayer = null;
+            },
+            finishTutorial() {
+                this.clearHighlight();
+                try { localStorage.setItem(this.tutorialKey, 'done') } catch (e) {}
+                this.tutorialOpen = false;
+            },
+        };
+    }
+</script>
+
+<div x-data="participantDashboardTour()" x-init="init()" class="participant-dashboard mx-auto max-w-5xl space-y-4">
     <section class="participant-summary rounded-3xl border p-5 md:p-7">
         <div class="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
             <div class="min-w-0">
@@ -106,7 +178,7 @@
                     </a>
                 @endif
             </div>
-            <div class="participant-progress-card shrink-0">
+            <div id="participant-progress" class="participant-progress-card shrink-0">
                 <span>Progress pendaftaran</span>
                 <strong>{{ $percent }}%</strong>
                 <small>{{ $completedSteps }}/{{ count($mandatoryKeys) }} langkah selesai</small>
@@ -190,16 +262,25 @@
 @if($status === 'draft' && (!$visitMatchCandidate || ($forceTutorial ?? false)))
     <div x-cloak x-show="tutorialOpen" x-transition.opacity class="participant-action-tour fixed inset-0 z-[125]" aria-live="polite">
         <div class="absolute inset-0 bg-slate-950/65 backdrop-blur-[1px]"></div>
-        <div x-init="$nextTick(() => { window.positionParticipantTourTip?.($el, document.getElementById('participant-primary-action')); requestAnimationFrame(() => window.positionParticipantTourTip?.($el, document.getElementById('participant-primary-action'))); })" @resize.window="window.positionParticipantTourTip?.($el, document.getElementById('participant-primary-action'))" class="participant-page-tour-tip participant-tour-tooltip fixed z-[131] w-[calc(100%-2rem)] max-w-lg rounded-3xl bg-white p-5 shadow-2xl sm:p-6">
-            <p class="mb-4 text-xs font-black uppercase tracking-[.16em] text-teal-700">Panduan pendaftaran</p>
+        <div x-ref="tourTip" @resize.window="reposition()" class="participant-page-tour-tip participant-tour-tooltip fixed z-[133] w-[calc(100%-2rem)] max-w-md rounded-3xl bg-white p-5 shadow-2xl sm:p-6">
+            <div class="flex items-center justify-between gap-3">
+                <p class="text-xs font-black uppercase tracking-[.16em] text-teal-700">Panduan pendaftaran</p>
+                <span class="rounded-full bg-teal-50 px-2.5 py-1 text-[11px] font-black text-teal-700" x-text="`Langkah ${tutorialStep + 1} dari ${steps.length}`"></span>
+            </div>
             <div class="flex items-start gap-4">
                 <div class="participant-tour-pulse mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-xl">☝</div>
                 <div>
-                    <p class="text-lg font-black text-slate-950">Mulai dari sini</p>
-                    <p class="mt-2 text-sm font-semibold leading-relaxed text-slate-600">Tekan <strong>{{ $nextTarget }}</strong> untuk melihat nominal dan menyelesaikan tahap pertama.</p>
+                    <p class="text-lg font-black text-slate-950" x-text="steps[tutorialStep]?.title"></p>
+                    <p class="mt-2 text-sm font-semibold leading-relaxed text-slate-600" x-text="steps[tutorialStep]?.text"></p>
                 </div>
             </div>
-            <button @click="finishTutorial()" class="mt-5 text-sm font-black text-teal-700 underline underline-offset-4">Lewati tutorial</button>
+            <div class="mt-5 flex items-center justify-between gap-3">
+                <button @click="finishTutorial()" class="text-sm font-black text-slate-500 underline underline-offset-4">Lewati</button>
+                <div class="flex gap-2">
+                    <button x-show="tutorialStep > 0" @click="previous()" class="rounded-xl bg-slate-100 px-4 py-2.5 text-sm font-black text-slate-700">Kembali</button>
+                    <button @click="next()" class="rounded-xl bg-teal-700 px-4 py-2.5 text-sm font-black text-white" x-text="tutorialStep + 1 === steps.length ? 'Selesai' : 'Lanjut'"></button>
+                </div>
+            </div>
         </div>
     </div>
 @endif
