@@ -35,6 +35,9 @@ php artisan migrate --force --path=database/migrations/2026_09_28_161000_reset_i
 php artisan migrate --force --path=database/migrations/2026_09_28_180000_resend_ilham_official_form_invoice.php
 php artisan migrate --force --path=database/migrations/2026_09_28_181000_retry_ilham_official_form_invoice.php
 php artisan migrate --force --path=database/migrations/2026_09_28_182000_deliver_ilham_official_invoice_document.php
+php artisan migrate --force --path=database/migrations/2026_09_29_090000_create_minat_promosi_table.php
+php artisan migrate --force --path=database/migrations/2026_09_29_100000_remove_unused_promotion_interest_fields.php
+php artisan migrate --force --path=database/migrations/2026_09_29_110000_remove_promotion_note_field.php
 # The school finder depends on this SMP/MTs reference data. It is idempotent
 # (matched by NPSN), so it can safely run again whenever Railway restarts.
 php artisan db:seed --force --class=Database\\Seeders\\CileungsiSmpSeeder
