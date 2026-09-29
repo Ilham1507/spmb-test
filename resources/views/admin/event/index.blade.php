@@ -32,8 +32,8 @@
         </div>
     </section>
 
-    <div x-show="open" x-cloak class="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/40 p-4">
-        <div class="flex max-h-[calc(100vh-2rem)] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white shadow-2xl" @click.outside="open=false">
+    <template x-teleport="body"><div x-show="open" x-cloak x-transition.opacity @keydown.escape.window="open=false" @click.self="open=false" class="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-950/55 p-3 backdrop-blur-[1px] sm:p-4">
+        <div class="flex max-h-[calc(100dvh-1.5rem)] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white shadow-2xl sm:max-h-[calc(100dvh-2rem)]" @click.stop>
             <div class="flex shrink-0 items-center justify-between border-b border-slate-100 px-5 py-4"><h3 class="text-lg font-black text-slate-950" x-text="mode === 'add' ? 'Tambah Event' : 'Edit Event'"></h3><button type="button" @click="open=false" class="text-xl text-slate-400">&times;</button></div>
             <form method="POST" data-select-inline class="flex min-h-0 flex-1 flex-col" x-bind:action="action">
                 @csrf <template x-if="mode === 'edit'"><input type="hidden" name="_method" value="PUT"></template>
@@ -48,6 +48,6 @@
                 </div><div class="flex shrink-0 justify-end gap-2 border-t border-slate-100 bg-white px-5 py-4"><button type="button" @click="open=false" class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-600">Batal</button><button type="submit" class="btn-primary" x-text="mode === 'add' ? 'Simpan Event' : 'Simpan Perubahan'"></button></div>
             </form>
         </div>
-    </div>
+    </div></template>
 </div>
 @endsection
