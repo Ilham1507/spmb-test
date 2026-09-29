@@ -9,6 +9,16 @@
     $routePrefix = request()->routeIs('admin.*') ? 'admin.' : 'panitia.';
 @endphp
 
+<style>
+    .panitia-spmb-chart > div > div { gap: 4px; }
+    .panitia-spmb-chart i { width: min(18px, 42%); }
+
+    @media (max-width: 640px) {
+        .panitia-spmb-chart > div > div { gap: 3px; }
+        .panitia-spmb-chart i { width: 9px; }
+    }
+</style>
+
 <div class="panitia-spmb-dashboard">
     <section class="panitia-spmb-hero">
         <div class="panitia-spmb-hero-copy">
