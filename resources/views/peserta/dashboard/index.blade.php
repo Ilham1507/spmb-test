@@ -87,7 +87,7 @@
     ];
 @endphp
 
-<div x-data="{ tutorialOpen: false, tutorialForce: @js($forceTutorial ?? false), tutorialKey: 'spmb-action-tour-v5-{{ auth()->id() }}-{{ $pendaftar?->id }}-{{ $tutorialStage }}', init() { if (this.tutorialForce) { this.tutorialOpen = true; return } try { this.tutorialOpen = !localStorage.getItem(this.tutorialKey) } catch (e) { this.tutorialOpen = true } }, finishTutorial() { try { localStorage.setItem(this.tutorialKey, 'done') } catch (e) {} this.tutorialOpen = false } }" x-init="init()" class="participant-dashboard mx-auto max-w-5xl space-y-4">
+<div x-data="{ tutorialOpen: false, tutorialForce: @js($forceTutorial ?? false), tutorialKey: 'spmb-action-tour-v5-{{ auth()->id() }}-{{ $pendaftar?->id }}-{{ $tutorialStage }}', init() { if (this.tutorialForce) { this.tutorialOpen = true; return } try { this.tutorialOpen = !localStorage.getItem(this.tutorialKey) } catch (e) { this.tutorialOpen = true } }, startTutorial() { this.tutorialOpen = true }, finishTutorial() { try { localStorage.setItem(this.tutorialKey, 'done') } catch (e) {} this.tutorialOpen = false } }" x-init="init()" class="participant-dashboard mx-auto max-w-5xl space-y-4">
     <section class="participant-summary rounded-3xl border p-5 md:p-7">
         <div class="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
             <div class="min-w-0">
@@ -113,9 +113,12 @@
             </div>
         </div>
         @if($status !== 'rejected')
-            <a id="participant-primary-action" href="{{ route($nextRoute) }}{{ $nextRoute === 'peserta.pembayaran' ? '?tour=1' : '' }}" @click="tutorialOpen && finishTutorial()" :class="tutorialOpen ? 'participant-tour-target relative z-[130]' : ''" class="participant-main-action mt-5 inline-flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-3.5 text-sm font-black md:w-auto">
+            <a id="participant-primary-action" href="{{ route($nextRoute) }}{{ $nextRoute === 'peserta.pembayaran' ? '?tour=1' : '' }}" @click="tutorialOpen && finishTutorial()" :class="tutorialOpen ? 'participant-page-tour-target relative z-[130]' : ''" class="participant-main-action mt-5 inline-flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-3.5 text-sm font-black md:w-auto">
                 {{ $nextTarget }} <span aria-hidden="true">→</span>
             </a>
+            @if($status === 'draft' && !$visitMatchCandidate)
+                <button type="button" @click="startTutorial()" class="mt-3 block text-sm font-black text-teal-700 underline decoration-teal-300 underline-offset-4">Butuh panduan? Lihat tutorial singkat</button>
+            @endif
         @endif
     </section>
 
@@ -187,15 +190,16 @@
 @if($status === 'draft' && (!$visitMatchCandidate || ($forceTutorial ?? false)))
     <div x-cloak x-show="tutorialOpen" x-transition.opacity class="participant-action-tour fixed inset-0 z-[125]" aria-live="polite">
         <div class="absolute inset-0 bg-slate-950/65 backdrop-blur-[1px]"></div>
-        <div x-init="$nextTick(() => { window.positionParticipantTourTip?.($el, document.getElementById('participant-primary-action')); requestAnimationFrame(() => window.positionParticipantTourTip?.($el, document.getElementById('participant-primary-action'))); })" @resize.window="window.positionParticipantTourTip?.($el, document.getElementById('participant-primary-action'))" class="participant-page-tour-tip participant-tour-tooltip fixed z-[131] w-[calc(100%-2rem)] max-w-sm rounded-2xl bg-white p-4 shadow-2xl">
-            <div class="flex items-start gap-3">
-                <div class="participant-tour-pulse mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-lg">☝</div>
+        <div x-init="$nextTick(() => { window.positionParticipantTourTip?.($el, document.getElementById('participant-primary-action')); requestAnimationFrame(() => window.positionParticipantTourTip?.($el, document.getElementById('participant-primary-action'))); })" @resize.window="window.positionParticipantTourTip?.($el, document.getElementById('participant-primary-action'))" class="participant-page-tour-tip participant-tour-tooltip fixed z-[131] w-[calc(100%-2rem)] max-w-lg rounded-3xl bg-white p-5 shadow-2xl sm:p-6">
+            <p class="mb-4 text-xs font-black uppercase tracking-[.16em] text-teal-700">Panduan pendaftaran</p>
+            <div class="flex items-start gap-4">
+                <div class="participant-tour-pulse mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-xl">☝</div>
                 <div>
-                    <p class="text-sm font-black text-slate-950">Mulai dari sini</p>
-                    <p class="mt-1 text-xs font-semibold leading-relaxed text-slate-600">Tekan <strong>{{ $nextTarget }}</strong> untuk melihat nominal dan menyelesaikan tahap pertama.</p>
+                    <p class="text-lg font-black text-slate-950">Mulai dari sini</p>
+                    <p class="mt-2 text-sm font-semibold leading-relaxed text-slate-600">Tekan <strong>{{ $nextTarget }}</strong> untuk melihat nominal dan menyelesaikan tahap pertama.</p>
                 </div>
             </div>
-            <button @click="finishTutorial()" class="mt-3 text-xs font-black text-teal-700 underline underline-offset-4">Lewati tutorial</button>
+            <button @click="finishTutorial()" class="mt-5 text-sm font-black text-teal-700 underline underline-offset-4">Lewati tutorial</button>
         </div>
     </div>
 @endif

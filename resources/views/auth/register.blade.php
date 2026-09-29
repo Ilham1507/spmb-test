@@ -34,7 +34,30 @@
             <div class="w-full max-w-md rounded-3xl bg-white p-5 shadow-2xl sm:p-6" @click.outside="closeCheck()">
                 <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-100 text-lg font-black text-blue-700">?</div>
                 <template x-if="existingAccount"><div><h2 class="mt-4 text-xl font-black text-slate-950">Akun sudah ditemukan</h2><p class="mt-2 text-sm leading-relaxed text-slate-600">Apakah ini akun kamu?</p><div class="mt-4 rounded-2xl bg-slate-50 p-4"><p class="font-black text-slate-900" x-text="existingAccount?.name"></p><p class="mt-1 text-sm font-semibold text-slate-500" x-text="existingAccount?.phone"></p></div><div class="mt-5 grid gap-2 sm:grid-cols-2"><button type="button" @click="closeCheck()" class="rounded-xl bg-slate-100 px-4 py-3 text-sm font-black text-slate-700">Bukan / ubah nomor</button><a href="{{ route('login') }}" class="rounded-xl bg-blue-700 px-4 py-3 text-center text-sm font-black text-white">Ya, masuk</a></div></div></template>
-                <template x-if="!existingAccount"><div><h2 class="mt-4 text-xl font-black text-slate-950">Apakah ini data kamu?</h2><p class="mt-2 text-sm leading-relaxed text-slate-600">Kami menemukan data kunjungan yang mirip. Pilih data yang benar agar akun tersambung dan tidak dobel.</p><div class="mt-4 space-y-2"><template x-for="visit in visits" :key="visit.id"><label class="block cursor-pointer rounded-2xl border-2 p-4 transition" :class="selectedVisit == visit.id ? 'border-blue-500 bg-blue-50' : 'border-slate-200 bg-white hover:border-blue-200'"><span class="flex items-start gap-3"><input type="radio" name="visit_choice" :value="visit.id" x-model="selectedVisit" class="mt-1"><span><strong class="block text-sm text-slate-900" x-text="visit.name"></strong><small class="mt-1 block font-semibold text-slate-600" x-text="visit.school"></small><small class="mt-1 block font-semibold text-slate-500" x-text="'WA siswa: '+visit.student_phone+(visit.parent_phone ? ' · Wali: '+visit.parent_phone : '')"></small><small class="mt-2 inline-flex rounded-lg bg-blue-100 px-2 py-1 text-xs font-bold text-blue-700" x-text="'Cocok: '+visit.match_reason"></small></span></span></label></template></div><div class="mt-5 grid gap-2 sm:grid-cols-2"><button type="button" @click="registerAsNew()" class="rounded-xl bg-slate-100 px-4 py-3 text-sm font-black text-slate-700">Bukan data saya</button><button type="button" @click="confirmVisit()" :disabled="!selectedVisit" class="rounded-xl bg-blue-700 px-4 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-40">Ya, ini data saya</button></div></div></template>
+                <template x-if="!existingAccount">
+                    <div>
+                        <h2 class="mt-4 text-xl font-black text-slate-950">Apakah ini data kamu?</h2>
+                        <div class="mt-5 space-y-2">
+                            <template x-for="visit in visits" :key="visit.id">
+                                <label class="block cursor-pointer rounded-2xl border-2 p-4 transition" :class="selectedVisit == visit.id ? 'border-blue-500 bg-blue-50' : 'border-slate-200 bg-white hover:border-blue-200'">
+                                    <span class="flex items-start gap-3">
+                                        <input type="radio" name="visit_choice" :value="visit.id" x-model="selectedVisit" class="mt-1">
+                                        <span>
+                                            <strong class="block text-sm text-slate-900" x-text="visit.name"></strong>
+                                            <small class="mt-1 block font-semibold text-slate-600" x-text="visit.school"></small>
+                                            <small class="mt-1 block font-semibold text-slate-500" x-text="'WA siswa: '+visit.student_phone+(visit.parent_phone ? ' · Wali: '+visit.parent_phone : '')"></small>
+                                            <small class="mt-2 inline-flex rounded-lg bg-blue-100 px-2 py-1 text-xs font-bold text-blue-700" x-text="'Cocok: '+visit.match_reason"></small>
+                                        </span>
+                                    </span>
+                                </label>
+                            </template>
+                        </div>
+                        <div class="mt-5 grid gap-2 sm:grid-cols-2">
+                            <button type="button" @click="registerAsNew()" class="rounded-xl bg-slate-100 px-4 py-3 text-sm font-black text-slate-700">Bukan data saya</button>
+                            <button type="button" @click="confirmVisit()" :disabled="!selectedVisit" class="rounded-xl bg-blue-700 px-4 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-40">Ya, ini data saya</button>
+                        </div>
+                    </div>
+                </template>
             </div>
         </div>
     </form>
