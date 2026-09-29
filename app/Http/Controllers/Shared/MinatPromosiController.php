@@ -54,23 +54,23 @@ class MinatPromosiController extends Controller
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Minat Promosi');
-        $headers = ['No.', 'Nama siswa', 'No. WhatsApp siswa', 'SMP/MTs saat ini', 'Jurusan diminati', 'Catatan', 'Diisi pada'];
+        $headers = ['No.', 'Nama siswa', 'No. WhatsApp siswa', 'SMP/MTs saat ini', 'Jurusan diminati', 'Diisi pada'];
         $sheet->fromArray([$headers], null, 'A1');
 
         $row = 2;
         foreach ($interests as $index => $interest) {
-            $sheet->fromArray([[$index + 1, $interest->full_name, $interest->student_phone, $interest->school_name, $interest->major_interest, $interest->promotion_note, $interest->submitted_at?->format('d-m-Y H:i')]], null, 'A'.$row);
+            $sheet->fromArray([[$index + 1, $interest->full_name, $interest->student_phone, $interest->school_name, $interest->major_interest, $interest->submitted_at?->format('d-m-Y H:i')]], null, 'A'.$row);
             $sheet->setCellValueExplicit('C'.$row, (string) $interest->student_phone, DataType::TYPE_STRING);
             $row++;
         }
 
         $lastRow = max($row - 1, 1);
-        $sheet->getStyle('A1:G1')->applyFromArray(['font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']], 'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '0F766E']], 'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER]]);
-        $sheet->getStyle('A1:G'.$lastRow)->getAlignment()->setVertical(Alignment::VERTICAL_TOP)->setWrapText(true);
+        $sheet->getStyle('A1:F1')->applyFromArray(['font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']], 'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '0F766E']], 'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER]]);
+        $sheet->getStyle('A1:F'.$lastRow)->getAlignment()->setVertical(Alignment::VERTICAL_TOP)->setWrapText(true);
         $sheet->getRowDimension(1)->setRowHeight(26);
         $sheet->freezePane('A2');
-        $sheet->setAutoFilter('A1:G'.$lastRow);
-        foreach ([5, 28, 21, 32, 28, 40, 20] as $index => $width) {
+        $sheet->setAutoFilter('A1:F'.$lastRow);
+        foreach ([5, 28, 21, 32, 28, 20] as $index => $width) {
             $sheet->getColumnDimension(chr(65 + $index))->setWidth($width);
         }
 
@@ -93,7 +93,6 @@ class MinatPromosiController extends Controller
             'student_phone' => ['required', 'string', 'regex:/^08[0-9]{8,13}$/'],
             'school_name' => ['required', 'string', 'max:180'],
             'interested_major_id' => ['nullable', Rule::exists('jurusan', 'id')->where('status', 'aktif')],
-            'promotion_note' => ['nullable', 'string', 'max:500'],
         ]);
         $data['student_phone'] = $this->normalizePhone($data['student_phone']);
         $data['major_interest'] = filled($data['interested_major_id'] ?? null)
