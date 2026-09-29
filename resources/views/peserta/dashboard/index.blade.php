@@ -139,7 +139,7 @@
                 if (!target) return;
                 if (target.closest('.portal-page-content')) {
                     const rect = target.getBoundingClientRect();
-                    const mustPlaceAboveMobileTip = window.innerWidth < 640;
+                    const mustPlaceAboveMobileTip = window.innerWidth < 768;
                     if (mustPlaceAboveMobileTip || rect.top < 12 || rect.bottom > window.innerHeight - 12) {
                         target.scrollIntoView({ behavior: 'auto', block: mustPlaceAboveMobileTip ? 'start' : 'center' });
                     }

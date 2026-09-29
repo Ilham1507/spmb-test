@@ -329,7 +329,7 @@
         window.positionParticipantTourTip = function (tip, target) {
             if (!tip || !target) return;
             const viewportPadding = 16;
-            if (window.innerWidth < 640) {
+            if (window.innerWidth < 768) {
                 // Mulai dari bagian atas layar. Jika kartu tidak menabrak target,
                 // posisi ini dipakai. Jika menabrak, pindahkan ke bawah. Dengan
                 // begitu target selalu terlihat, termasuk saat halaman berada
