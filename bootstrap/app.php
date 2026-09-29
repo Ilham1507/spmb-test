@@ -40,9 +40,10 @@ return Application::configure(basePath: dirname(__DIR__))
         }
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // Local tunnel connectors forward the public hostname and HTTPS scheme.
+        // Railway berada di belakang reverse proxy. Percayai header proxy agar
+        // URL redirect/form selalu memakai HTTPS, bukan kembali ke HTTP.
         $middleware->trustProxies(
-            at: ['127.0.0.1', '::1'],
+            at: '*',
             headers: Request::HEADER_X_FORWARDED_FOR | Request::HEADER_X_FORWARDED_PROTO | Request::HEADER_X_FORWARDED_HOST,
         );
         $middleware->web(append: [
