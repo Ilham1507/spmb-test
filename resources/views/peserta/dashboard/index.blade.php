@@ -93,7 +93,7 @@
             tutorialOpen: false,
             tutorialStep: 0,
             tutorialForce: @js($forceTutorial ?? false),
-            tutorialKey: 'spmb-dashboard-tour-v5-{{ auth()->id() }}-{{ $pendaftar?->id }}',
+            tutorialKey: 'spmb-dashboard-tour-v6-{{ auth()->id() }}-{{ $pendaftar?->id }}',
             activeTarget: null,
             activeLayer: null,
             steps: [

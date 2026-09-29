@@ -341,26 +341,34 @@
                 tip.dataset.placement = 'mobile';
                 return;
             }
-            const targetRect = target.getBoundingClientRect();
-            const tipRect = tip.getBoundingClientRect();
-            const width = Math.min(tip.offsetWidth || tipRect.width || 384, window.innerWidth - (viewportPadding * 2));
-            const height = tip.offsetHeight || tipRect.height || 160;
-            tip.style.width = `${Math.round(width)}px`;
-            const left = Math.max(viewportPadding, Math.min(targetRect.left + (targetRect.width / 2) - (width / 2), window.innerWidth - width - viewportPadding));
-            const spaceBelow = window.innerHeight - targetRect.bottom;
-            const spaceAbove = targetRect.top;
-            const putBelow = spaceBelow >= height + gap || spaceBelow > spaceAbove;
-            const top = putBelow
-                    ? Math.min(targetRect.bottom + gap, window.innerHeight - height - viewportPadding)
-                    : Math.max(viewportPadding, targetRect.top - height - gap);
+            // Beri ukuran dan lokasi awal terlebih dahulu, baru ukur kartu yang sudah dirender.
+            // Ini mencegah kartu keluar layar ketika target berada di sisi kanan atau bawah.
+            const maxWidth = window.innerWidth - (viewportPadding * 2);
+            tip.style.width = `${Math.min(400, maxWidth)}px`;
+            tip.style.maxHeight = `${window.innerHeight - (viewportPadding * 2)}px`;
+            tip.style.overflowY = 'auto';
+            tip.style.left = `${viewportPadding}px`;
+            tip.style.right = 'auto';
+            tip.style.top = `${viewportPadding}px`;
+            tip.style.bottom = 'auto';
 
-                tip.style.left = `${Math.round(left)}px`;
-                tip.style.right = 'auto';
-                tip.style.top = `${Math.round(top)}px`;
-                tip.style.bottom = 'auto';
-                tip.style.maxHeight = '';
-                tip.style.overflowY = '';
-                tip.dataset.placement = putBelow ? 'bottom' : 'top';
+            const targetRect = target.getBoundingClientRect();
+            const renderedTip = tip.getBoundingClientRect();
+            const width = Math.min(renderedTip.width || Math.min(400, maxWidth), maxWidth);
+            const height = Math.min(renderedTip.height || 160, window.innerHeight - (viewportPadding * 2));
+            const left = Math.max(viewportPadding, Math.min(
+                targetRect.left + (targetRect.width / 2) - (width / 2),
+                window.innerWidth - width - viewportPadding
+            ));
+            const roomBelow = window.innerHeight - targetRect.bottom - gap;
+            const roomAbove = targetRect.top - gap;
+            const putBelow = roomBelow >= height || roomBelow >= roomAbove;
+            const preferredTop = putBelow ? targetRect.bottom + gap : targetRect.top - height - gap;
+            const top = Math.max(viewportPadding, Math.min(preferredTop, window.innerHeight - height - viewportPadding));
+
+            tip.style.left = `${Math.round(left)}px`;
+            tip.style.top = `${Math.round(top)}px`;
+            tip.dataset.placement = putBelow ? 'bottom' : 'top';
         };
         window.positionParticipantTourPointer = function (pointer, tip, target) {
             if (!pointer || !tip || !target || window.innerWidth < 640) {
