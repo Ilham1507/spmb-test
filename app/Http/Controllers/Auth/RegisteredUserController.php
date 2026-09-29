@@ -152,8 +152,9 @@ class RegisteredUserController extends Controller
                 'id' => $visit->id,
                 'name' => $visit->full_name,
                 'school' => $visit->origin_school ?: 'Sekolah belum dicatat',
-                'student_phone' => $this->maskPhone($visit->visitor_phone),
-                'parent_phone' => $visit->parent_phone ? $this->maskPhone($visit->parent_phone) : null,
+                'matched_phone' => $visit->visitor_phone === $phone
+                    ? $visit->visitor_phone
+                    : ($visit->parent_phone === $phone ? $visit->parent_phone : null),
                 'match_reason' => $this->visitMatchReason($visit, $normalizedName, $phone),
             ]);
 

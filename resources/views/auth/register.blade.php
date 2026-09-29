@@ -55,13 +55,10 @@
                                     <span class="flex items-start gap-3">
                                         <input type="radio" name="visit_choice" :value="visit.id" x-model="selectedVisit" class="mt-1">
                                         <span class="min-w-0 flex-1">
-                                            <span class="block text-[10px] font-black uppercase tracking-wide text-slate-400">Nama calon siswa</span>
-                                            <strong class="mt-0.5 block text-sm text-slate-900" x-text="visit.name"></strong>
-                                            <span class="mt-3 block text-[10px] font-black uppercase tracking-wide text-slate-400">SMP/MTs asal</span>
-                                            <small class="mt-0.5 block font-semibold text-slate-700" x-text="visit.school"></small>
-                                            <span class="mt-3 block text-[10px] font-black uppercase tracking-wide text-slate-400">Nomor WhatsApp</span>
-                                            <small class="mt-0.5 block font-semibold text-slate-600" x-text="'Siswa: '+visit.student_phone+(visit.parent_phone ? ' · Wali: '+visit.parent_phone : '')"></small>
-                                            <small class="mt-3 inline-flex rounded-lg bg-blue-100 px-2 py-1 text-xs font-bold text-blue-700" x-text="'Data yang sama: '+visit.match_reason"></small>
+                                            <strong class="block text-base text-slate-900" x-text="visit.name"></strong>
+                                            <small class="mt-1 block font-semibold text-slate-600" x-text="visit.school"></small>
+                                            <small x-show="visit.matched_phone" class="mt-3 block font-bold text-blue-700" x-text="'Nomor yang sama: '+visit.matched_phone"></small>
+                                            <small x-show="!visit.matched_phone" class="mt-3 block font-semibold text-slate-500" x-text="'Cocok: '+visit.match_reason"></small>
                                         </span>
                                     </span>
                                 </label>
