@@ -310,9 +310,10 @@ class PembayaranController extends Controller
                 return;
             }
 
+            // DU allocation is selected by the treasurer. Send its receipt
+            // only after that handover so the student sees category totals,
+            // not the global component list or an unfinished allocation.
             $whatsapp->send((string) $phone, $message);
-            $caption = 'Invoice digital pembayaran daftar ulang SPMB';
-            $whatsapp->sendDocument((string) $phone, $pdfUrl, 'Bukti Pembayaran SPMB - '.($transaction->tagihan?->pendaftar?->registration_number ?: $transaction->id).'.pdf', $caption);
             $this->notifyTreasurer($whatsapp, $transaction, $approver);
             return;
         }

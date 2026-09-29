@@ -544,14 +544,14 @@ Silakan unggah ulang bukti pembayaran yang benar melalui sistem.";
         $type = $transaction->tagihan?->jenisTagihan?->name ?? 'Pembayaran SPMB';
         $receivedBy = $transaction->treasurerReceiver?->name ?? Auth::user()?->name ?? 'bendahara sekolah';
         $amount = number_format((float) $transaction->amount, 0, ',', '.');
-        $invoice = route($this->routeName('pembayaran.receipt'), $transaction);
         $pdf = URL::temporarySignedRoute('invoice.public.pdf', now()->addMinutes(30), ['transaksi' => $transaction->id]);
         $message = \App\Support\WhatsappGreeting::opening()."\n\n"
             ."Pembayaran {$type} atas nama {$name} sebesar Rp {$amount} sudah diterima oleh bendahara {$receivedBy}.\n\n"
             ."Disetujui panitia: ".($transaction->verifier?->name ?? '-')."\n"
-            ."Invoice: {$invoice}\nPDF invoice: {$pdf}\n\n"
+            ."Dokumen pembayaran terlampir.\n\n"
             ."Untuk pembayaran lanjutan, silakan ke BMT PCM Cileungsi setiap Senin dan Selasa, Kampus E SMK Muhammadiyah 4 Cileungsi, pukul 07.30–14.30.";
-        $whatsapp->send($phone, $message);
-        $whatsapp->sendDocument($phone, $pdf, 'Bukti Pembayaran SPMB - '.($transaction->tagihan?->pendaftar?->registration_number ?: $transaction->id).'.pdf', 'Bukti pembayaran SPMB');
+        // One document bubble: the attached student receipt groups DU by the
+        // finance-defined category selected at the treasurer handover.
+        $whatsapp->sendDocument($phone, $pdf, 'Bukti Pembayaran SPMB - '.($transaction->tagihan?->pendaftar?->registration_number ?: $transaction->id).'.pdf', $message);
     }
 }

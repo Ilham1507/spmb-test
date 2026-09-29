@@ -15,6 +15,24 @@
     $treasurerStatus = $transaction->treasurer_received_at
         ? 'Diterima oleh '.($transaction->treasurerReceiver?->name ?? 'Bendahara')
         : 'Menunggu penerimaan bendahara';
+    $billName = strtolower((string) $bill?->jenisTagihan?->name);
+    $isReRegistration = str_contains($billName, 'daftar ulang') || preg_match('/(^|\\s)du(\\s|$)/', $billName);
+    $selectedItems = collect($transaction->selected_items ?? [])
+        ->map(fn ($item) => is_array($item) ? $item : ['name' => (string) $item, 'amount' => 0])
+        ->filter(fn ($item) => filled($item['name'] ?? null));
+    $billItems = collect($bill?->rincian_biaya ?? [])->keyBy(fn ($item) => (string) ($item['name'] ?? ''));
+    $studentGroups = $selectedItems
+        ->map(function ($item) use ($billItems) {
+            $source = $billItems->get((string) $item['name'], []);
+            return [
+                'name' => trim((string) ($source['category'] ?? '')) ?: 'Biaya daftar ulang',
+                'amount' => (float) ($item['amount'] ?? 0),
+            ];
+        })
+        ->groupBy('name')
+        ->map(fn ($items, $category) => ['name' => $category, 'amount' => (float) $items->sum('amount')])
+        ->values();
+    $proofTitle = $isReRegistration ? 'BUKTI PEMBAYARAN DAFTAR ULANG' : 'BUKTI PEMBAYARAN FORMULIR';
 @endphp
 <!doctype html>
 <html lang="id">
@@ -64,16 +82,27 @@
         <img class="letterhead" src="{{ asset($letterhead) }}" alt="Kop surat resmi sekolah">
         <div class="content">
             <section class="head">
-                <div><p class="kicker">SISTEM PENERIMAAN MURID BARU</p><h1>BUKTI PEMBAYARAN FORMULIR</h1><p class="sub">Dokumen pembayaran resmi SPMB Tahun Ajaran 2027/2028</p></div>
+                <div><p class="kicker">SISTEM PENERIMAAN MURID BARU</p><h1>{{ $proofTitle }}</h1><p class="sub">Dokumen pembayaran resmi SPMB Tahun Ajaran 2027/2028</p></div>
                 <div><span class="number">{{ $invoiceNumber }}</span><br><span class="status">DISETUJUI PANITIA</span></div>
             </section>
             <p class="section">Data calon siswa</p>
             <table class="identity"><tr><td><span class="label">Nama calon siswa</span><span class="value">{{ $name }}</span></td><td><span class="label">Nomor pendaftaran</span><span class="value">{{ $student?->registration_number ?? '-' }}</span></td></tr></table>
             <p class="section">Rincian transaksi</p>
-            <table class="payment"><thead><tr><th>TAGIHAN</th><th>METODE</th><th>REFERENSI</th><th class="amount">NOMINAL</th></tr></thead><tbody><tr><td>{{ collect($transaction->selected_items ?? [])->pluck('name')->join(', ') ?: ($bill?->jenisTagihan?->name ?? 'Pembayaran formulir SPMB') }}</td><td>{{ $channel }}</td><td>{{ $reference ?: '-' }}<br><span class="muted">{{ $paidAt->translatedFormat('d F Y, H:i') }} WIB</span></td><td class="amount"><strong>Rp {{ number_format($transaction->amount, 0, ',', '.') }}</strong></td></tr></tbody></table>
+            @if($isReRegistration)
+                <table class="payment"><thead><tr><th>KELOMPOK BIAYA</th><th class="amount">NOMINAL</th></tr></thead><tbody>
+                    @forelse($studentGroups as $group)
+                        <tr><td>{{ $group['name'] }}</td><td class="amount"><strong>Rp {{ number_format($group['amount'], 0, ',', '.') }}</strong></td></tr>
+                    @empty
+                        <tr><td colspan="2">Kelompok biaya akan ditetapkan bendahara setelah pembayaran diterima.</td></tr>
+                    @endforelse
+                </tbody></table>
+                <p class="notice">Metode: {{ $channel }} · Referensi: {{ $reference ?: '-' }} · Tercatat {{ $paidAt->translatedFormat('d F Y, H:i') }} WIB</p>
+            @else
+                <table class="payment"><thead><tr><th>TAGIHAN</th><th>METODE</th><th>REFERENSI</th><th class="amount">NOMINAL</th></tr></thead><tbody><tr><td>{{ $bill?->jenisTagihan?->name ?? 'Pembayaran formulir SPMB' }}</td><td>{{ $channel }}</td><td>{{ $reference ?: '-' }}<br><span class="muted">{{ $paidAt->translatedFormat('d F Y, H:i') }} WIB</span></td><td class="amount"><strong>Rp {{ number_format($transaction->amount, 0, ',', '.') }}</strong></td></tr></tbody></table>
+            @endif
             <div class="total"><span>TOTAL PEMBAYARAN DITERIMA</span><strong>Rp {{ number_format($receivedAmount, 0, ',', '.') }}</strong></div>
             <div class="verification"><p><strong>Persetujuan panitia:</strong> {{ $transaction->verifier?->name ?? '-' }}</p><p><strong>Status bendahara:</strong> {{ $treasurerStatus }}</p></div>
-            <div class="next"><p><strong>INFORMASI LANJUTAN</strong></p><p>Pembayaran formulir telah dicatat. Silakan lanjutkan pengisian formulir SPMB melalui tautan yang dikirimkan ke WhatsApp.</p></div>
+            <div class="next"><p><strong>INFORMASI LANJUTAN</strong></p><p>{{ $isReRegistration ? 'Pembayaran daftar ulang telah dicatat. Dokumen ini hanya menampilkan total kelompok biaya yang dialokasikan bendahara; rincian komponen lengkap tersedia pada dokumen BMT.' : 'Pembayaran formulir telah dicatat. Silakan lanjutkan pengisian formulir SPMB melalui tautan yang dikirimkan ke WhatsApp.' }}</p></div>
             <p class="notice">Dokumen ini diterbitkan otomatis berdasarkan transaksi yang tercatat pada Sistem SPMB dan sah sebagai bukti pembayaran elektronik.</p>
         </div>
         <footer class="footer">{{ $settings['school_name'] ?? 'SMK Muhammadiyah 4 Cileungsi' }} · {{ $settings['school_address'] ?? 'Cileungsi, Bogor' }}</footer>
