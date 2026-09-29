@@ -21,6 +21,7 @@
             ['route' => 'panitia.hasil-tes.index', 'match' => 'panitia.hasil-tes', 'label' => 'Hasil Tes', 'icon' => 'M5 3h14v18H5z M8 7h8 M8 11h8 M8 15h5'],
             ['route' => 'panitia.seleksi.index', 'match' => 'panitia.seleksi', 'label' => 'Seleksi Akhir', 'icon' => 'M12 3l2.6 5.3 5.9.9-4.2 4.1 1 5.8L12 16.4 6.7 19.1l1-5.8L3.5 9.2l5.9-.9z'],
             ['route' => 'panitia.kunjungan.index', 'match' => 'panitia.kunjungan', 'label' => 'Kunjungan Siswa', 'icon' => 'M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4z M4 21a8 8 0 0 1 16 0'],
+            ['route' => 'panitia.promosi-minat.index', 'match' => 'panitia.promosi-minat', 'label' => 'Data Promosi', 'icon' => 'M4 5h16v14H4z M7 9h10 M7 13h7 M7 17h5'],
         ];
         $testItems = [
             ['panitia.tes.attendance', 'Daftar Hadir Tes'],

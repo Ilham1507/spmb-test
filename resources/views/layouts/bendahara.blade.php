@@ -23,6 +23,7 @@
             ['route' => 'bendahara.pembayaran.index', 'match' => 'bendahara.pembayaran', 'label' => 'Manajemen Pembayaran', 'icon' => 'M3 7h18v10H3z M3 10h18 M7 15h4'],
             ['route' => 'bendahara.pendaftar.index', 'match' => 'bendahara.pendaftar', 'label' => 'Data Pendaftar', 'icon' => 'M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4z M4 21a8 8 0 0 1 16 0'],
             ['route' => 'bendahara.kunjungan.index', 'match' => 'bendahara.kunjungan', 'label' => 'Kunjungan Siswa', 'icon' => 'M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4z M4 21a8 8 0 0 1 16 0'],
+            ['route' => 'bendahara.promosi-minat.index', 'match' => 'bendahara.promosi-minat', 'label' => 'Data Promosi', 'icon' => 'M4 5h16v14H4z M7 9h10 M7 13h7 M7 17h5'],
             ['route' => 'bendahara.keuangan.biaya-pendaftaran.index', 'match' => 'bendahara.keuangan.biaya-pendaftaran', 'label' => 'Biaya Pendaftaran', 'icon' => 'M4 7h16v10H4z M8 11h8 M8 15h4'],
             ['route' => 'bendahara.keuangan.biaya-jurusan.index', 'match' => 'bendahara.keuangan.biaya-jurusan', 'label' => 'Biaya Jurusan', 'icon' => 'M4 7h16v10H4z M8 11h8 M8 15h4'],
             ['route' => 'bendahara.laporan.index', 'match' => 'bendahara.laporan', 'label' => 'Laporan', 'icon' => 'M5 19V5a2 2 0 0 1 2-2h8l4 4v12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z M14 3v5h5 M9 14h6 M9 17h6 M9 11h2'],

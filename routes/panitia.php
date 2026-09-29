@@ -11,6 +11,7 @@ use App\Http\Controllers\Panitia\PembayaranController;
 use App\Http\Controllers\Panitia\LayananPiketController;
 use App\Http\Controllers\Panitia\AssistedRegistrationController;
 use App\Http\Controllers\Shared\HasilTesController;
+use App\Http\Controllers\Shared\MinatPromosiController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['web', 'panitia'])->group(function () {
@@ -39,6 +40,8 @@ Route::middleware(['web', 'panitia'])->group(function () {
     Route::post('/kunjungan', [LayananPiketController::class, 'store'])->name('kunjungan.store');
     Route::put('/kunjungan/{kunjungan}', [LayananPiketController::class, 'update'])->name('kunjungan.update');
     Route::delete('/kunjungan/{kunjungan}', [LayananPiketController::class, 'destroy'])->name('kunjungan.destroy');
+    Route::get('/minat-promosi', [MinatPromosiController::class, 'index'])->name('promosi-minat.index');
+    Route::get('/minat-promosi/export-excel', [MinatPromosiController::class, 'export'])->name('promosi-minat.export');
     Route::get('/pembayaran', [PembayaranController::class, 'index'])->name('pembayaran.index');
     Route::post('/pembayaran', [PembayaranController::class, 'store'])->name('pembayaran.store');
     Route::patch('/pembayaran/transaksi/{transaksi}', [PembayaranController::class, 'verify'])->name('pembayaran.verify');

@@ -13,6 +13,7 @@ use App\Http\Controllers\Panitia\LayananPiketController;
 use App\Http\Controllers\Panitia\VerifikasiBerkasController;
 use App\Http\Controllers\Shared\HasilTesController;
 use App\Http\Controllers\Shared\DaftarHadirTesController;
+use App\Http\Controllers\Shared\MinatPromosiController;
 use App\Http\Controllers\Panitia\TesSpmbController;
 use Illuminate\Support\Facades\Route;
 
@@ -40,6 +41,8 @@ Route::middleware(['web', 'bendahara'])->group(function () {
     Route::get('/kunjungan/export-excel', [LayananPiketController::class, 'export'])->name('kunjungan.export');
     Route::get('/kunjungan', [LayananPiketController::class, 'index'])->name('kunjungan.index');
     Route::get('/kunjungan/cari-sekolah', [LayananPiketController::class, 'searchSchool'])->name('kunjungan.sekolah.search');
+    Route::get('/minat-promosi', [MinatPromosiController::class, 'index'])->name('promosi-minat.index');
+    Route::get('/minat-promosi/export-excel', [MinatPromosiController::class, 'export'])->name('promosi-minat.export');
     Route::get('/dokumen/{dokumen}/lihat', [VerifikasiBerkasController::class, 'viewDocument'])->name('dokumen.show');
     Route::get('/tagihan', [TagihanController::class, 'index'])->name('tagihan.index');
     Route::get('/tagihan/{bill}/invoice', [TagihanController::class, 'invoice'])->name('tagihan.invoice');
