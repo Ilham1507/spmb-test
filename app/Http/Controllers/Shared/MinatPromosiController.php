@@ -101,17 +101,19 @@ class MinatPromosiController extends Controller
         $data = $request->validate([
             'full_name' => ['required', 'string', 'max:150'],
             'student_phone' => ['required', 'string', 'regex:/^08[0-9]{8,13}$/'],
-            'social_media' => ['nullable', 'string', 'max:150'],
+            'social_media' => ['required', 'string', 'max:150'],
             'school_name' => ['required', 'string', 'max:180'],
-            'interested_major_id' => ['nullable', Rule::exists('jurusan', 'id')->where('status', 'aktif')],
+            'interested_major_id' => ['required', Rule::exists('jurusan', 'id')->where('status', 'aktif')],
         ], [
             'full_name.required' => 'Nama lengkap wajib diisi.',
             'full_name.max' => 'Nama lengkap terlalu panjang.',
             'student_phone.required' => 'Nomor WhatsApp wajib diisi.',
             'student_phone.regex' => 'Masukkan nomor WhatsApp yang benar, misalnya 08xxxxxxxxxx.',
+            'social_media.required' => 'Media sosial wajib diisi.',
             'social_media.max' => 'Media sosial terlalu panjang.',
             'school_name.required' => 'Nama SMP/MTs wajib diisi.',
             'school_name.max' => 'Nama SMP/MTs terlalu panjang.',
+            'interested_major_id.required' => 'Pilih jurusan yang kamu minati.',
             'interested_major_id.exists' => 'Jurusan yang dipilih tidak tersedia. Silakan pilih lagi.',
         ]);
         $data['full_name'] = Str::title(Str::lower(trim(preg_replace('/\s+/', ' ', $data['full_name']) ?? '')));
