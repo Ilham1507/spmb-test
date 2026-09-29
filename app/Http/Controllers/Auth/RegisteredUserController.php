@@ -62,7 +62,7 @@ class RegisteredUserController extends Controller
                 ->whereNull('applicant_id')
                 ->find($request->integer('visit_id'));
 
-            if (! $visit || FullNameNormalizer::normalize($visit->full_name) !== FullNameNormalizer::normalize($request->name)) {
+            if (! $visit || ! $this->visitMatchesRegistration($visit, (string) $request->name, (string) $request->phone)) {
                 throw ValidationException::withMessages([
                     'name' => 'Data kunjungan sudah berubah. Periksa kembali sebelum membuat akun.',
                 ]);
@@ -117,7 +117,7 @@ class RegisteredUserController extends Controller
         $name = ParticipantNameFormatter::titleCase((string) $request->query('name'));
         $phone = $this->normalizePhone((string) $request->query('phone'));
 
-        if ($name === '' || ! preg_match('/^08[0-9]{8,13}$/', $phone)) {
+        if ($name === '' && ! preg_match('/^08[0-9]{8,13}$/', $phone)) {
             return response()->json(['existing_account' => null, 'visits' => []]);
         }
 
@@ -132,17 +132,29 @@ class RegisteredUserController extends Controller
             ]);
         }
 
+        $normalizedName = FullNameNormalizer::normalize($name);
         $visits = KunjunganPendaftar::query()
             ->whereNull('applicant_id')
-            ->where('normalized_full_name', FullNameNormalizer::normalize($name))
+            ->where(function ($query) use ($normalizedName, $phone) {
+                if ($normalizedName !== '') {
+                    $query->where('normalized_full_name', $normalizedName);
+                }
+
+                if (preg_match('/^08[0-9]{8,13}$/', $phone)) {
+                    $query->orWhere('visitor_phone', $phone)
+                        ->orWhere('parent_phone', $phone);
+                }
+            })
             ->latest('visited_at')
             ->limit(3)
             ->get()
             ->map(fn (KunjunganPendaftar $visit) => [
                 'id' => $visit->id,
+                'name' => $visit->full_name,
                 'school' => $visit->origin_school ?: 'Sekolah belum dicatat',
                 'student_phone' => $this->maskPhone($visit->visitor_phone),
                 'parent_phone' => $visit->parent_phone ? $this->maskPhone($visit->parent_phone) : null,
+                'match_reason' => $this->visitMatchReason($visit, $normalizedName, $phone),
             ]);
 
         return response()->json(['existing_account' => null, 'visits' => $visits]);
@@ -164,5 +176,24 @@ class RegisteredUserController extends Controller
         $phone = (string) $phone;
 
         return preg_replace('/^(\d{4})\d+(\d{3})$/', '$1••••$2', $phone) ?: $phone;
+    }
+
+    private function visitMatchesRegistration(KunjunganPendaftar $visit, string $name, string $phone): bool
+    {
+        $normalizedName = FullNameNormalizer::normalize($name);
+
+        return ($normalizedName !== '' && $visit->normalized_full_name === $normalizedName)
+            || $visit->visitor_phone === $phone
+            || $visit->parent_phone === $phone;
+    }
+
+    private function visitMatchReason(KunjunganPendaftar $visit, string $normalizedName, string $phone): string
+    {
+        $reasons = [];
+        if ($normalizedName !== '' && $visit->normalized_full_name === $normalizedName) $reasons[] = 'nama sama';
+        if ($visit->visitor_phone === $phone) $reasons[] = 'nomor WhatsApp siswa sama';
+        if ($visit->parent_phone === $phone) $reasons[] = 'nomor WhatsApp orang tua sama';
+
+        return implode(' · ', $reasons) ?: 'data kunjungan cocok';
     }
 }
