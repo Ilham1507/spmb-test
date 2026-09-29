@@ -73,6 +73,13 @@ return Application::configure(basePath: dirname(__DIR__))
                 return response()->json(['message' => 'Sesi telah berakhir. Silakan masuk kembali.'], 419);
             }
 
+            // Form promosi dapat diisi tanpa login. Jika sesi/CSRF kedaluwarsa,
+            // kembalikan siswa ke formulir dengan pesan yang jelas, bukan login.
+            if ($request->is('minat-promosi')) {
+                return redirect()->route('promosi.minat.create')
+                    ->with('error', 'Sesi formulir telah berakhir. Silakan isi kembali lalu kirimkan data.');
+            }
+
             // A form left open after the thirty-minute idle logout must return
             // the user to login, not expose Laravel's generic 419 page.
             return redirect()->route('login', ['timeout' => 1]);

@@ -23,6 +23,7 @@
                 <header class="mt-8 lg:mt-0"><p class="text-xs font-black uppercase tracking-[.16em] text-emerald-600">SPMB SMK Muhammadiyah 4 Cileungsi</p><h2 class="mt-2 text-3xl font-extrabold tracking-tight text-emerald-950">Yuk, isi data kamu.</h2><p class="mt-3 max-w-xl text-sm leading-6 text-slate-500">Lengkapi data singkat berikut untuk informasi SPMB.</p></header>
                 <form method="POST" action="{{ route('promosi.minat.store') }}" class="mt-7 space-y-5" autocomplete="on">
                     @csrf
+                    @if(session('error'))<div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">{{ session('error') }}</div>@endif
                     @if($errors->any())<div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{{ $errors->first() }}</div>@endif
                     <div class="grid gap-4 sm:grid-cols-2">
                         <label class="block text-sm font-bold text-emerald-950 sm:col-span-2">Nama lengkap<input name="full_name" value="{{ old('full_name') }}" required maxlength="150" class="mt-2 w-full rounded-xl border border-emerald-200 bg-emerald-50/40 px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-emerald-600 focus:bg-white focus:ring-4 focus:ring-emerald-100" placeholder="Tulis nama lengkapmu"></label>
