@@ -6,23 +6,17 @@ use App\Http\Controllers\Controller;
 use App\Models\TagihanPendaftar;
 use App\Models\TransaksiPembayaran;
 use App\Models\Pendaftar;
-use App\Models\KunjunganPendaftar;
 use App\Models\PengaturanSpmb;
-use App\Models\User;
 use App\Services\WhatsappCloudApiService;
-use App\Services\ParticipantActivationService;
-use App\Support\PendaftarSetup;
 use App\Support\RegistrationFee;
 use App\Support\ReRegistrationFee;
 use App\Support\VerifiedPayment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Throwable;
 use App\Support\Pagination;
@@ -43,20 +37,49 @@ class PembayaranController extends Controller
 
         $applicants = Pendaftar::with(['user', 'biodata'])
             ->latest('id')->limit(250)->get();
-        $visits = KunjunganPendaftar::query()
-            ->whereNull('applicant_id')
-            ->whereNotNull('visitor_phone')
-            ->latest('visited_at')->limit(250)->get();
+        $paymentCandidates = $applicants->flatMap(function (Pendaftar $applicant) {
+            $name = $applicant->biodata?->full_name ?? $applicant->user?->name ?? 'Pendaftar';
+            $phone = (string) ($applicant->user?->phone ?? '');
+            $registrationBill = RegistrationFee::ensureBill($applicant);
+            $candidates = collect();
+
+            if (! RegistrationFee::isPaid($registrationBill) && (float) $registrationBill->remaining_amount > 0) {
+                $candidates->push([
+                    'key' => 'applicant:'.$applicant->id,
+                    'fee_type' => 'formulir',
+                    'name' => $name,
+                    'phone' => $phone,
+                    'remaining' => (int) round((float) $registrationBill->remaining_amount),
+                    'status' => (float) $registrationBill->paid_amount > 0 ? 'Cicilan formulir' : 'Belum bayar formulir',
+                ]);
+            }
+
+            if (RegistrationFee::isPaid($registrationBill)) {
+                $duBill = ReRegistrationFee::ensureBill($applicant);
+                if ($duBill && (float) $duBill->remaining_amount > 0) {
+                    $candidates->push([
+                        'key' => 'applicant:'.$applicant->id,
+                        'fee_type' => 'daftar_ulang',
+                        'name' => $name,
+                        'phone' => $phone,
+                        'remaining' => (int) round((float) $duBill->remaining_amount),
+                        'status' => (float) $duBill->paid_amount > 0 ? 'Cicilan daftar ulang' : 'Belum bayar daftar ulang',
+                    ]);
+                }
+            }
+
+            return $candidates;
+        })->values();
         $formFeeAmount = (int) round((float) (PengaturanSpmb::query()->latest('id')->value('biaya_pendaftaran') ?? 0));
 
-        return view('panitia.pembayaran.index', compact('transactions', 'applicants', 'visits', 'formFeeAmount'));
+        return view('panitia.pembayaran.index', compact('transactions', 'paymentCandidates', 'formFeeAmount'));
     }
 
     /**
      * Panitia may record a cash/transfer payment at the school desk. Recording
      * it is itself the required panitia approval; the proof remains mandatory.
      */
-    public function store(Request $request, ParticipantActivationService $activation, WhatsappCloudApiService $whatsapp)
+    public function store(Request $request, WhatsappCloudApiService $whatsapp)
     {
         $validated = $request->validate([
             'candidate' => ['required', 'string', 'max:40'],
@@ -74,47 +97,28 @@ class PembayaranController extends Controller
 
         try {
             $result = DB::transaction(function () use ($validated, $proofPath) {
-                $createdAccount = false;
                 [$candidateType, $candidateId] = array_pad(explode(':', (string) $validated['candidate'], 2), 2, null);
-                if (! in_array($candidateType, ['applicant', 'visit'], true) || ! ctype_digit((string) $candidateId)) {
-                    throw \Illuminate\Validation\ValidationException::withMessages(['candidate' => 'Pilih calon siswa dari data kunjungan atau pendaftar.']);
+                if ($candidateType !== 'applicant' || ! ctype_digit((string) $candidateId)) {
+                    throw \Illuminate\Validation\ValidationException::withMessages(['candidate' => 'Cari dan pilih pendaftar yang akan melakukan pembayaran.']);
                 }
 
-                if ($candidateType === 'applicant') {
-                    $applicant = Pendaftar::with('user')->lockForUpdate()->findOrFail($candidateId);
-                    $user = $applicant->user;
-                } else {
-                    $visit = KunjunganPendaftar::lockForUpdate()->findOrFail($candidateId);
-                    if ($visit->applicant_id || ! $visit->visitor_phone) {
-                        throw \Illuminate\Validation\ValidationException::withMessages(['candidate' => 'Data kunjungan ini sudah diproses atau tidak memiliki nomor WhatsApp.']);
-                    }
-                    $phone = $this->normalizePhone((string) $visit->visitor_phone);
-                    $user = User::where('phone', $phone)->lockForUpdate()->first();
-                    if (! $user) {
-                        $role = \App\Models\Peran::firstOrCreate(['name' => 'peserta'], ['description' => 'Peserta SPMB']);
-                        $user = User::create([
-                            'name' => $visit->full_name,
-                            'phone' => $phone,
-                            'email' => null,
-                            'password' => Hash::make(Str::random(64)),
-                            'role_id' => $role->id,
-                        ]);
-                        $createdAccount = true;
-                    }
-                    $applicant = PendaftarSetup::getOrCreateFor($user);
-                    $applicant->biodata()->updateOrCreate([], ['full_name' => $visit->full_name]);
-                    $visit->update(['applicant_id' => $applicant->id]);
-                }
+                $applicant = Pendaftar::with('user')->lockForUpdate()->findOrFail($candidateId);
 
                 $registrationBill = RegistrationFee::ensureBill($applicant);
                 $isRegistration = $validated['fee_type'] === 'formulir';
                 if ($isRegistration) {
                     $bill = $registrationBill;
+                    if (RegistrationFee::isPaid($bill) || (float) $bill->remaining_amount <= 0) {
+                        throw \Illuminate\Validation\ValidationException::withMessages(['candidate' => 'Pembayaran formulir pendaftar ini sudah lunas.']);
+                    }
                 } else {
                     if (! RegistrationFee::isPaid($registrationBill)) {
                         throw \Illuminate\Validation\ValidationException::withMessages(['fee_type' => 'Pembayaran formulir harus disetujui terlebih dahulu sebelum DU.']);
                     }
                     $bill = ReRegistrationFee::ensureBill($applicant);
+                    if (! $bill || (float) $bill->remaining_amount <= 0) {
+                        throw \Illuminate\Validation\ValidationException::withMessages(['candidate' => 'Pembayaran daftar ulang pendaftar ini sudah lunas.']);
+                    }
                 }
 
                 if ($bill->transaksi()->where('status', 'pending')->exists()) {
@@ -175,7 +179,7 @@ class PembayaranController extends Controller
                     VerifiedPayment::apply($bill, $transaction);
                 }
 
-                return compact('transaction', 'user', 'createdAccount', 'isRegistration');
+                return compact('transaction', 'isRegistration');
             }, 3);
         } catch (Throwable $exception) {
             Storage::disk('local')->delete($proofPath);
@@ -184,17 +188,12 @@ class PembayaranController extends Controller
 
         $transaction = $result['transaction']->fresh(['tagihan.jenisTagihan', 'tagihan.pendaftar.biodata', 'tagihan.pendaftar.user', 'verifier']);
         try {
-            if ($result['createdAccount']) {
-                $activation->send($result['user'], $whatsapp);
-            }
             $this->sendDecisionNotification($whatsapp, $transaction);
         } catch (Throwable $exception) {
             Log::warning('Notifikasi pembayaran input panitia gagal dikirim.', ['transaction_id' => $transaction->id, 'error' => $exception->getMessage()]);
         }
 
-        return back()->with('success', $result['createdAccount']
-            ? 'Pembayaran disetujui dan akun siswa dibuat. Tautan aktivasi sudah dikirim ke WhatsApp.'
-            : 'Pembayaran disetujui oleh panitia. Notifikasi WhatsApp siswa sudah dikirim.');
+        return back()->with('success', 'Pembayaran disetujui oleh panitia. Notifikasi WhatsApp siswa sudah dikirim.');
     }
 
     public function verify(Request $request, TransaksiPembayaran $transaksi, WhatsappCloudApiService $whatsapp)
@@ -374,9 +373,4 @@ class PembayaranController extends Controller
         return str_contains($name, 'formulir') || str_contains($name, 'pendaftaran');
     }
 
-    private function normalizePhone(string $phone): string
-    {
-        $digits = preg_replace('/\D+/', '', $phone) ?? '';
-        return str_starts_with($digits, '62') ? '0'.substr($digits, 2) : $digits;
-    }
 }
