@@ -86,9 +86,10 @@
     <script>
         function registrationCheck() {
             return {
-                checking: false, checkOpen: false, showPassword: false, showConfirmation: false, existingAccount: null, visits: [], selectedVisit: '', submitError: '',
+                checking: false, checkOpen: false, showPassword: false, showConfirmation: false, existingAccount: null, visits: [], selectedVisit: '', submitError: '', form: null,
                 async checkBeforeRegister(event) {
                     const form = event.target;
+                    this.form = form;
                     if (!form.checkValidity()) return form.reportValidity();
                     this.submitError = '';
                     this.checking = true;
@@ -116,8 +117,15 @@
                     this.checkOpen = false;
                     this.checking = true;
                     window.showGlobalLoading?.('Membuat akun', 'Mohon tunggu sebentar.');
+                    const form = this.form || document.querySelector('form.auth-register');
+                    if (!(form instanceof HTMLFormElement)) {
+                        this.checking = false;
+                        this.submitError = 'Formulir tidak ditemukan. Muat ulang halaman lalu coba lagi.';
+                        window.hideGlobalLoading?.();
+                        return;
+                    }
                     // Gunakan method asli form agar tidak memicu ulang @submit.prevent Alpine.
-                    HTMLFormElement.prototype.submit.call(this.$el);
+                    HTMLFormElement.prototype.submit.call(form);
                 },
             };
         }
