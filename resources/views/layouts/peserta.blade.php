@@ -369,32 +369,6 @@
             tip.style.bottom = focusIsUpper ? `${viewportPadding}px` : 'auto';
             tip.dataset.placement = focusIsUpper ? 'bottom' : 'top';
         };
-        window.positionParticipantTourPointer = function (pointer, tip, target) {
-            if (!pointer || !tip || !target || window.innerWidth < 640) {
-                if (pointer) pointer.hidden = true;
-                return;
-            }
-            const card = tip.getBoundingClientRect();
-            const focus = target.getBoundingClientRect();
-            const pairs = [
-                [[card.left, card.top + card.height / 2], [focus.right, focus.top + focus.height / 2]],
-                [[card.right, card.top + card.height / 2], [focus.left, focus.top + focus.height / 2]],
-                [[card.left + card.width / 2, card.top], [focus.left + focus.width / 2, focus.bottom]],
-                [[card.left + card.width / 2, card.bottom], [focus.left + focus.width / 2, focus.top]],
-            ];
-            const { pair: [from, to] } = pairs.reduce((closest, pair) => {
-                const distance = Math.hypot(pair[0][0] - pair[1][0], pair[0][1] - pair[1][1]);
-                return distance < closest.distance ? { pair, distance } : closest;
-            }, { pair: pairs[0], distance: Infinity });
-            const dx = to[0] - from[0];
-            const dy = to[1] - from[1];
-            const length = Math.max(20, Math.hypot(dx, dy));
-            pointer.hidden = false;
-            pointer.style.left = `${Math.round(from[0])}px`;
-            pointer.style.top = `${Math.round(from[1])}px`;
-            pointer.style.width = `${Math.round(length)}px`;
-            pointer.style.transform = `rotate(${Math.atan2(dy, dx) * 180 / Math.PI}deg)`;
-        };
         document.addEventListener('DOMContentLoaded', function () {
             const tour = document.getElementById('participant-page-tour');
             if (!tour) return;
