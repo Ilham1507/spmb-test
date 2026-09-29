@@ -93,13 +93,19 @@
             tutorialOpen: false,
             tutorialStep: 0,
             tutorialForce: @js($forceTutorial ?? false),
-            tutorialKey: 'spmb-dashboard-tour-v1-{{ auth()->id() }}-{{ $pendaftar?->id }}',
+            tutorialKey: 'spmb-dashboard-tour-v2-{{ auth()->id() }}-{{ $pendaftar?->id }}',
             activeTarget: null,
             activeLayer: null,
             steps: [
                 { target: () => window.innerWidth < 768 ? '[data-participant-mobile-menu]' : '#participant-sidebar-navigation', title: 'Menu pendaftaran', text: 'Ini menu untuk membuka halaman pembayaran, formulir data, dokumen, dan Tes SPMB.' },
                 { target: '#participant-progress', title: 'Progres kamu', text: 'Bagian ini menunjukkan berapa langkah pendaftaran yang sudah kamu selesaikan.' },
                 { target: '#participant-primary-action', title: 'Tombol langkah berikutnya', text: 'Tekan tombol ini untuk melanjutkan proses yang perlu kamu kerjakan sekarang.' },
+                { target: '#participant-journey', title: 'Peta proses pendaftaran', text: 'Di sini kamu bisa melihat urutan proses dari registrasi sampai pengumuman. Ikuti tahap yang berwarna hijau.' },
+                { target: '#participant-shortcuts', title: 'Akses cepat', text: 'Bagian ini adalah jalan pintas ke halaman yang paling sering kamu gunakan.' },
+                { target: '[data-participant-shortcut-payment]', title: 'Pembayaran', text: 'Tekan ini untuk melihat tagihan formulir, status pembayaran, dan rincian biaya jurusan.' },
+                { target: '[data-participant-shortcut-form]', title: 'Formulir data', text: 'Tekan ini untuk mengisi data diri, keluarga, sekolah asal, dan pilihan jurusan.' },
+                { target: '[data-participant-shortcut-documents]', title: 'Dokumen', text: 'Tekan ini untuk mengunggah berkas yang diminta dalam pendaftaran.' },
+                { target: '[data-participant-shortcut-test]', title: 'Tes SPMB', text: 'Tekan ini untuk melihat jadwal tes, mengikuti tes saat dibuka, dan melihat hasilnya.' },
                 { target: '[data-participant-profile-button]', title: 'Profil akun', text: 'Tekan bagian ini untuk melihat dan mengubah profil akunmu.' },
                 { target: '[data-participant-logout]', title: 'Keluar dari akun', text: 'Gunakan tombol ini jika ingin keluar dengan aman dari akunmu.', openProfile: true },
             ],
@@ -194,7 +200,7 @@
         @endif
     </section>
 
-    <section class="rounded-3xl border border-teal-100 bg-white p-4 shadow-sm md:p-5">
+    <section id="participant-journey" class="rounded-3xl border border-teal-100 bg-white p-4 shadow-sm md:p-5">
         <div class="flex items-end justify-between gap-4">
             <div><p class="text-xs font-black uppercase tracking-[0.14em] text-teal-700">Peta perjalanan</p><h3 class="mt-1 text-lg font-black text-slate-950">Proses pendaftaranmu</h3></div>
             <span class="hidden rounded-full bg-teal-50 px-3 py-1 text-xs font-black text-teal-700 sm:block">Sampai pengumuman</span>
@@ -232,16 +238,16 @@
         </section>
     @endif
 
-    <section class="participant-next-steps rounded-3xl border bg-white p-4 md:p-5">
+    <section id="participant-shortcuts" class="participant-next-steps rounded-3xl border bg-white p-4 md:p-5">
         <div class="flex items-center justify-between gap-4">
             <div><p class="text-xs font-black uppercase tracking-wide text-teal-700">Akses cepat</p><h3 class="mt-1 text-lg font-black text-slate-950">Lanjutkan prosesmu</h3></div>
             <span class="rounded-full bg-teal-50 px-3 py-1 text-xs font-black text-teal-700">{{ $completedSteps }}/{{ count($mandatoryKeys) }}</span>
         </div>
         <div class="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-            <a href="{{ route('peserta.pembayaran') }}" class="participant-shortcut"><span>01</span><div><b>Pembayaran</b><small>{{ $registrationFeePaid ? 'Sudah tercatat' : 'Formulir & rincian' }}</small></div><i>→</i></a>
-            <a href="{{ route('peserta.biodata') }}" class="participant-shortcut"><span>02</span><div><b>Formulir data</b><small>Isi bertahap</small></div><i>→</i></a>
-            <a href="{{ route('peserta.dokumen') }}" class="participant-shortcut"><span>03</span><div><b>Dokumen</b><small>Unggah berkas</small></div><i>→</i></a>
-            <a href="{{ route('peserta.hasil-tes.index') }}" class="participant-shortcut"><span>04</span><div><b>Tes SPMB</b><small>Jadwal & hasil</small></div><i>→</i></a>
+            <a data-participant-shortcut-payment href="{{ route('peserta.pembayaran') }}" class="participant-shortcut"><span>01</span><div><b>Pembayaran</b><small>{{ $registrationFeePaid ? 'Sudah tercatat' : 'Formulir & rincian' }}</small></div><i>→</i></a>
+            <a data-participant-shortcut-form href="{{ route('peserta.biodata') }}" class="participant-shortcut"><span>02</span><div><b>Formulir data</b><small>Isi bertahap</small></div><i>→</i></a>
+            <a data-participant-shortcut-documents href="{{ route('peserta.dokumen') }}" class="participant-shortcut"><span>03</span><div><b>Dokumen</b><small>Unggah berkas</small></div><i>→</i></a>
+            <a data-participant-shortcut-test href="{{ route('peserta.hasil-tes.index') }}" class="participant-shortcut"><span>04</span><div><b>Tes SPMB</b><small>Jadwal & hasil</small></div><i>→</i></a>
         </div>
     </section>
 
