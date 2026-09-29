@@ -75,8 +75,6 @@ class PembayaranController extends Controller
 
     public function store(Request $request, \App\Services\PaymentReceiptNotifier $receiptNotifier, \App\Services\PaymentCheckoutService $checkoutService, WhatsappCloudApiService $whatsapp)
     {
-        return back()->with('warning', 'Pembayaran dicatat dan disetujui oleh panitia. Bendahara hanya menerima pembayaran yang sudah disetujui panitia.');
-
         $validated = $request->validate([
             'bill_id' => ['required', Rule::exists('tagihan_pendaftar', 'id')],
             'amount' => ['required', 'numeric', 'min:1'],
@@ -185,6 +183,9 @@ class PembayaranController extends Controller
             'status' => 'verified',
             'verified_by' => Auth::id(),
             'verified_at' => now(),
+            'treasurer_received_by' => Auth::id(),
+            'treasurer_received_at' => now(),
+            'treasurer_notes' => $validated['notes'] ?? 'Diinput dan diterima langsung oleh bendahara.',
             'notes' => $validated['notes'] ?? 'Diinput langsung oleh bendahara.',
         ]);
 

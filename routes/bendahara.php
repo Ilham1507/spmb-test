@@ -47,8 +47,7 @@ Route::middleware(['web', 'bendahara'])->group(function () {
     Route::get('/tagihan', [TagihanController::class, 'index'])->name('tagihan.index');
     Route::get('/tagihan/{bill}/invoice', [TagihanController::class, 'invoice'])->name('tagihan.invoice');
     Route::get('/pembayaran', [PembayaranController::class, 'index'])->name('pembayaran.index');
-    // Kept only to return a clear message to stale browser tabs; manual input
-    // and approval are enforced in the panitia workflow.
+    // Pembayaran manual yang dicatat bendahara langsung diterima keuangan.
     Route::post('/pembayaran', [PembayaranController::class, 'store'])->name('pembayaran.store');
     Route::patch('/pembayaran/transaksi/{transaksi}', [PembayaranController::class, 'verify'])->name('pembayaran.verify');
     Route::patch('/pembayaran/transaksi/{transaksi}/terima', [PembayaranController::class, 'receive'])->name('pembayaran.receive');
