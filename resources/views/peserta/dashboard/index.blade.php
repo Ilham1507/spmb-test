@@ -93,11 +93,11 @@
             tutorialOpen: false,
             tutorialStep: 0,
             tutorialForce: @js($forceTutorial ?? false),
-            tutorialKey: 'spmb-dashboard-tour-v4-{{ auth()->id() }}-{{ $pendaftar?->id }}',
+            tutorialKey: 'spmb-dashboard-tour-v5-{{ auth()->id() }}-{{ $pendaftar?->id }}',
             activeTarget: null,
             activeLayer: null,
             steps: [
-                { target: () => window.innerWidth < 768 ? '[data-participant-mobile-menu]' : '#participant-sidebar-navigation', title: 'Menu pendaftaran', text: 'Ini menu untuk membuka halaman pembayaran, formulir data, dokumen, dan Tes SPMB.' },
+                { target: () => window.innerWidth < 768 ? '[data-participant-mobile-menu]' : '#participant-sidebar-navigation', title: 'Menu pendaftaran', text: () => window.innerWidth < 768 ? 'Tombol tiga garis di pojok kiri atas ini membuka daftar menu pendaftaran.' : 'Daftar menu di sebelah kiri ini digunakan untuk membuka pembayaran, formulir data, dokumen, dan Tes SPMB.' },
                 { target: '#participant-progress', title: 'Progres kamu', text: 'Bagian ini menunjukkan berapa langkah pendaftaran yang sudah kamu selesaikan.' },
                 { target: '#participant-primary-action', title: 'Tombol langkah berikutnya', text: 'Tekan tombol ini untuk melanjutkan proses yang perlu kamu kerjakan sekarang.' },
                 { target: '#participant-journey', title: 'Peta proses pendaftaran', text: 'Di sini kamu bisa melihat urutan proses dari registrasi sampai pengumuman. Ikuti tahap yang berwarna hijau.' },
@@ -152,7 +152,12 @@
             reposition() {
                 if (this.tutorialOpen && this.activeTarget && this.$refs.tourTip) {
                     window.positionParticipantTourTip?.(this.$refs.tourTip, this.activeTarget);
+                    window.positionParticipantTourPointer?.(this.$refs.tourPointer, this.$refs.tourTip, this.activeTarget);
                 }
+            },
+            currentStepText() {
+                const text = this.steps[this.tutorialStep]?.text;
+                return typeof text === 'function' ? text() : text;
             },
             previous() { this.showStep(this.tutorialStep - 1); },
             next() { this.tutorialStep + 1 >= this.steps.length ? this.finishTutorial() : this.showStep(this.tutorialStep + 1); },
@@ -274,6 +279,7 @@
 @if($status === 'draft' && (!$visitMatchCandidate || ($forceTutorial ?? false)))
     <div x-cloak x-show="tutorialOpen" x-transition.opacity class="participant-action-tour fixed inset-0 z-[125]" aria-live="polite">
         <div class="absolute inset-0 bg-slate-950/65 backdrop-blur-[1px]"></div>
+        <div x-ref="tourPointer" class="participant-tour-pointer fixed z-[132]" hidden></div>
         <div x-ref="tourTip" @resize.window="reposition()" class="participant-page-tour-tip fixed z-[133] w-[calc(100%-2rem)] max-w-md rounded-3xl bg-white p-5 shadow-2xl sm:p-6">
             <div class="flex items-center justify-between gap-3">
                 <p class="text-xs font-black uppercase tracking-[.16em] text-teal-700">Panduan pendaftaran</p>
@@ -283,7 +289,7 @@
                 <div class="participant-tour-pulse mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-xl">☝</div>
                 <div>
                     <p class="text-lg font-black text-slate-950" x-text="steps[tutorialStep]?.title"></p>
-                    <p class="mt-2 text-sm font-semibold leading-relaxed text-slate-600" x-text="steps[tutorialStep]?.text"></p>
+                    <p class="mt-2 text-sm font-semibold leading-relaxed text-slate-600" x-text="currentStepText()"></p>
                 </div>
             </div>
             <div class="mt-5 flex items-center justify-between gap-3">
