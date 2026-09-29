@@ -36,12 +36,12 @@
                 <label for="search_sekolah" class="mb-2 block text-xs font-black uppercase tracking-wide text-sky-800">Cari SMP / MTs berdasarkan nama, NPSN, atau kecamatan <span class="text-rose-500">*</span></label>
 
                 <div class="relative">
-                    <input id="search_sekolah" type="text" x-model="query" @input.debounce.150ms="search()" @focus="open = true"
+                    <input id="search_sekolah" x-ref="schoolInput" type="text" x-model="query" @input.debounce.150ms="search()" @focus="if (query.trim().length >= 1) { open = true; $nextTick(() => positionSchoolMenu()) }" @keydown.escape="open = false"
                            required
                            class="w-full px-4 py-3 rounded-xl border border-sky-200 bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/40 focus:border-sky-500 text-sm transition-all"
                            placeholder="Cari SMP/MTs, NPSN, atau kecamatan">
 
-                    <div x-cloak x-show="open" @click.outside="open = false" class="absolute left-0 right-0 top-[calc(100%+8px)] z-30 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
+                    <template x-teleport="body"><div x-cloak x-show="open" @click.outside="open = false" class="fixed z-[1100] overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl" :style="schoolMenuStyle">
                         <div x-show="loading" class="px-4 py-3 text-sm font-semibold text-slate-500">Mencari sekolah...</div>
 
                         <template x-if="!loading && results.length === 0 && query.length >= 1">
@@ -63,8 +63,10 @@
                             </button>
                         </template>
                     </div>
+                    </template>
                 </div>
 
+                <p class="mt-2 text-xs font-semibold text-sky-700">Hasil yang relevan dan sekolah sekitar Cileungsi tampil lebih dulu.</p>
                 <p x-cloak x-show="selectionError" class="mt-2 text-xs font-semibold text-rose-600">Pilih sekolah dari hasil pencarian.</p>
                 @error('referensi_sekolah_id') <p class="text-xs text-rose-500 mt-2">{{ $message }}</p> @enderror
             </div>
@@ -123,6 +125,7 @@
             results: [],
             loading: false,
             open: false,
+            schoolMenuStyle: '',
             selectionError: false,
             selectedId: config.initialSelectedId || '',
             selectedName: config.initialName || '',
@@ -134,6 +137,13 @@
             selectedDistrict: config.initialDistrict || '',
             selectedCity: config.initialCity || '',
             selectedProvince: config.initialProvince || '',
+            positionSchoolMenu() {
+                const rect = this.$refs.schoolInput?.getBoundingClientRect();
+                if (!rect) return;
+                const below = Math.max(96, window.innerHeight - rect.bottom - 12);
+                const height = Math.min(320, below);
+                this.schoolMenuStyle = `left:${rect.left}px;top:${rect.bottom + 6}px;width:${rect.width}px;max-height:${height}px;`;
+            },
             async search() {
                 this.selectedId = '';
                 this.selectedName = '';
@@ -153,6 +163,7 @@
 
                 this.loading = true;
                 this.open = true;
+                this.$nextTick(() => this.positionSchoolMenu());
 
                 try {
                     const response = await fetch(`${this.searchUrl}?q=${encodeURIComponent(this.query.trim())}`, {
@@ -163,6 +174,7 @@
                     this.results = [];
                 } finally {
                     this.loading = false;
+                    this.$nextTick(() => this.positionSchoolMenu());
                 }
             },
             selectSchool(school) {
