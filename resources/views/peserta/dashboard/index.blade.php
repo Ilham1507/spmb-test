@@ -93,7 +93,7 @@
             tutorialOpen: false,
             tutorialStep: 0,
             tutorialForce: @js($forceTutorial ?? false),
-            tutorialKey: 'spmb-dashboard-tour-v3-{{ auth()->id() }}-{{ $pendaftar?->id }}',
+            tutorialKey: 'spmb-dashboard-tour-v4-{{ auth()->id() }}-{{ $pendaftar?->id }}',
             activeTarget: null,
             activeLayer: null,
             steps: [
@@ -110,6 +110,9 @@
                 { target: '[data-participant-logout]', title: 'Keluar dari akun', text: 'Gunakan tombol ini jika ingin keluar dengan aman dari akunmu.', openProfile: true },
             ],
             init() {
+                document.querySelectorAll('.participant-page-tour-target, .participant-tour-target, .participant-tour-layer').forEach((node) => {
+                    node.classList.remove('participant-page-tour-target', 'participant-tour-target', 'participant-tour-layer');
+                });
                 const shouldStart = this.tutorialForce || (() => { try { return !localStorage.getItem(this.tutorialKey) } catch (e) { return true } })();
                 if (shouldStart) this.startTutorial();
                 document.querySelector('.portal-page-content')?.addEventListener('scroll', () => this.reposition(), { passive: true });
@@ -135,7 +138,10 @@
                 if (!target) return;
                 if (target.closest('.portal-page-content')) {
                     const rect = target.getBoundingClientRect();
-                    if (rect.top < 12 || rect.bottom > window.innerHeight - 12) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    const mustPlaceAboveMobileTip = window.innerWidth < 640;
+                    if (mustPlaceAboveMobileTip || rect.top < 12 || rect.bottom > window.innerHeight - 12) {
+                        target.scrollIntoView({ behavior: 'auto', block: mustPlaceAboveMobileTip ? 'start' : 'center' });
+                    }
                 }
                 this.activeTarget = target;
                 this.activeLayer = target.closest('.portal-topbar, .participant-sidebar');
@@ -268,7 +274,7 @@
 @if($status === 'draft' && (!$visitMatchCandidate || ($forceTutorial ?? false)))
     <div x-cloak x-show="tutorialOpen" x-transition.opacity class="participant-action-tour fixed inset-0 z-[125]" aria-live="polite">
         <div class="absolute inset-0 bg-slate-950/65 backdrop-blur-[1px]"></div>
-        <div x-ref="tourTip" @resize.window="reposition()" class="participant-page-tour-tip participant-tour-tooltip fixed z-[133] w-[calc(100%-2rem)] max-w-md rounded-3xl bg-white p-5 shadow-2xl sm:p-6">
+        <div x-ref="tourTip" @resize.window="reposition()" class="participant-page-tour-tip fixed z-[133] w-[calc(100%-2rem)] max-w-md rounded-3xl bg-white p-5 shadow-2xl sm:p-6">
             <div class="flex items-center justify-between gap-3">
                 <p class="text-xs font-black uppercase tracking-[.16em] text-teal-700">Panduan pendaftaran</p>
                 <span class="rounded-full bg-teal-50 px-2.5 py-1 text-[11px] font-black text-teal-700" x-text="`Langkah ${tutorialStep + 1} dari ${steps.length}`"></span>

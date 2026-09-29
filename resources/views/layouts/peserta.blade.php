@@ -333,17 +333,19 @@
             if (window.innerWidth < 640) {
                 tip.style.left = `${viewportPadding}px`;
                 tip.style.right = `${viewportPadding}px`;
+                tip.style.width = 'auto';
                 tip.style.top = 'auto';
                 tip.style.bottom = `${viewportPadding}px`;
-                tip.style.maxHeight = 'min(48dvh, 360px)';
+                tip.style.maxHeight = 'min(38dvh, 300px)';
                 tip.style.overflowY = 'auto';
                 tip.dataset.placement = 'mobile';
                 return;
             }
             const targetRect = target.getBoundingClientRect();
             const tipRect = tip.getBoundingClientRect();
-            const width = tip.offsetWidth || tipRect.width || Math.min(384, window.innerWidth - (viewportPadding * 2));
+            const width = Math.min(tip.offsetWidth || tipRect.width || 384, window.innerWidth - (viewportPadding * 2));
             const height = tip.offsetHeight || tipRect.height || 160;
+            tip.style.width = `${Math.round(width)}px`;
             const left = Math.max(viewportPadding, Math.min(targetRect.left + (targetRect.width / 2) - (width / 2), window.innerWidth - width - viewportPadding));
             const spaceBelow = window.innerHeight - targetRect.bottom;
             const spaceAbove = targetRect.top;
