@@ -24,7 +24,7 @@
         $userActive = str_starts_with($current, 'admin.users') || str_starts_with($current, 'admin.siswa');
         $masterActive = str_starts_with($current, 'admin.master') || str_starts_with($current, 'admin.jurusan') || str_starts_with($current, 'admin.gelombang') || str_starts_with($current, 'admin.pengaturan') || str_starts_with($current, 'admin.informasi-tes');
         $adminPortalActive = str_starts_with($current, 'admin.konfigurasi') || str_starts_with($current, 'admin.identitas') || str_starts_with($current, 'admin.formulir') || str_starts_with($current, 'admin.database-backup') || str_starts_with($current, 'admin.activity-log') || str_starts_with($current, 'admin.arsip-periode');
-        $opsActive = str_starts_with($current, 'admin.seleksi') || str_starts_with($current, 'admin.kunjungan');
+        $opsActive = str_starts_with($current, 'admin.seleksi') || str_starts_with($current, 'admin.kunjungan') || str_starts_with($current, 'admin.promosi-minat');
         $financeActive = str_starts_with($current, 'admin.tagihan') || str_starts_with($current, 'admin.laporan') || str_starts_with($current, 'admin.event') || str_starts_with($current, 'admin.biaya-jurusan') || str_starts_with($current, 'admin.pembayaran') || str_starts_with($current, 'admin.keuangan');
         $testItems = [
             [route('admin.tes.btq'), 'Baca Tulis Quran', 'admin.tes.btq'],
@@ -37,6 +37,7 @@
         $opsItems = [
             [route('admin.seleksi.index'), 'Seleksi Akhir', 'admin.seleksi'],
             [route('admin.kunjungan.index'), 'Kunjungan Piket', 'admin.kunjungan'],
+            [route('admin.promosi-minat.index'), 'Minat Promosi', 'admin.promosi-minat'],
         ];
         $financeItems = [
             [route('admin.pembayaran.index'), 'Manajemen Pembayaran', 'admin.pembayaran'],

@@ -23,6 +23,7 @@ use App\Http\Controllers\Panitia\TesSpmbController as PanitiaTesSpmbController;
 use App\Http\Controllers\Panitia\VerifikasiBerkasController as PanitiaVerifikasiBerkasController;
 use App\Http\Controllers\Shared\HasilTesController;
 use App\Http\Controllers\Shared\ExecutiveReportController;
+use App\Http\Controllers\Shared\MinatPromosiController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['web', 'admin'])->group(function () {
@@ -99,6 +100,9 @@ Route::middleware(['web', 'admin'])->group(function () {
     Route::post('/kunjungan', [PanitiaLayananPiketController::class, 'store'])->name('kunjungan.store');
     Route::put('/kunjungan/{kunjungan}', [PanitiaLayananPiketController::class, 'update'])->name('kunjungan.update');
     Route::delete('/kunjungan/{kunjungan}', [PanitiaLayananPiketController::class, 'destroy'])->name('kunjungan.destroy');
+    Route::get('/minat-promosi', [MinatPromosiController::class, 'index'])->name('promosi-minat.index');
+    Route::get('/minat-promosi/export-excel', [MinatPromosiController::class, 'export'])->name('promosi-minat.export');
+    Route::delete('/minat-promosi/{minatPromosi}', [MinatPromosiController::class, 'destroy'])->name('promosi-minat.destroy');
 
     Route::get('/tagihan', [BendaharaTagihanController::class, 'index'])->name('tagihan.index');
     Route::get('/tagihan/{bill}/invoice', [BendaharaTagihanController::class, 'invoice'])->name('tagihan.invoice');

@@ -3,6 +3,7 @@
 use App\Http\Controllers\KepalaSekolah\DashboardController;
 use App\Http\Controllers\Admin\BeritaLandingController;
 use App\Http\Controllers\Shared\ExecutiveReportController;
+use App\Http\Controllers\Shared\MinatPromosiController;
 use App\Http\Controllers\Panitia\PendaftarController;
 use App\Http\Controllers\Panitia\AssistedRegistrationController;
 use App\Http\Controllers\Panitia\LayananPiketController;
@@ -24,6 +25,8 @@ Route::middleware(['web', 'kepala_sekolah'])->group(function () {
     Route::get('/kunjungan/export-excel', [LayananPiketController::class, 'export'])->name('kunjungan.export');
     Route::get('/kunjungan', [LayananPiketController::class, 'index'])->name('kunjungan.index');
     Route::get('/kunjungan/cari-sekolah', [LayananPiketController::class, 'searchSchool'])->name('kunjungan.sekolah.search');
+    Route::get('/minat-promosi', [MinatPromosiController::class, 'index'])->name('promosi-minat.index');
+    Route::get('/minat-promosi/export-excel', [MinatPromosiController::class, 'export'])->name('promosi-minat.export');
     Route::get('/berita-artikel', [BeritaLandingController::class, 'index'])->name('berita-landing.index');
     Route::get('/berita-artikel/buat', [BeritaLandingController::class, 'create'])->name('berita-landing.create');
     Route::post('/berita-artikel', [BeritaLandingController::class, 'store'])->name('berita-landing.store');

@@ -8,6 +8,7 @@ use App\Http\Controllers\Landing\PendaftaranController;
 use App\Http\Controllers\Landing\SchoolPageController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Bendahara\PembayaranController as BendaharaPembayaranController;
+use App\Http\Controllers\Shared\MinatPromosiController;
 use Illuminate\Support\Facades\Route;
 
 // Public Landing Pages
@@ -27,6 +28,9 @@ Route::get('/pengumuman/sorotan/{slug}', [HomeController::class, 'artikelSorotan
 Route::get('/pengumuman/{pengumuman}', [HomeController::class, 'artikel'])->name('pengumuman.artikel');
 Route::get('/tentang/{page}', [SchoolPageController::class, 'show'])->whereIn('page', ['pimpinan', 'sejarah', 'sambutan-kepala-sekolah'])->name('tentang.page');
 Route::get('/pendidikan/{page}', [SchoolPageController::class, 'show'])->whereIn('page', ['program-studi', 'fasilitas'])->name('pendidikan.page');
+Route::get('/minat-promosi', [MinatPromosiController::class, 'create'])->name('promosi.minat.create');
+Route::post('/minat-promosi', [MinatPromosiController::class, 'store'])->middleware('throttle:10,1')->name('promosi.minat.store');
+Route::get('/minat-promosi/terima-kasih', [MinatPromosiController::class, 'success'])->name('promosi.minat.success');
 
 // Redirect generic dashboard to role-specific dashboard
 Route::get('/dashboard', function () {

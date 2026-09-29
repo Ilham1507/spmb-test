@@ -1,0 +1,125 @@
+<?php
+
+namespace App\Http\Controllers\Shared;
+
+use App\Http\Controllers\Controller;
+use App\Models\Jurusan;
+use App\Models\MinatPromosi;
+use App\Support\Pagination;
+use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+
+class MinatPromosiController extends Controller
+{
+    public function create()
+    {
+        $jurusans = Jurusan::where('status', 'aktif')->orderBy('name')->get(['id', 'name']);
+
+        return view('promosi.minat-form', compact('jurusans'));
+    }
+
+    public function store(Request $request)
+    {
+        $data = $this->validatedData($request);
+
+        if (MinatPromosi::where('student_phone', $data['student_phone'])->exists()) {
+            return back()->withInput()->withErrors(['student_phone' => 'Nomor WhatsApp ini sudah tercatat sebagai siswa yang berminat.']);
+        }
+
+        MinatPromosi::create($data + ['submitted_at' => now()]);
+
+        return redirect()->route('promosi.minat.success');
+    }
+
+    public function success()
+    {
+        return view('promosi.minat-success');
+    }
+
+    public function index(Request $request)
+    {
+        $interests = $this->filteredQuery($request)->latest('submitted_at')->paginate(Pagination::perPage())->withQueryString();
+
+        return view('promosi.minat-index', compact('interests'));
+    }
+
+    public function export(Request $request)
+    {
+        $interests = $this->filteredQuery($request)->latest('submitted_at')->get();
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Minat Promosi');
+        $headers = ['No.', 'Nama siswa', 'No. WhatsApp siswa', 'No. HP orang tua/wali', 'SMP/MTs saat ini', 'Kelas', 'Jurusan diminati', 'Catatan', 'Diisi pada'];
+        $sheet->fromArray([$headers], null, 'A1');
+
+        $row = 2;
+        foreach ($interests as $index => $interest) {
+            $sheet->fromArray([[$index + 1, $interest->full_name, $interest->student_phone, $interest->parent_phone, $interest->school_name, $interest->class_level, $interest->major_interest, $interest->promotion_note, $interest->submitted_at?->format('d-m-Y H:i')]], null, 'A'.$row);
+            $sheet->setCellValueExplicit('C'.$row, (string) $interest->student_phone, DataType::TYPE_STRING);
+            $sheet->setCellValueExplicit('D'.$row, (string) $interest->parent_phone, DataType::TYPE_STRING);
+            $row++;
+        }
+
+        $lastRow = max($row - 1, 1);
+        $sheet->getStyle('A1:I1')->applyFromArray(['font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']], 'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '0F766E']], 'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER]]);
+        $sheet->getStyle('A1:I'.$lastRow)->getAlignment()->setVertical(Alignment::VERTICAL_TOP)->setWrapText(true);
+        $sheet->getRowDimension(1)->setRowHeight(26);
+        $sheet->freezePane('A2');
+        $sheet->setAutoFilter('A1:I'.$lastRow);
+        foreach ([5, 28, 21, 22, 32, 12, 28, 40, 20] as $index => $width) {
+            $sheet->getColumnDimension(chr(65 + $index))->setWidth($width);
+        }
+
+        return response()->streamDownload(function () use ($spreadsheet) {
+            IOFactory::createWriter($spreadsheet, 'Xlsx')->save('php://output');
+        }, 'minat-promosi-siswa-'.now()->format('Ymd-His').'.xlsx', ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
+    }
+
+    public function destroy(MinatPromosi $minatPromosi)
+    {
+        $minatPromosi->delete();
+
+        return back()->with('success', 'Data minat promosi berhasil dihapus.');
+    }
+
+    private function validatedData(Request $request): array
+    {
+        $data = $request->validate([
+            'full_name' => ['required', 'string', 'max:150'],
+            'student_phone' => ['required', 'string', 'regex:/^08[0-9]{8,13}$/'],
+            'parent_phone' => ['nullable', 'string', 'regex:/^08[0-9]{8,13}$/'],
+            'school_name' => ['required', 'string', 'max:180'],
+            'class_level' => ['nullable', 'string', 'max:30'],
+            'interested_major_id' => ['nullable', Rule::exists('jurusan', 'id')->where('status', 'aktif')],
+            'promotion_note' => ['nullable', 'string', 'max:500'],
+        ]);
+        $data['student_phone'] = $this->normalizePhone($data['student_phone']);
+        $data['parent_phone'] = filled($data['parent_phone'] ?? null) ? $this->normalizePhone($data['parent_phone']) : null;
+        $data['major_interest'] = filled($data['interested_major_id'] ?? null)
+            ? Jurusan::find($data['interested_major_id'])?->name
+            : null;
+
+        return $data;
+    }
+
+    private function filteredQuery(Request $request)
+    {
+        return MinatPromosi::query()->when($request->filled('search'), fn ($query) => $query->where(fn ($inner) => $inner
+            ->where('full_name', 'like', '%'.$request->search.'%')
+            ->orWhere('student_phone', 'like', '%'.$request->search.'%')
+            ->orWhere('school_name', 'like', '%'.$request->search.'%')
+            ->orWhere('major_interest', 'like', '%'.$request->search.'%')));
+    }
+
+    private function normalizePhone(string $phone): string
+    {
+        $digits = preg_replace('/\D+/', '', $phone) ?? '';
+
+        return str_starts_with($digits, '62') ? '0'.substr($digits, 2) : $digits;
+    }
+}
