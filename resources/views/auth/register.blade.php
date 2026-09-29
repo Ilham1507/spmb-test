@@ -40,6 +40,7 @@
             <x-input-error :messages="$errors->get('password_confirmation')" class="mt-1" />
         </div>
         <button type="submit" class="auth-button" :disabled="checking"><span x-show="!checking">Buat Akun</span><span x-cloak x-show="checking">Memeriksa data...</span></button>
+        <p x-cloak x-show="submitError" x-text="submitError" class="m-0 rounded-xl bg-rose-50 px-3 py-2 text-center text-xs font-bold leading-relaxed text-rose-700"></p>
         <p class="m-0 text-center text-xs text-slate-500">Sudah punya akun? <a href="{{ route('login') }}" class="auth-link">Masuk</a></p>
 
         <div x-cloak x-show="checkOpen" x-transition.opacity class="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-950/60 p-4" role="dialog" aria-modal="true">
@@ -85,11 +86,11 @@
     <script>
         function registrationCheck() {
             return {
-                checking: false, checkOpen: false, showPassword: false, showConfirmation: false, existingAccount: null, visits: [], selectedVisit: '', skipCheck: false,
+                checking: false, checkOpen: false, showPassword: false, showConfirmation: false, existingAccount: null, visits: [], selectedVisit: '', submitError: '',
                 async checkBeforeRegister(event) {
                     const form = event.target;
-                    if (this.skipCheck) return this.submitForm();
                     if (!form.checkValidity()) return form.reportValidity();
+                    this.submitError = '';
                     this.checking = true;
                     try {
                         const fields = new FormData(form);
@@ -111,12 +112,51 @@
                 closeCheck() { this.checkOpen = false; this.checking = false; },
                 confirmVisit() { if (this.selectedVisit) this.submitForm(); },
                 registerAsNew() { this.selectedVisit = ''; this.submitForm(); },
-                submitForm() {
+                async submitForm() {
                     this.checkOpen = false;
                     this.checking = true;
-                    this.skipCheck = true;
                     window.showGlobalLoading?.('Membuat akun', 'Mohon tunggu sebentar.');
-                    this.$el.submit();
+                    const controller = new AbortController();
+                    const timeout = window.setTimeout(() => controller.abort(), 30000);
+
+                    try {
+                        const response = await fetch(this.$el.action, {
+                            method: 'POST',
+                            body: new FormData(this.$el),
+                            credentials: 'same-origin',
+                            signal: controller.signal,
+                            headers: {
+                                Accept: 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest',
+                            },
+                        });
+
+                        if (response.ok && response.redirected) {
+                            window.location.assign(response.url);
+                            return;
+                        }
+
+                        const result = await response.json().catch(() => null);
+                        if (!response.ok) {
+                            const errors = result?.errors ? Object.values(result.errors).flat() : [];
+                            this.submitError = errors[0] || (response.status === 419
+                                ? 'Sesi halaman sudah berakhir. Muat ulang halaman lalu coba lagi.'
+                                : 'Pendaftaran belum dapat diproses. Periksa kembali data kamu.');
+                            return;
+                        }
+
+                        window.location.assign(response.url || '{{ route('peserta.dashboard') }}');
+                    } catch (error) {
+                        this.submitError = error?.name === 'AbortError'
+                            ? 'Pendaftaran terlalu lama diproses. Periksa koneksi lalu coba lagi.'
+                            : 'Koneksi ke server terputus. Periksa internet lalu coba lagi.';
+                    } finally {
+                        window.clearTimeout(timeout);
+                        if (this.submitError) {
+                            this.checking = false;
+                            window.hideGlobalLoading?.();
+                        }
+                    }
                 },
             };
         }
