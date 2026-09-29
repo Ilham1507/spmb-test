@@ -89,6 +89,8 @@
 
 <script>
     function participantDashboardTour() {
+        const isCompactScreen = () => (window.visualViewport?.width || window.innerWidth) < 768
+            || window.matchMedia?.('(pointer: coarse)').matches;
         return {
             tutorialOpen: false,
             tutorialStep: 0,
@@ -97,7 +99,7 @@
             activeTarget: null,
             activeLayer: null,
             steps: [
-                { target: () => window.innerWidth < 768 ? '[data-participant-mobile-menu]' : '#participant-sidebar-navigation', title: 'Menu pendaftaran', text: () => window.innerWidth < 768 ? 'Tombol tiga garis di pojok kiri atas ini membuka daftar menu pendaftaran.' : 'Daftar menu di sebelah kiri ini digunakan untuk membuka pembayaran, formulir data, dokumen, dan Tes SPMB.' },
+                { target: () => isCompactScreen() ? '[data-participant-mobile-menu]' : '#participant-sidebar-navigation', title: 'Menu pendaftaran', text: () => isCompactScreen() ? 'Tombol tiga garis di pojok kiri atas ini membuka daftar menu pendaftaran.' : 'Daftar menu di sebelah kiri ini digunakan untuk membuka pembayaran, formulir data, dokumen, dan Tes SPMB.' },
                 { target: '#participant-progress', title: 'Progres kamu', text: 'Bagian ini menunjukkan berapa langkah pendaftaran yang sudah kamu selesaikan.' },
                 { target: '#participant-primary-action', title: 'Tombol langkah berikutnya', text: 'Tekan tombol ini untuk melanjutkan proses yang perlu kamu kerjakan sekarang.' },
                 { target: '#participant-journey-heading', title: 'Peta proses pendaftaran', text: 'Di sini kamu bisa melihat urutan proses dari registrasi sampai pengumuman. Ikuti tahap yang berwarna hijau.' },
@@ -139,7 +141,7 @@
                 if (!target) return;
                 if (target.closest('.portal-page-content')) {
                     const rect = target.getBoundingClientRect();
-                    const mustPlaceAboveMobileTip = window.innerWidth < 768;
+                    const mustPlaceAboveMobileTip = isCompactScreen();
                     if (mustPlaceAboveMobileTip || rect.top < 12 || rect.bottom > window.innerHeight - 12) {
                         target.scrollIntoView({ behavior: 'auto', block: mustPlaceAboveMobileTip ? 'start' : 'center' });
                     }
