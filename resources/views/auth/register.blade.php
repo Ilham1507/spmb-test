@@ -65,7 +65,7 @@
     <script>
         function registrationCheck() {
             return {
-                checking: false, checkOpen: false, existingAccount: null, visits: [], selectedVisit: '', skipCheck: false,
+                checking: false, checkOpen: false, showPassword: false, showConfirmation: false, existingAccount: null, visits: [], selectedVisit: '', skipCheck: false,
                 async checkBeforeRegister(event) {
                     const form = event.target;
                     if (this.skipCheck) return this.submitForm();
