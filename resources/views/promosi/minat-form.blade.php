@@ -1,49 +1,40 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Minat SPMB - SMK Muhammadiyah 4 Cileungsi</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="min-h-screen bg-gradient-to-br from-blue-950 via-blue-800 to-teal-700 px-4 py-8 text-slate-900 sm:py-12">
-    <main class="mx-auto max-w-2xl overflow-hidden rounded-[2rem] bg-white shadow-2xl shadow-blue-950/30">
-        <section class="bg-gradient-to-r from-blue-900 to-teal-700 px-6 py-8 text-white sm:px-10">
-            <p class="text-xs font-black uppercase tracking-[.2em] text-teal-100">SPMB SMK Muhammadiyah 4 Cileungsi</p>
-            <h1 class="mt-3 text-3xl font-black leading-tight sm:text-4xl">Tertarik menjadi bagian dari kami?</h1>
-            <p class="mt-3 max-w-xl text-sm leading-relaxed text-blue-100 sm:text-base">Isi data singkat ini saat kegiatan promosi. Tim sekolah akan menyimpan minatmu dan siap membantu saat pendaftaran dibuka.</p>
-        </section>
-        <form method="POST" action="{{ route('promosi.minat.store') }}" class="space-y-5 px-6 py-7 sm:px-10 sm:py-9" autocomplete="on">
-            @csrf
-            @if($errors->any())
-                <div class="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{{ $errors->first() }}</div>
-            @endif
-            <div class="grid gap-5 sm:grid-cols-2">
-                <label class="block text-sm font-extrabold text-slate-700 sm:col-span-2">Nama lengkap
-                    <input name="full_name" value="{{ old('full_name') }}" required maxlength="150" class="mt-2 w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-base outline-none transition focus:border-teal-600 focus:bg-white focus:ring-4 focus:ring-teal-100" placeholder="Tulis nama lengkapmu">
-                </label>
-                <label class="block text-sm font-extrabold text-slate-700">Nomor WhatsApp siswa
-                    <input name="student_phone" value="{{ old('student_phone') }}" required inputmode="numeric" class="mt-2 w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-base outline-none transition focus:border-teal-600 focus:bg-white focus:ring-4 focus:ring-teal-100" placeholder="08xxxxxxxxxx">
-                </label>
-                <label class="block text-sm font-extrabold text-slate-700">Nomor HP orang tua <span class="font-medium text-slate-400">(opsional)</span>
-                    <input name="parent_phone" value="{{ old('parent_phone') }}" inputmode="numeric" class="mt-2 w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-base outline-none transition focus:border-teal-600 focus:bg-white focus:ring-4 focus:ring-teal-100" placeholder="08xxxxxxxxxx">
-                </label>
-                <label class="block text-sm font-extrabold text-slate-700 sm:col-span-2">SMP/MTs saat ini
-                    <input name="school_name" value="{{ old('school_name') }}" required maxlength="180" class="mt-2 w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-base outline-none transition focus:border-teal-600 focus:bg-white focus:ring-4 focus:ring-teal-100" placeholder="Contoh: SMP Negeri 1 Cileungsi">
-                </label>
-                <label class="block text-sm font-extrabold text-slate-700">Kelas saat ini <span class="font-medium text-slate-400">(opsional)</span>
-                    <select name="class_level" class="mt-2 w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-base outline-none transition focus:border-teal-600 focus:bg-white focus:ring-4 focus:ring-teal-100"><option value="">Pilih kelas</option><option value="VII" @selected(old('class_level') === 'VII')>Kelas VII</option><option value="VIII" @selected(old('class_level') === 'VIII')>Kelas VIII</option><option value="IX" @selected(old('class_level') === 'IX')>Kelas IX</option></select>
-                </label>
-                <label class="block text-sm font-extrabold text-slate-700">Jurusan yang diminati <span class="font-medium text-slate-400">(opsional)</span>
-                    <select name="interested_major_id" class="mt-2 w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-base outline-none transition focus:border-teal-600 focus:bg-white focus:ring-4 focus:ring-teal-100"><option value="">Belum menentukan</option>@foreach($jurusans as $jurusan)<option value="{{ $jurusan->id }}" @selected((string) old('interested_major_id') === (string) $jurusan->id)>{{ $jurusan->name }}</option>@endforeach</select>
-                </label>
-                <label class="block text-sm font-extrabold text-slate-700 sm:col-span-2">Catatan atau pertanyaan <span class="font-medium text-slate-400">(opsional)</span>
-                    <textarea name="promotion_note" rows="3" maxlength="500" class="mt-2 w-full resize-y rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-base outline-none transition focus:border-teal-600 focus:bg-white focus:ring-4 focus:ring-teal-100" placeholder="Contoh: ingin tahu biaya atau kegiatan sekolah">{{ old('promotion_note') }}</textarea>
-                </label>
+<body class="min-h-screen bg-[#eff8f4] font-['Plus_Jakarta_Sans'] text-slate-900">
+    <main class="flex min-h-screen items-center justify-center px-4 py-6 sm:px-6 sm:py-10">
+        <section class="grid w-full max-w-6xl overflow-hidden rounded-[28px] border border-emerald-100 bg-white shadow-[0_24px_70px_rgba(21,94,71,.15)] lg:grid-cols-[.82fr_1.18fr]">
+            <aside class="relative hidden min-h-[650px] overflow-hidden bg-gradient-to-br from-[#064e3b] via-[#087a5b] to-[#0b9b70] p-10 text-white lg:flex lg:flex-col lg:justify-between">
+                <div class="absolute -right-36 -top-32 h-96 w-96 rounded-full border border-white/20"></div><div class="absolute -bottom-40 -left-36 h-[28rem] w-[28rem] rounded-full border border-white/20"></div>
+                <div class="relative"><p class="flex items-center gap-2 text-xs font-black uppercase tracking-[.2em] text-emerald-100"><span class="h-2 w-2 rounded-full bg-amber-300"></span> Portal Minat SPMB</p><div class="mt-9 flex h-16 w-16 items-center justify-center rounded-2xl border border-white/25 bg-white/15 p-2 shadow-xl"><img src="{{ asset('images/logo-sekolah.png') }}" alt="Logo sekolah" class="h-full w-full rounded-xl bg-white object-contain p-1"></div><h1 class="mt-8 max-w-sm text-4xl font-extrabold leading-[1.12] tracking-tight">Mulai langkahmu menuju masa depan.</h1><p class="mt-5 max-w-sm text-sm leading-7 text-emerald-50">Terima kasih sudah mampir saat kegiatan promosi. Tinggalkan minatmu agar tim kami dapat mengirim informasi SPMB yang kamu butuhkan.</p></div>
+                <div class="relative flex items-center gap-3 text-xs font-semibold text-emerald-50"><span class="h-2 w-2 rounded-full bg-amber-300"></span><span>SMK Muhammadiyah 4 Cileungsi<br>Tahun Pelajaran 2027/2028</span></div>
+            </aside>
+            <div class="p-6 sm:p-9 lg:p-10">
+                <div class="flex items-center gap-3 lg:hidden"><span class="flex h-11 w-11 items-center justify-center rounded-xl border border-emerald-100 bg-emerald-50 p-1"><img src="{{ asset('images/logo-sekolah.png') }}" alt="Logo sekolah" class="h-full w-full object-contain"></span><div><p class="text-sm font-extrabold text-emerald-900">SMKM 4 Cileungsi</p><p class="text-[10px] font-bold uppercase tracking-[.12em] text-emerald-600">Portal Minat SPMB</p></div></div>
+                <header class="mt-8 lg:mt-0"><p class="text-xs font-black uppercase tracking-[.16em] text-emerald-600">Data minat siswa</p><h2 class="mt-2 text-3xl font-extrabold tracking-tight text-emerald-950">Boleh kenalan dulu?</h2><p class="mt-3 max-w-xl text-sm leading-6 text-slate-500">Isi data singkat berikut. Tidak perlu membuat akun sekarang.</p></header>
+                <form method="POST" action="{{ route('promosi.minat.store') }}" class="mt-7 space-y-5" autocomplete="on">
+                    @csrf
+                    @if($errors->any())<div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{{ $errors->first() }}</div>@endif
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <label class="block text-sm font-bold text-emerald-950 sm:col-span-2">Nama lengkap<input name="full_name" value="{{ old('full_name') }}" required maxlength="150" class="mt-2 w-full rounded-xl border border-emerald-200 bg-emerald-50/40 px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-emerald-600 focus:bg-white focus:ring-4 focus:ring-emerald-100" placeholder="Tulis nama lengkapmu"></label>
+                        <label class="block text-sm font-bold text-emerald-950">Nomor WhatsApp siswa<input name="student_phone" value="{{ old('student_phone') }}" required inputmode="numeric" class="mt-2 w-full rounded-xl border border-emerald-200 bg-emerald-50/40 px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-emerald-600 focus:bg-white focus:ring-4 focus:ring-emerald-100" placeholder="08xxxxxxxxxx"></label>
+                        <label class="block text-sm font-bold text-emerald-950">No. HP orang tua <span class="font-medium text-slate-400">(opsional)</span><input name="parent_phone" value="{{ old('parent_phone') }}" inputmode="numeric" class="mt-2 w-full rounded-xl border border-emerald-200 bg-emerald-50/40 px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-emerald-600 focus:bg-white focus:ring-4 focus:ring-emerald-100" placeholder="08xxxxxxxxxx"></label>
+                        <label class="block text-sm font-bold text-emerald-950 sm:col-span-2">SMP/MTs saat ini<input name="school_name" value="{{ old('school_name') }}" required maxlength="180" class="mt-2 w-full rounded-xl border border-emerald-200 bg-emerald-50/40 px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-emerald-600 focus:bg-white focus:ring-4 focus:ring-emerald-100" placeholder="Contoh: SMP Negeri 1 Cileungsi"></label>
+                        <label class="block text-sm font-bold text-emerald-950">Kelas saat ini <span class="font-medium text-slate-400">(opsional)</span><select name="class_level" class="mt-2 w-full rounded-xl border border-emerald-200 bg-emerald-50/40 px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition focus:border-emerald-600 focus:bg-white focus:ring-4 focus:ring-emerald-100"><option value="">Pilih kelas</option><option value="VII" @selected(old('class_level') === 'VII')>Kelas VII</option><option value="VIII" @selected(old('class_level') === 'VIII')>Kelas VIII</option><option value="IX" @selected(old('class_level') === 'IX')>Kelas IX</option></select></label>
+                        <label class="block text-sm font-bold text-emerald-950">Jurusan diminati <span class="font-medium text-slate-400">(opsional)</span><select name="interested_major_id" class="mt-2 w-full rounded-xl border border-emerald-200 bg-emerald-50/40 px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition focus:border-emerald-600 focus:bg-white focus:ring-4 focus:ring-emerald-100"><option value="">Belum menentukan</option>@foreach($jurusans as $jurusan)<option value="{{ $jurusan->id }}" @selected((string) old('interested_major_id') === (string) $jurusan->id)>{{ $jurusan->name }}</option>@endforeach</select></label>
+                        <label class="block text-sm font-bold text-emerald-950 sm:col-span-2">Catatan atau pertanyaan <span class="font-medium text-slate-400">(opsional)</span><textarea name="promotion_note" rows="2" maxlength="500" class="mt-2 w-full resize-y rounded-xl border border-emerald-200 bg-emerald-50/40 px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-emerald-600 focus:bg-white focus:ring-4 focus:ring-emerald-100" placeholder="Contoh: ingin tahu biaya atau kegiatan sekolah">{{ old('promotion_note') }}</textarea></label>
+                    </div>
+                    <button class="w-full rounded-xl bg-emerald-700 px-5 py-3.5 text-sm font-extrabold text-white shadow-lg shadow-emerald-200 transition hover:bg-emerald-800 focus:outline-none focus:ring-4 focus:ring-emerald-200">Simpan minat saya →</button>
+                    <p class="text-center text-[11px] leading-relaxed text-slate-400">Data ini digunakan tim SPMB untuk tindak lanjut informasi pendaftaran.</p>
+                </form>
             </div>
-            <button class="w-full rounded-xl bg-teal-700 px-5 py-4 text-base font-black text-white shadow-lg shadow-teal-200 transition hover:bg-teal-800 focus:outline-none focus:ring-4 focus:ring-teal-200">Simpan minat saya</button>
-            <p class="text-center text-xs leading-relaxed text-slate-500">Data digunakan oleh tim SPMB SMK Muhammadiyah 4 Cileungsi untuk tindak lanjut informasi pendaftaran.</p>
-        </form>
+        </section>
     </main>
 </body>
 </html>
