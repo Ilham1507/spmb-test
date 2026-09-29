@@ -203,21 +203,21 @@ class PembayaranController extends Controller
         $whatsappUrl = null;
         $whatsappWarning = null;
 
-        if ($result['is_registration_fee']) {
-            $whatsappUrl = $this->manualRegistrationWhatsAppUrl($transaction);
-            if (! $whatsappUrl) {
-                $whatsappWarning = 'Pembayaran tersimpan, tetapi nomor WhatsApp siswa belum tersedia.';
+        $whatsappUrl = $result['is_registration_fee'] ? $this->manualRegistrationWhatsAppUrl($transaction) : null;
+        try {
+            if ($result['is_registration_fee']) {
+                // Kirim satu bubble WhatsApp berupa PDF invoice dengan pesan dan tautan formulir.
+                $this->sendDecisionNotification($whatsapp, $transaction);
             } else {
-                try {
-                    $this->sendManualRegistrationNotification($whatsapp, $transaction);
-                } catch (Throwable $exception) {
-                    Log::warning('Notifikasi WhatsApp pembayaran formulir manual gagal dikirim.', [
-                        'transaction_id' => $transaction->id,
-                        'error' => $exception->getMessage(),
-                    ]);
-                    $whatsappWarning = 'Pembayaran tersimpan. Kirimkan notifikasi WhatsApp ke siswa melalui tombol yang tersedia.';
-                }
+                // Pembayaran DU yang dicatat bendahara sudah diterima pada saat yang sama.
+                $this->sendReceivedNotification($whatsapp, $transaction);
             }
+        } catch (Throwable $exception) {
+            Log::warning('Notifikasi WhatsApp pembayaran manual bendahara gagal dikirim.', [
+                'transaction_id' => $transaction->id,
+                'error' => $exception->getMessage(),
+            ]);
+            $whatsappWarning = 'Pembayaran tersimpan, tetapi notifikasi WhatsApp siswa belum terkirim.';
         }
 
         $redirect = redirect()->route($this->routeName('pembayaran.index'))
