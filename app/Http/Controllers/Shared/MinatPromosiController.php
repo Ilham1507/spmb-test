@@ -63,7 +63,7 @@ class MinatPromosiController extends Controller
         $interests = $this->filteredQuery($request)->latest('submitted_at')->get();
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
-        $sheet->setTitle('Minat Promosi');
+        $sheet->setTitle('Hasil Promosi');
         $headers = ['No.', 'Nama siswa', 'No. WhatsApp siswa', 'Media sosial', 'SMP/MTs saat ini', 'Jurusan diminati', 'Diisi pada'];
         $sheet->fromArray([$headers], null, 'A1');
 
@@ -86,14 +86,14 @@ class MinatPromosiController extends Controller
 
         return response()->streamDownload(function () use ($spreadsheet) {
             IOFactory::createWriter($spreadsheet, 'Xlsx')->save('php://output');
-        }, 'minat-promosi-siswa-'.now()->format('Ymd-His').'.xlsx', ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
+        }, 'hasil-promosi-siswa-'.now()->format('Ymd-His').'.xlsx', ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
     }
 
     public function destroy(MinatPromosi $minatPromosi)
     {
         $minatPromosi->delete();
 
-        return back()->with('success', 'Data minat promosi berhasil dihapus.');
+        return back()->with('success', 'Data hasil promosi berhasil dihapus.');
     }
 
     private function validatedData(Request $request): array

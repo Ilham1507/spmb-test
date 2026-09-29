@@ -37,7 +37,7 @@
         $opsItems = [
             [route('admin.seleksi.index'), 'Seleksi Akhir', 'admin.seleksi'],
             [route('admin.kunjungan.index'), 'Kunjungan Piket', 'admin.kunjungan'],
-            [route('admin.promosi-minat.index'), 'Minat Promosi', 'admin.promosi-minat'],
+            [route('admin.promosi-minat.index'), 'Hasil Promosi', 'admin.promosi-minat'],
         ];
         $financeItems = [
             [route('admin.pembayaran.index'), 'Manajemen Pembayaran', 'admin.pembayaran'],
