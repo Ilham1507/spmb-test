@@ -102,6 +102,14 @@ class MinatPromosiController extends Controller
             'student_phone' => ['required', 'string', 'regex:/^08[0-9]{8,13}$/'],
             'school_name' => ['required', 'string', 'max:180'],
             'interested_major_id' => ['nullable', Rule::exists('jurusan', 'id')->where('status', 'aktif')],
+        ], [
+            'full_name.required' => 'Nama lengkap wajib diisi.',
+            'full_name.max' => 'Nama lengkap terlalu panjang.',
+            'student_phone.required' => 'Nomor WhatsApp wajib diisi.',
+            'student_phone.regex' => 'Masukkan nomor WhatsApp yang benar, misalnya 08xxxxxxxxxx.',
+            'school_name.required' => 'Nama SMP/MTs wajib diisi.',
+            'school_name.max' => 'Nama SMP/MTs terlalu panjang.',
+            'interested_major_id.exists' => 'Jurusan yang dipilih tidak tersedia. Silakan pilih lagi.',
         ]);
         $data['student_phone'] = $this->normalizePhone($data['student_phone']);
         $data['major_interest'] = filled($data['interested_major_id'] ?? null)
