@@ -277,7 +277,7 @@
 
 @if($status === 'draft' && (!$visitMatchCandidate || ($forceTutorial ?? false)))
     <div x-cloak x-show="tutorialOpen" x-transition.opacity class="participant-action-tour fixed inset-0 z-[125]" aria-live="polite">
-        <div class="absolute inset-0 bg-slate-950/65 backdrop-blur-[1px]"></div>
+        <div class="absolute inset-0 bg-slate-950/35"></div>
         <div x-ref="tourTip" @resize.window="reposition()" class="participant-page-tour-tip fixed z-[133] w-[calc(100%-2rem)] max-w-md rounded-3xl bg-white p-5 shadow-2xl sm:p-6">
             <div class="flex items-center justify-between gap-3">
                 <p class="text-xs font-black uppercase tracking-[.16em] text-teal-700">Panduan pendaftaran</p>

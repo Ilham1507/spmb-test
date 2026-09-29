@@ -352,22 +352,39 @@
                 tip.dataset.placement = 'mobile';
                 return;
             }
+            const gap = 28;
             const targetRect = target.getBoundingClientRect();
             const viewportWidth = window.visualViewport?.width || window.innerWidth;
             const viewportHeight = window.visualViewport?.height || window.innerHeight;
-            const focusIsRight = targetRect.left + (targetRect.width / 2) > viewportWidth / 2;
-            const focusIsUpper = targetRect.top + (targetRect.height / 2) < viewportHeight / 2;
+            const tipWidth = Math.min(400, viewportWidth - (viewportPadding * 2));
 
-            // Selalu letakkan kartu di sudut berlawanan dari target. Properti right/bottom
-            // dipakai langsung agar kartu tidak bisa keluar layar pada browser yang dizoom.
-            tip.style.width = 'min(400px, calc(100vw - 32px))';
+            tip.style.width = `${tipWidth}px`;
             tip.style.maxHeight = 'calc(100dvh - 32px)';
             tip.style.overflowY = 'auto';
-            tip.style.left = focusIsRight ? `${viewportPadding}px` : 'auto';
-            tip.style.right = focusIsRight ? 'auto' : `${viewportPadding}px`;
-            tip.style.top = focusIsUpper ? 'auto' : `${viewportPadding}px`;
-            tip.style.bottom = focusIsUpper ? `${viewportPadding}px` : 'auto';
-            tip.dataset.placement = focusIsUpper ? 'bottom' : 'top';
+            tip.style.right = 'auto';
+            tip.style.bottom = 'auto';
+
+            // Letakkan kartu sedekat mungkin dengan bagian yang disorot. Garis
+            // pendek pada kartu cukup untuk menunjukkan hubungan keduanya.
+            const cardHeight = Math.min(tip.getBoundingClientRect().height || 220, viewportHeight - (viewportPadding * 2));
+            const clampTop = (top) => Math.max(viewportPadding, Math.min(top, viewportHeight - cardHeight - viewportPadding));
+            const canPlaceRight = targetRect.right + gap + tipWidth <= viewportWidth - viewportPadding;
+            const canPlaceLeft = targetRect.left - gap - tipWidth >= viewportPadding;
+
+            if (canPlaceRight) {
+                tip.style.left = `${Math.round(targetRect.right + gap)}px`;
+                tip.style.top = `${Math.round(clampTop(targetRect.top))}px`;
+                tip.dataset.placement = 'right';
+            } else if (canPlaceLeft) {
+                tip.style.left = `${Math.round(targetRect.left - gap - tipWidth)}px`;
+                tip.style.top = `${Math.round(clampTop(targetRect.top))}px`;
+                tip.dataset.placement = 'left';
+            } else {
+                const canPlaceBelow = targetRect.bottom + gap + cardHeight <= viewportHeight - viewportPadding;
+                tip.style.left = `${Math.round(Math.max(viewportPadding, Math.min(targetRect.left, viewportWidth - tipWidth - viewportPadding)))}px`;
+                tip.style.top = `${Math.round(canPlaceBelow ? targetRect.bottom + gap : clampTop(targetRect.top - cardHeight - gap))}px`;
+                tip.dataset.placement = canPlaceBelow ? 'bottom' : 'top';
+            }
         };
         document.addEventListener('DOMContentLoaded', function () {
             const tour = document.getElementById('participant-page-tour');
