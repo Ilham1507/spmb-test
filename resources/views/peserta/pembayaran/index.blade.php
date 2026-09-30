@@ -108,7 +108,7 @@
                             @endif
                             <div class="divide-y divide-slate-100 rounded-xl border border-slate-200">
                             @foreach($paymentGroups as $group)
-                                <label class="flex cursor-pointer items-center justify-between gap-3 p-4"><span class="flex items-center gap-3"><input type="checkbox" value="{{ $group['name'] }}" x-model="selectedGroups" class="h-5 w-5 rounded border-slate-300 text-sky-700 focus:ring-sky-600"><span><span class="block text-sm font-semibold text-slate-800">{{ $group['name'] }}</span><small class="block text-xs text-slate-500">{{ count($group['items']) }} rincian biaya</small></span></span><span class="text-right text-sm font-bold text-slate-900">Rp {{ number_format($group['amount'], 0, ',', '.') }}</span></label>
+                                <label class="flex cursor-pointer items-center justify-between gap-3 p-4"><span class="flex items-center gap-3"><input type="checkbox" value="{{ $group['name'] }}" x-model="selectedGroups" class="h-5 w-5 rounded border-slate-300 text-sky-700 focus:ring-sky-600"><span class="text-sm font-semibold text-slate-800">{{ $group['name'] }}</span></span><span class="text-right text-sm font-bold text-slate-900">Rp {{ number_format($group['amount'], 0, ',', '.') }}</span></label>
                             @endforeach
                             </div>
                             <p class="mt-4 rounded-xl bg-sky-50 px-3 py-2 text-sm font-semibold text-sky-900">Unggah bukti di sini khusus untuk transfer. Pembayaran tunai dilakukan di sekolah dan dicatat oleh panitia.</p>
