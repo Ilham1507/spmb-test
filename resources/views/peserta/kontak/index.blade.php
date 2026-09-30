@@ -8,7 +8,7 @@
     <x-step-indicator currentStep="7" />
     <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6 md:p-8">
         <h2 class="mb-1 text-xl font-bold text-slate-800">Data Kontak</h2>
-        <p class="mb-6 text-sm text-slate-500">Nomor WhatsApp digunakan untuk masuk. Tambahkan email bila ingin menerima invoice pembayaran juga melalui email.</p>
+        <p class="mb-6 text-sm text-slate-500">Nomor WhatsApp digunakan untuk masuk. Email wajib diisi dan diverifikasi sebelum melanjutkan ke tahap berikutnya.</p>
         <form method="POST" action="{{ route('peserta.kontak') }}" class="space-y-5">
             @csrf
             @if($enabledFields->has('no_handphone'))
@@ -21,8 +21,9 @@
             @php($emailKey = $enabledFields->search(fn ($label) => strtolower($label) === 'email'))
             @if($emailKey !== false)
                 <div>
-                    <label for="email" class="mb-1.5 block text-xs font-semibold text-slate-500">Email untuk invoice <span class="font-medium text-slate-400">(opsional)</span></label>
-                    <input id="email" type="email" name="email" value="{{ old('email', $pendaftar?->kontak?->email ?? '') }}" class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/40" placeholder="nama@email.com">
+                    <label for="email" class="mb-1.5 block text-xs font-semibold text-slate-500">Email <span class="text-rose-500">*</span></label>
+                    <input id="email" type="email" name="email" value="{{ old('email', $pendaftar?->kontak?->email ?? '') }}" required class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/40" placeholder="nama@email.com">
+                    <p class="mt-1 text-xs text-slate-400">Tautan verifikasi akan dikirim ke alamat email ini.</p>
                     @error('email') <p class="mt-1 text-xs text-rose-500">{{ $message }}</p> @enderror
                     @if($pendaftar?->kontak?->email && !$pendaftar->kontak->email_verified_at)
                         <p class="mt-2 text-xs font-semibold text-amber-700">Verifikasi email terlebih dahulu agar invoice pembayaran dapat dikirim ke email ini.</p>

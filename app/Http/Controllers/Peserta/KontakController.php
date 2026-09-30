@@ -28,7 +28,7 @@ class KontakController extends Controller
             ->search(fn ($label) => strtolower($label) === 'email');
         $rules = [];
         if ($emailKey !== false && FormFieldCatalog::isEnabled($emailKey)) {
-            $rules['email'] = 'nullable|email|max:150';
+            $rules['email'] = 'required|email|max:150';
         }
         $request->validate($rules);
 
@@ -50,14 +50,6 @@ class KontakController extends Controller
         }
         $contact->save();
 
-        if ($emailChanged && empty($data['email'])) {
-            $contact->update([
-                'email_verified_at' => null,
-                'email_verification_token' => null,
-                'email_verification_expires_at' => null,
-            ]);
-        }
-
         if (filled($data['email'] ?? null) && ($emailChanged || ! $contact->email_verified_at)) {
             $contact->update([
                 'email_verified_at' => null,
@@ -65,12 +57,8 @@ class KontakController extends Controller
                 'email_verification_expires_at' => now()->addMinutes(30),
             ]);
 
-            if ($request->input('action') !== 'send_verification') {
-                return back()->withInput()->with('warning', 'Email tersimpan. Tekan Kirim verifikasi email agar invoice pembayaran juga dapat dikirim ke email Anda.');
-            }
-
             if (config('mail.default') === 'log') {
-                return back()->withInput()->with('warning', 'Email tersimpan, tetapi layanan email sekolah belum dihubungkan. Invoice tetap dikirim melalui WhatsApp.');
+                return back()->withInput()->with('warning', 'Email wajib sudah tersimpan, tetapi layanan verifikasi email sekolah belum dihubungkan. Hubungi panitia untuk bantuan.');
             }
 
             $verificationUrl = route('peserta.kontak.verify-email', ['token' => $contact->email_verification_token]);
@@ -87,10 +75,10 @@ class KontakController extends Controller
             } catch (\Throwable $exception) {
                 Log::warning('Pengiriman verifikasi email pendaftar gagal.', ['applicant_id' => $pendaftar->id, 'error' => $exception->getMessage()]);
 
-                return back()->withInput()->with('error', 'Email tersimpan, tetapi tautan verifikasi belum dapat dikirim. Invoice tetap dikirim melalui WhatsApp.');
+                return back()->withInput()->with('error', 'Email wajib sudah tersimpan, tetapi tautan verifikasi belum dapat dikirim. Silakan coba Kirim ulang verifikasi atau hubungi panitia.');
             }
 
-            return back()->with('success', 'Tautan verifikasi dikirim ke email Anda. Setelah diverifikasi, invoice pembayaran juga dikirim ke email ini.');
+            return back()->with('success', 'Tautan verifikasi dikirim ke email Anda. Buka tautan tersebut sebelum dapat melanjutkan ke tahap berikutnya.');
         }
 
         return $this->redirectAfterParticipantSave($request, 'peserta.dokumen', 'Data kontak berhasil disimpan.', 'peserta.dokumen');
