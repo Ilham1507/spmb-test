@@ -38,7 +38,7 @@
                                 </tr>
                             </table>
 
-                            <p style="margin:0 0 10px;font-size:14px;line-height:1.6;color:#66758a;">Tautan ini berlaku selama <strong>5 menit</strong>. Jika tombol tidak terbuka, salin dan buka tautan berikut di browser:</p>
+                            <p style="margin:0 0 10px;font-size:14px;line-height:1.6;color:#66758a;">Tautan ini berlaku selama <strong>30 menit</strong>. Jika tombol tidak terbuka, salin dan buka tautan berikut di browser:</p>
                             <p style="margin:0;word-break:break-all;font-size:13px;line-height:1.55;color:#087d76;">{{ $verificationUrl }}</p>
                         </td>
                     </tr>

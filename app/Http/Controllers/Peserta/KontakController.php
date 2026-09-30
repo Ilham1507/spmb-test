@@ -58,7 +58,7 @@ class KontakController extends Controller
             ]);
 
             if (config('mail.default') === 'log') {
-                return back()->withInput()->with('warning', 'Email wajib sudah tersimpan, tetapi layanan verifikasi email sekolah belum dihubungkan. Hubungi panitia untuk bantuan.');
+                return back()->withInput()->with('warning', 'Email sudah tersimpan, tetapi tautan verifikasi belum dapat dikirim. Coba kirim ulang atau hubungi panitia.');
             }
 
             $verificationUrl = route('peserta.kontak.verify-email', ['token' => $contact->email_verification_token]);

@@ -8,6 +8,13 @@
         : (['cash' => 'Tunai di sekolah', 'transfer' => 'Transfer bank'][$transaction->payment_method] ?? 'Pembayaran sekolah');
     $settings = \App\Models\SystemSetting::publicValues();
     $letterhead = $settings['letterhead_path'] ?? 'images/kop-surat-resmi.png';
+    // Dompdf cannot reliably fetch an HTTP asset on Railway. Embed the
+    // configured letterhead so the same official image appears in browser,
+    // downloaded PDF, email attachment, and WhatsApp document.
+    $letterheadFile = public_path($letterhead);
+    $letterheadSrc = is_file($letterheadFile)
+        ? 'data:image/'.pathinfo($letterheadFile, PATHINFO_EXTENSION).';base64,'.base64_encode((string) file_get_contents($letterheadFile))
+        : null;
     $reference = $checkout?->provider_transaction_id ?: $checkout?->order_id ?: $transaction->reference_number ?: $transaction->transaction_number;
     $invoiceNumber = 'INV-SPMB-'.str_pad((string) $transaction->id, 6, '0', STR_PAD_LEFT);
     $paidAt = \Illuminate\Support\Carbon::parse($transaction->payment_date ?? $transaction->created_at);
@@ -46,7 +53,7 @@
         @page { size: A4 portrait; margin: 8mm; }
         * { box-sizing: border-box; }
         body { margin: 0; background: #edf1f6; color: #172033; font-family: Arial, sans-serif; font-size: 12px; line-height: 1.45; }
-        .invoice { position: relative; width: 100%; margin: 0; padding-bottom: 13mm; background: #fff; }
+        .invoice { width: 100%; margin: 0; background: #fff; }
         .letterhead { display: block; width: 100%; height: auto; max-height: 38mm; object-fit: fill; }
         .content { padding: 17mm 17mm 14mm; }
         .head { display: table; width: 100%; padding-bottom: 13px; border-bottom: 2px solid #163f7d; }
@@ -74,15 +81,14 @@
         .next { margin-top: 14px; border-left: 4px solid #d8a900; background: #fff9e7; }
         .verification p, .next p { margin: 2px 0; }
         .notice { margin: 20px 0 0; color: #66758b; font-size: 11px; }
-        .footer { position: absolute; right: 0; bottom: 0; left: 0; padding: 10px 17mm; background: #102d61; color: #fff; font-size: 9px; }
-        .actions { margin: 18px auto; text-align: center; }
-        .actions button { border: 0; padding: 11px 18px; background: #123d7d; color: #fff; font-weight: 700; cursor: pointer; }
-        @media print { body { background: #fff; } .invoice { margin: 0; box-shadow: none; } .actions { display: none; } }
+        .footer { margin-top: 0; padding: 10px 17mm; background: #102d61; color: #fff; font-size: 9px; }
     </style>
 </head>
 <body>
     <main class="invoice">
-        <img class="letterhead" src="{{ asset($letterhead) }}" alt="Kop surat resmi sekolah">
+        @if($letterheadSrc)
+            <img class="letterhead" src="{{ $letterheadSrc }}" alt="Kop surat resmi sekolah">
+        @endif
         <div class="content">
             <section class="head">
                 <div><p class="kicker">SISTEM PENERIMAAN MURID BARU</p><h1>{{ $proofTitle }}</h1><p class="sub">Dokumen pembayaran resmi SPMB Tahun Ajaran 2027/2028</p></div>
@@ -110,6 +116,5 @@
         </div>
         <footer class="footer">{{ $settings['school_name'] ?? 'SMK Muhammadiyah 4 Cileungsi' }} · {{ $settings['school_address'] ?? 'Cileungsi, Bogor' }}</footer>
     </main>
-    <div class="actions"><button onclick="window.print()">Cetak bukti pembayaran</button></div>
 </body>
 </html>

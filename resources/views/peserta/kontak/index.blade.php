@@ -26,13 +26,13 @@
                     <p class="mt-1 text-xs text-slate-400">Tautan verifikasi akan dikirim ke alamat email ini.</p>
                     @error('email') <p class="mt-1 text-xs text-rose-500">{{ $message }}</p> @enderror
                     @if($pendaftar?->kontak?->email && !$pendaftar->kontak->email_verified_at)
-                        <p class="mt-2 text-xs font-semibold text-amber-700">Verifikasi email terlebih dahulu agar invoice pembayaran dapat dikirim ke email ini.</p>
+                        <p class="mt-2 text-xs font-semibold text-amber-700">Email belum terverifikasi. Buka tautan yang dikirim ke email Anda untuk melanjutkan.</p>
                         <button type="submit" name="action" value="send_verification" class="mt-3 inline-flex items-center gap-2 rounded-xl border border-teal-200 bg-teal-50 px-4 py-2.5 text-sm font-black text-teal-800 transition hover:bg-teal-100">
                             Kirim verifikasi email
                             <span aria-hidden="true">→</span>
                         </button>
                     @elseif($pendaftar?->kontak?->email_verified_at)
-                        <p class="mt-2 text-xs font-semibold text-emerald-700">Email terverifikasi. Invoice pembayaran akan dikirim ke WhatsApp dan email ini setelah pembayaran disetujui.</p>
+                        <p class="mt-2 text-xs font-semibold text-emerald-700">Email sudah terverifikasi.</p>
                     @endif
                 </div>
             @endif
