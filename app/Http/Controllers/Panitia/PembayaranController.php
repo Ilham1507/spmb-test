@@ -197,14 +197,20 @@ class PembayaranController extends Controller
         }
 
         $transaction = $result['transaction']->fresh(['tagihan.jenisTagihan', 'tagihan.pendaftar.biodata', 'tagihan.pendaftar.user', 'verifier']);
+        $notificationSent = false;
         try {
             $this->sendDecisionNotification($whatsapp, $transaction);
+            $notificationSent = true;
         } catch (Throwable $exception) {
             Log::warning('Notifikasi pembayaran input panitia gagal dikirim.', ['transaction_id' => $transaction->id, 'error' => $exception->getMessage()]);
         }
         $invoiceEmail->send($transaction);
 
-        return back()->with('success', 'Pembayaran disetujui oleh panitia. Notifikasi WhatsApp siswa sudah dikirim.');
+        $redirect = back()->with('success', 'Pembayaran disetujui oleh panitia.');
+
+        return $notificationSent
+            ? $redirect->with('info', 'Notifikasi WhatsApp siswa sudah dikirim.')
+            : $redirect->with('warning', 'Pembayaran disetujui, tetapi notifikasi WhatsApp siswa belum terkirim.');
     }
 
     public function verify(Request $request, TransaksiPembayaran $transaksi, WhatsappCloudApiService $whatsapp, \App\Services\InvoiceEmailNotifier $invoiceEmail)

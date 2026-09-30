@@ -7,6 +7,7 @@ use App\Models\TagihanPendaftar;
 use App\Models\TransaksiPembayaran;
 use App\Models\Jurusan;
 use App\Models\RekeningSekolah;
+use App\Services\PaymentReceiptNotifier;
 use App\Support\PendaftarSetup;
 use App\Support\RegistrationFee;
 use App\Support\ReRegistrationFee;
@@ -112,7 +113,7 @@ class PembayaranController extends Controller
         return view('payments.system-proof', ['transaction' => $transaksi]);
     }
 
-    public function store(Request $request, TagihanPendaftar $tagihan)
+    public function store(Request $request, TagihanPendaftar $tagihan, PaymentReceiptNotifier $paymentNotifier)
     {
         // Pastikan tagihan ini milik pendaftar yang sedang login
         if (! Auth::user()?->pendaftar || (int) $tagihan->applicant_id !== (int) Auth::user()->pendaftar->id) {
@@ -176,14 +177,20 @@ class PembayaranController extends Controller
         }
 
         $isReRegistrationFee = $this->isReRegistrationFee($tagihan);
+        $approvalNotificationSent = $paymentNotifier->notifyApprovalNeeded($transaction);
+        $notificationWarning = 'Bukti pembayaran tersimpan, tetapi notifikasi WhatsApp ke petugas penerima belum terkirim. Hubungi admin untuk memeriksa koneksi WhatsApp sekolah.';
 
         if ($isReRegistrationFee) {
-            return redirect()->route('peserta.pembayaran')
+            $redirect = redirect()->route('peserta.pembayaran')
                 ->with('success', 'Bukti transfer DU dikirim. Setelah disetujui, pembayaran berikutnya dilakukan langsung di sekolah setiap hari Jumat.');
+
+            return $approvalNotificationSent ? $redirect : $redirect->with('warning', $notificationWarning);
         }
 
         // Status menunggu verifikasi sudah ditampilkan pada kartu utama halaman.
-        return redirect()->route('peserta.pembayaran');
+        $redirect = redirect()->route('peserta.pembayaran');
+
+        return $approvalNotificationSent ? $redirect : $redirect->with('warning', $notificationWarning);
     }
 
     private function isRegistrationFee(TagihanPendaftar $tagihan): bool
