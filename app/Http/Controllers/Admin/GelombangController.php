@@ -9,6 +9,7 @@ use App\Models\Jurusan;
 use App\Models\TahunAjaran;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -28,9 +29,33 @@ class GelombangController extends Controller
 
     public function biayaJurusan()
     {
+        // Do not let one legacy row in gelombang_jurusan make the whole
+        // management page unavailable. Older Railway databases can have the
+        // base registration tables while this optional fee-breakdown table is
+        // still being repaired during startup.
+        $gelombangs = GelombangPendaftaran::with('tahunAjaran')->latest('start_date')->get();
+        $jurusans = Jurusan::where('status', 'aktif')->orderBy('name')->get();
+
+        try {
+            $feesByGelombang = GelombangJurusan::query()
+                ->whereIn('gelombang_id', $gelombangs->pluck('id'))
+                ->get()
+                ->groupBy('gelombang_id');
+        } catch (\Throwable $exception) {
+            Log::error('Unable to load major fee breakdowns.', [
+                'exception' => $exception,
+            ]);
+
+            $feesByGelombang = collect();
+        }
+
+        $gelombangs->each(function (GelombangPendaftaran $gelombang) use ($feesByGelombang): void {
+            $gelombang->setRelation('jurusanBiaya', $feesByGelombang->get($gelombang->id, collect()));
+        });
+
         return view('admin.biaya-jurusan.index', [
-            'gelombangs' => GelombangPendaftaran::with(['tahunAjaran', 'jurusanBiaya'])->latest('start_date')->get(),
-            'jurusans' => Jurusan::where('status', 'aktif')->orderBy('name')->get(),
+            'gelombangs' => $gelombangs,
+            'jurusans' => $jurusans,
         ]);
     }
 

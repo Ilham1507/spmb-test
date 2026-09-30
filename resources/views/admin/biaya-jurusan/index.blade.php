@@ -46,8 +46,16 @@
                         <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 bg-slate-50 px-4 py-3"><div><h3 class="font-black text-slate-900">{{ $gelombang->name }}</h3><p class="text-xs text-slate-500">{{ $gelombang->tahunAjaran?->name ?? '-' }}</p></div><span class="rounded-full px-2.5 py-1 text-[11px] font-black {{ $gelombang->status === 'aktif' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600' }}">{{ $gelombang->status === 'aktif' ? 'Aktif' : 'Tidak Aktif' }}</span></div>
                         <div class="divide-y divide-slate-100">
                             @foreach($jurusans as $jurusan)
-                                @php($relation = $gelombang->jurusanBiaya->firstWhere('jurusan_id', $jurusan->id))
-                                @php($items = $relation?->rincian_biaya ?? [])
+                                @php
+                                    $relation = $gelombang->jurusanBiaya->firstWhere('jurusan_id', $jurusan->id);
+                                    // Read the raw value so a malformed legacy JSON value cannot
+                                    // crash this entire administration page through Eloquent's cast.
+                                    $rawItems = $relation?->getRawOriginal('rincian_biaya');
+                                    $items = is_array($rawItems)
+                                        ? $rawItems
+                                        : (is_string($rawItems) ? json_decode($rawItems, true) : []);
+                                    $items = is_array($items) ? $items : [];
+                                @endphp
                                 <div class="flex flex-wrap items-center justify-between gap-3 px-4 py-3"><div class="min-w-0"><p class="truncate text-sm font-black text-slate-800">{{ $jurusan->name }}</p><p class="text-xs text-slate-500">{{ count($items) ? count($items).' komponen · Rp '.number_format((float) $relation->biaya_masuk, 0, ',', '.') : 'Belum diatur' }}</p></div><button type="button" @click="edit('{{ $gelombang->id }}','{{ $jurusan->id }}', @js($jurusan->name), @js($items))" class="rounded-xl border px-3 py-2 text-xs font-black {{ $isBendahara ? 'border-amber-200 text-amber-700 hover:bg-amber-50' : 'border-sky-200 text-sky-700 hover:bg-sky-50' }}">Atur Rincian</button></div>
                             @endforeach
                         </div>
