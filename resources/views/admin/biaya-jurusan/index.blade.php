@@ -4,12 +4,13 @@
 @section('page_title', 'Biaya Jurusan')
 
 @section('content')
-@php($routePrefix = request()->routeIs('bendahara.*') ? 'bendahara.' : 'admin.')
-@php($isBendahara = request()->routeIs('bendahara.*'))
-@php($saveRoute = $isBendahara ? 'bendahara.keuangan.biaya-jurusan.save' : 'admin.biaya-jurusan.save')
-@php($exportRoute = $isBendahara ? 'bendahara.keuangan.biaya-jurusan.export' : 'admin.biaya-jurusan.export')
-@php($templateRoute = $isBendahara ? 'bendahara.keuangan.biaya-jurusan.template' : 'admin.biaya-jurusan.template')
-@php($importRoute = $isBendahara ? 'bendahara.keuangan.biaya-jurusan.import' : 'admin.biaya-jurusan.import')
+@php
+    $isBendahara = request()->routeIs('bendahara.*');
+    $saveRoute = $isBendahara ? 'bendahara.keuangan.biaya-jurusan.save' : 'admin.biaya-jurusan.save';
+    $exportRoute = $isBendahara ? 'bendahara.keuangan.biaya-jurusan.export' : 'admin.biaya-jurusan.export';
+    $templateRoute = $isBendahara ? 'bendahara.keuangan.biaya-jurusan.template' : 'admin.biaya-jurusan.template';
+    $importRoute = $isBendahara ? 'bendahara.keuangan.biaya-jurusan.import' : 'admin.biaya-jurusan.import';
+@endphp
 <style>
     .fee-modal{--fee-accent:var(--portal-accent,#1559b1);--fee-deep:var(--portal-accent-deep,#0d3476);--fee-soft:var(--portal-soft,#eaf3ff);--fee-line:var(--portal-line,#c9dcfa);width:min(660px,calc(100vw - 32px));max-height:calc(100dvh - 32px);min-height:0;display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--fee-line);border-radius:24px;background:#fff;box-shadow:0 28px 70px rgb(15 23 42 / .30)}
     .fee-modal-header{border-color:var(--fee-line)!important;background:linear-gradient(135deg,color-mix(in srgb,var(--fee-soft) 78%,#fff),#fff)}.fee-modal-header h3{color:var(--fee-deep)!important}.fee-close{border-color:var(--fee-line)!important;background:#fff!important;color:var(--fee-deep)!important}

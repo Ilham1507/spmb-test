@@ -64,28 +64,6 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        // Railway only returns a blank 500 page in production. Keep a tightly
-        // scoped diagnostic response for the major-fee management page so an
-        // administrator can report the actual failing component; remove this
-        // once the legacy database issue has been identified.
-        $exceptions->render(function (\Throwable $exception, Request $request) {
-            if (! $request->is('admin/biaya-jurusan') || ! auth()->check()) {
-                return null;
-            }
-
-            $message = e(class_basename($exception).': '.$exception->getMessage());
-
-            return response(<<<HTML
-<!doctype html><html lang="id"><meta charset="utf-8"><title>Gangguan Biaya Jurusan</title>
-<main style="max-width:760px;margin:64px auto;font-family:system-ui,sans-serif;padding:24px">
-<h1 style="color:#991b1b">Biaya Jurusan belum dapat dibuka</h1>
-<p>Detail gangguan untuk perbaikan:</p>
-<pre style="white-space:pre-wrap;background:#fff1f2;border:1px solid #fecdd3;border-radius:12px;padding:16px;color:#881337">{$message}</pre>
-<p>Silakan kirimkan teks ini ke pengembang. Tidak ada data yang diubah.</p>
-</main></html>
-HTML, 500);
-        });
-
         $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\HttpException $exception, Request $request) {
             if ($exception->getStatusCode() !== 419) {
                 return null;
