@@ -82,21 +82,23 @@ class DashboardController extends Controller
         };
 
         $requiredStatuses = FormFieldCatalog::requiredStatuses($pendaftar);
-        $enabledFields = FormFieldCatalog::enabled();
         $fieldGroups = FormFieldCatalog::groups();
-        $sectionComplete = static function (string $group) use ($pendaftar, $enabledFields, $fieldGroups): bool {
+        $sectionComplete = static function (string $group) use ($pendaftar, $fieldGroups): bool {
             $fields = collect($fieldGroups[$group] ?? [])
                 ->keys()
-                ->filter(fn ($key) => in_array($key, $enabledFields, true));
+                // The route guard only requires fields marked both enabled and
+                // required. Use the identical rule here: optional fields must
+                // never send a participant back to an earlier page.
+                ->filter(fn ($key) => FormFieldCatalog::isEnabled($key) && FormFieldCatalog::isRequired($key));
 
             return $fields->isEmpty() || $fields->every(
                 fn ($key) => FormFieldCatalog::isCompleteValue(FormFieldCatalog::valueFor($pendaftar, $key))
             );
         };
 
-        // Progress peserta harus mengikuti semua field yang diaktifkan admin,
-        // bukan hanya field yang ditandai wajib. Dengan begitu data kosong tidak
-        // bisa terlihat sebagai 100% lengkap.
+        // The dashboard must match EnsurePesertaStepOrder. Optional fields can
+        // remain blank and must not make the primary action regress to an
+        // earlier stage after the participant has reached Contact.
         $sections = [
             'biodata'  => $sectionComplete('Biodata'),
             'alamat'   => $sectionComplete('Alamat'),
