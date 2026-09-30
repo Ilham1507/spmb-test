@@ -5,7 +5,9 @@ use App\Models\AuditLog;
 use App\Models\Pendaftar;
 use App\Models\TahunAjaran;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
@@ -33,12 +35,18 @@ class AuditTrailObserver
     {
         if (! Schema::hasTable('audit_logs')) return;
         [$category, $label] = $this->subject($model);
-        AuditLog::create([
-            'actor_id' => Auth::id(), 'action' => $action, 'subject_type' => $model::class, 'subject_id' => $model->getKey(),
-            'category' => $category, 'subject_label' => $label,
-            'changes' => $changes ?: ($created ? ['data' => $created] : null),
-            'route_name' => request()?->route()?->getName(),
-        ]);
+        try {
+            AuditLog::create([
+                'actor_id' => Auth::id(), 'action' => $action, 'subject_type' => $model::class, 'subject_id' => $model->getKey(),
+                'category' => $category, 'subject_label' => $label,
+                'changes' => $changes ?: ($created ? ['data' => $created] : null),
+                'route_name' => request()?->route()?->getName(),
+            ]);
+        } catch (QueryException $exception) {
+            // Audit is supplementary. A legacy audit foreign key must never
+            // undo an otherwise valid school transaction such as fee setup.
+            Log::warning('Audit record could not be written.', ['exception' => $exception]);
+        }
     }
 
     private function subject(Model $model): array
