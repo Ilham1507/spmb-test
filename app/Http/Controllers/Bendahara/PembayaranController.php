@@ -508,13 +508,11 @@ class PembayaranController extends Controller
 
         if ($transaction->status === 'verified') {
             if ($isRegistrationFee) {
-                $formUrl = URL::temporarySignedRoute('formulir.lanjut', now()->addMinutes(30));
                 $message = "Assalamu'alaikum wr. wb.\n\n"
-                    ."🎉 Selamat, anda berhasil melakukan pembayaran Formulir SPMB 🎉\n\n"
-                    ."Berikut terlampir bukti pembayaran.\n\n"
-                    ."Selanjutnya, silahkan kamu mengisi formulir pada link dibawah ini 👇🏻\n{$formUrl}\n\n"
+                    ."Pembayaran formulir SPMB atas nama {$name} sudah disetujui oleh {$approver}.\n\n"
+                    ."Silakan masuk dan lanjutkan pengisian formulir di:\n".route('login')."\n\n"
                     ."Jika ada kendala silahkan hubungi {$receiverContact}.\n\n"
-                    ."Terima kasih 🙏🏻\nSenang berkenalan denganmu 🌹";
+                    ."Terima kasih.";
             } else {
                 $message = \App\Support\WhatsappGreeting::opening()."\n\n"
                     ."Pembayaran SPMB atas nama {$name} sudah dicatat/disetujui oleh {$approver}.\n\n"
@@ -529,21 +527,18 @@ Catatan: {$transaction->notes}" : '';
 Silakan unggah ulang bukti pembayaran yang benar melalui sistem.";
         }
 
+        $whatsapp->send((string) $phone, $message);
         if ($transaction->status === 'verified' && $isRegistrationFee) {
-            $pdfUrl = URL::temporarySignedRoute('invoice.public.pdf', now()->addMinutes(30), ['transaksi' => $transaction->id]);
             try {
-                $whatsapp->sendDocument((string) $phone, $pdfUrl, 'Bukti Pembayaran SPMB - '.($transaction->tagihan?->pendaftar?->registration_number ?: $transaction->id).'.pdf', $message);
+                $pdfUrl = URL::temporarySignedRoute('invoice.public.pdf', now()->addMinutes(30), ['transaksi' => $transaction->id]);
+                $whatsapp->sendDocument((string) $phone, $pdfUrl, 'Bukti Pembayaran SPMB - '.($transaction->tagihan?->pendaftar?->registration_number ?: $transaction->id).'.pdf', 'Invoice pembayaran SPMB.');
             } catch (Throwable $exception) {
-                Log::warning('Lampiran invoice WhatsApp gagal; mengirim notifikasi teks sebagai fallback.', [
+                Log::warning('Invoice PDF WhatsApp gagal setelah notifikasi approval terkirim.', [
                     'transaction_id' => $transaction->id,
                     'error' => $exception->getMessage(),
                 ]);
-                $whatsapp->send((string) $phone, $message);
             }
-            return;
         }
-
-        $whatsapp->send((string) $phone, $message);
     }
 
     private function sendReceivedNotification(WhatsappCloudApiService $whatsapp, TransaksiPembayaran $transaction): void
@@ -555,14 +550,22 @@ Silakan unggah ulang bukti pembayaran yang benar melalui sistem.";
         $type = $transaction->tagihan?->jenisTagihan?->name ?? 'Pembayaran SPMB';
         $receivedBy = $transaction->treasurerReceiver?->name ?? Auth::user()?->name ?? 'bendahara sekolah';
         $amount = number_format((float) $transaction->amount, 0, ',', '.');
-        $pdf = URL::temporarySignedRoute('invoice.public.pdf', now()->addMinutes(30), ['transaksi' => $transaction->id]);
         $message = \App\Support\WhatsappGreeting::opening()."\n\n"
             ."Pembayaran {$type} atas nama {$name} sebesar Rp {$amount} sudah diterima oleh bendahara {$receivedBy}.\n\n"
             ."Disetujui panitia: ".($transaction->verifier?->name ?? '-')."\n"
-            ."Dokumen pembayaran terlampir.\n\n"
+            ."Invoice dapat dilihat dari akun siswa atau email terverifikasi.\n\n"
             ."Untuk pembayaran lanjutan, silakan ke BMT PCM Cileungsi setiap Senin dan Selasa, Kampus E SMK Muhammadiyah 4 Cileungsi, pukul 07.30–14.30.";
-        // One document bubble: the attached student receipt groups DU by the
-        // finance-defined category selected at the treasurer handover.
-        $whatsapp->sendDocument($phone, $pdf, 'Bukti Pembayaran SPMB - '.($transaction->tagihan?->pendaftar?->registration_number ?: $transaction->id).'.pdf', $message);
+        // Receipt text is the reliable first delivery. The PDF is optional
+        // and must never suppress the notification when media upload fails.
+        $whatsapp->send($phone, $message);
+        try {
+            $pdf = URL::temporarySignedRoute('invoice.public.pdf', now()->addMinutes(30), ['transaksi' => $transaction->id]);
+            $whatsapp->sendDocument($phone, $pdf, 'Bukti Pembayaran SPMB - '.($transaction->tagihan?->pendaftar?->registration_number ?: $transaction->id).'.pdf', 'Invoice pembayaran SPMB.');
+        } catch (Throwable $exception) {
+            Log::warning('Invoice PDF WhatsApp gagal setelah notifikasi penerimaan terkirim.', [
+                'transaction_id' => $transaction->id,
+                'error' => $exception->getMessage(),
+            ]);
+        }
     }
 }

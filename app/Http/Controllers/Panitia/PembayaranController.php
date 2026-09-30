@@ -302,13 +302,11 @@ class PembayaranController extends Controller
 
         if ($transaction->status === 'verified') {
             if ($this->isRegistrationFee($transaction)) {
-                $formUrl = URL::temporarySignedRoute('formulir.lanjut', now()->addMinutes(30));
                 $message = "Assalamu'alaikum wr. wb.\n\n"
-                    ."🎉 Selamat, anda berhasil melakukan pembayaran Formulir SPMB 🎉\n\n"
-                    ."Berikut terlampir bukti pembayaran.\n\n"
-                    ."Selanjutnya, silahkan kamu mengisi formulir pada link dibawah ini 👇🏻\n{$formUrl}\n\n"
+                    ."Pembayaran formulir SPMB atas nama {$name} sudah disetujui oleh {$approver}.\n\n"
+                    ."Silakan masuk dan lanjutkan pengisian formulir di:\n".route('login')."\n\n"
                     ."Jika ada kendala silahkan hubungi {$receiverContact}.\n\n"
-                    ."Terima kasih 🙏🏻\nSenang berkenalan denganmu 🌹";
+                    ."Terima kasih.";
             } else {
                 $message = \App\Support\WhatsappGreeting::opening()."\n\n"
                     ."Pembayaran daftar ulang SPMB atas nama {$name} sudah disetujui oleh {$approver}.\n\n"
@@ -323,27 +321,24 @@ class PembayaranController extends Controller
         }
 
         if ($transaction->status === 'verified') {
-            $pdfUrl = URL::temporarySignedRoute('invoice.public.pdf', now()->addMinutes(30), ['transaksi' => $transaction->id]);
-            if ($this->isRegistrationFee($transaction)) {
-                // A PDF attachment depends on the Waslah media endpoint. Do
-                // not let a media failure silence the student's approval chat.
-                try {
-                    $whatsapp->sendDocument((string) $phone, $pdfUrl, 'Bukti Pembayaran SPMB - '.($transaction->tagihan?->pendaftar?->registration_number ?: $transaction->id).'.pdf', $message);
-                } catch (Throwable $exception) {
-                    Log::warning('Lampiran invoice WhatsApp gagal; mengirim notifikasi teks sebagai fallback.', [
-                        'transaction_id' => $transaction->id,
-                        'error' => $exception->getMessage(),
-                    ]);
-                    $whatsapp->send((string) $phone, $message);
-                }
-                return;
-            }
-
             // DU allocation is selected by the treasurer. Send its receipt
             // only after that handover so the student sees category totals,
             // not the global component list or an unfinished allocation.
             $whatsapp->send((string) $phone, $message);
-            $this->notifyTreasurer($whatsapp, $transaction, $approver);
+            if ($this->isRegistrationFee($transaction)) {
+                try {
+                    $pdfUrl = URL::temporarySignedRoute('invoice.public.pdf', now()->addMinutes(30), ['transaksi' => $transaction->id]);
+                    $whatsapp->sendDocument((string) $phone, $pdfUrl, 'Bukti Pembayaran SPMB - '.($transaction->tagihan?->pendaftar?->registration_number ?: $transaction->id).'.pdf', 'Invoice pembayaran SPMB.');
+                } catch (Throwable $exception) {
+                    Log::warning('Invoice PDF WhatsApp gagal setelah notifikasi approval terkirim.', [
+                        'transaction_id' => $transaction->id,
+                        'error' => $exception->getMessage(),
+                    ]);
+                }
+            }
+            if (! $this->isRegistrationFee($transaction)) {
+                $this->notifyTreasurer($whatsapp, $transaction, $approver);
+            }
             return;
         }
 
