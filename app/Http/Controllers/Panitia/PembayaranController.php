@@ -96,10 +96,9 @@ class PembayaranController extends Controller
             'fee_type' => ['required', Rule::in(['formulir', 'daftar_ulang'])],
             'amount' => ['nullable', 'integer', 'min:1'],
             'payment_method' => ['required', Rule::in(['cash', 'transfer'])],
-            // Bukti hanya diwajibkan bila panitia mencatat transfer. Untuk
-            // tunai, panitia menjadi pencatat penerimaan sehingga tidak ada
-            // file transfer yang perlu diunggah.
-            'proof_file' => ['nullable', 'required_if:payment_method,transfer', 'file', 'mimes:jpg,jpeg,png,pdf', 'mimetypes:image/jpeg,image/png,application/pdf', 'max:2048'],
+            // Transfer memakai bukti transfer, sedangkan tunai memakai
+            // invoice/kwitansi manual dari panitia. Keduanya wajib tersimpan.
+            'proof_file' => ['required', 'file', 'mimes:jpg,jpeg,png,pdf', 'mimetypes:image/jpeg,image/png,application/pdf', 'max:2048'],
             'selected_items' => ['nullable', 'array'],
             'selected_items.*' => ['string', 'max:255'],
             'reference_number' => ['nullable', 'string', 'max:100'],
@@ -109,9 +108,7 @@ class PembayaranController extends Controller
         $proofPath = null;
 
         try {
-            $proofPath = $request->hasFile('proof_file')
-                ? $request->file('proof_file')->store('bukti_pembayaran', 'local')
-                : null;
+            $proofPath = $request->file('proof_file')->store('bukti_pembayaran', 'local');
             $result = DB::transaction(function () use ($validated, $proofPath) {
                 [$candidateType, $candidateId] = array_pad(explode(':', (string) $validated['candidate'], 2), 2, null);
                 if ($candidateType !== 'applicant' || ! ctype_digit((string) $candidateId)) {
