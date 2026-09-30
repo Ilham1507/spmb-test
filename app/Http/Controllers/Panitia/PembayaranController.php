@@ -292,7 +292,8 @@ class PembayaranController extends Controller
             } else {
                 $message = \App\Support\WhatsappGreeting::opening()."\n\n"
                     ."Pembayaran daftar ulang SPMB atas nama {$name} sudah disetujui oleh {$approver}.\n\n"
-                    ."Pembayaran sedang diteruskan ke bendahara untuk penerimaan dan rincian biaya. Status dapat dipantau di: ".route('login');
+                    ."Pembayaran daftar ulang melalui SPMB hanya satu kali. Pembayaran berikutnya dilakukan langsung di sekolah setiap hari Jumat dan akan dicatat oleh panitia.\n\n"
+                    ."Status pembayaran dapat dipantau di: ".route('login');
             }
         } else {
             $reason = $transaction->notes ? "\nCatatan: {$transaction->notes}" : '';

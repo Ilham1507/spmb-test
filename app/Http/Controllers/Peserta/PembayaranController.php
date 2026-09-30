@@ -133,12 +133,14 @@ class PembayaranController extends Controller
 
         if ($this->isReRegistrationFee($tagihan) && $tagihan->transaksi()->exists()) {
             return redirect()->route('peserta.pembayaran')
-                ->with('warning', 'Pembayaran DU melalui SPMB hanya satu kali. Pembayaran lanjutan dilakukan di BMT PCM Cileungsi.');
+                ->with('warning', 'Pembayaran DU melalui SPMB hanya satu kali. Pembayaran berikutnya dilakukan langsung di sekolah setiap hari Jumat.');
         }
 
         $request->validate([
             'amount' => 'required|integer|min:1',
-            'payment_method' => 'required|in:cash,transfer',
+            // Peserta hanya dapat mengirim konfirmasi transfer. Pembayaran
+            // tunai dicatat langsung oleh panitia di sekolah.
+            'payment_method' => 'required|in:transfer',
             'proof_file' => 'required|file|mimes:jpg,jpeg,png,pdf|mimetypes:image/jpeg,image/png,application/pdf|max:2048',
             'selected_items' => 'nullable|array',
             'selected_items.*' => 'string|max:255',
@@ -147,16 +149,10 @@ class PembayaranController extends Controller
         try {
             $transaction = \Illuminate\Support\Facades\DB::transaction(function () use ($tagihan, $request, $proofPath) {
                 $bill = TagihanPendaftar::lockForUpdate()->findOrFail($tagihan->id);
-                $isReRegistration = $this->isReRegistrationFee($bill);
-                $quote = $isReRegistration
-                    ? [
-                        'amount' => (int) $request->amount,
-                        'discount' => 0,
-                        'promotion_name' => null,
-                        'selected_items' => null,
-                        'valid_selection' => (int) $request->amount <= (int) round((float) $bill->remaining_amount),
-                    ]
-                    : \App\Support\PaymentQuote::forBill($bill, $request->input('selected_items'), (int) $request->amount);
+                $quote = \App\Support\PaymentQuote::forBill(
+                    $bill,
+                    $request->input('selected_items'),
+                );
                 if (! $quote['valid_selection']) {
                     throw \Illuminate\Validation\ValidationException::withMessages(['selected_items' => 'Nominal DU tidak boleh melebihi sisa tagihan.']);
                 }
@@ -197,7 +193,7 @@ class PembayaranController extends Controller
 
         if ($isReRegistrationFee) {
             return redirect()->route('peserta.pembayaran')
-                ->with('success', 'Bukti pembayaran dikirim. Tunggu persetujuan panitia; setelah itu transaksi diteruskan ke bendahara.');
+                ->with('success', 'Bukti transfer DU dikirim. Setelah disetujui, pembayaran berikutnya dilakukan langsung di sekolah setiap hari Jumat.');
         }
 
         // Status menunggu verifikasi sudah ditampilkan pada kartu utama halaman.

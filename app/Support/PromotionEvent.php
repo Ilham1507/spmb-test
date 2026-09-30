@@ -35,7 +35,7 @@ class PromotionEvent
             return match ($event['target'] ?? 'formulir') {
                 'semua' => true,
                 'formulir' => str_contains($name, 'formulir') || str_contains($name, 'pendaftaran'),
-                'daftar_ulang' => str_contains($name, 'daftar ulang'),
+                'daftar_ulang' => str_contains($name, 'daftar ulang') || str_contains($name, 'du'),
                 default => false,
             };
         });

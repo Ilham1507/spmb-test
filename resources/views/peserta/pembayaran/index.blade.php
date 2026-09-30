@@ -22,16 +22,27 @@
             $isRegistrationFee = str_contains(strtolower((string) $tagihan->jenisTagihan?->name), 'formulir') || str_contains(strtolower((string) $tagihan->jenisTagihan?->name), 'pendaftaran');
             $isReRegistrationFee = str_contains(strtolower((string) $tagihan->jenisTagihan?->name), 'daftar ulang') || str_contains(strtolower((string) $tagihan->jenisTagihan?->name), 'du');
             $activePromotion = !$paid && !$pending && !$checkout
-                ? \App\Support\PromotionEvent::activeFor((string) $tagihan->jenisTagihan?->name)
+                ? (\App\Support\PromotionEvent::activeFor((string) $tagihan->jenisTagihan?->name, $pendaftar->id)
+                    ?? collect($quote['items'])->map(fn ($item) => \App\Support\PromotionEvent::activeFor((string) $tagihan->jenisTagihan?->name, $pendaftar->id, (string) $item['name']))->filter()->first())
                 : null;
+            $itemPaymentAmounts = collect($quote['items'])->mapWithKeys(function ($item) use ($tagihan, $pendaftar) {
+                $promo = \App\Support\PromotionEvent::apply(
+                    (float) $item['amount'],
+                    (string) $tagihan->jenisTagihan?->name,
+                    $pendaftar->id,
+                    (string) $item['name'],
+                );
+
+                return [(string) $item['name'] => (int) round($promo['amount'])];
+            });
         @endphp
         <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6"
-            x-data="{ paying: false, opening: false, selectionOpen: false, historyOpen: false, cancelOpen: false, payAmount: '', selected: @js($initialSelection), items: @js($quote['items']), get total() { return this.items.filter(item => this.selected.includes(item.name)).reduce((sum, item) => sum + Number(item.amount), 0) }, get payableAmount() { const entered = Number(this.payAmount); return entered > 0 ? Math.min(entered, this.total) : this.total } }">
+            x-data="{ paying: false, opening: false, selectionOpen: false, historyOpen: false, cancelOpen: false, selected: @js($initialSelection), items: @js($quote['items']), paymentAmounts: @js($itemPaymentAmounts), get total() { return this.items.filter(item => this.selected.includes(item.name)).reduce((sum, item) => sum + Number(this.paymentAmounts[item.name] ?? item.amount), 0) } }">
             <div class="flex flex-wrap items-start justify-between gap-3">
                 <div>
                     <h3 class="text-lg font-bold text-slate-900">{{ $isRegistrationFee ? 'Uang Formulir Pendaftaran' : ($tagihan->jenisTagihan?->name ?? 'Tagihan') }}</h3>
                     @if($activePromotion)
-                        <p class="mt-1 text-sm font-bold text-emerald-700">{{ $activePromotion['name'] ?? 'Promo aktif' }} · potongan otomatis saat pembayaran</p>
+                        <p class="mt-1 text-sm font-bold text-emerald-700">{{ $activePromotion['name'] ?? 'Promo aktif' }} · potongan otomatis sudah diterapkan</p>
                     @endif
                     @if($pending)<p class="mt-1 text-sm font-semibold text-amber-800">{{ $isReRegistrationFee ? 'Pembayaran awal sedang diperiksa' : 'Sedang diperiksa panitia' }}</p>@endif
                 </div>
@@ -42,7 +53,7 @@
             @if($paid)
                 <div class="mt-4 grid gap-3 sm:grid-cols-2"><div class="rounded-xl bg-blue-50 p-3"><p class="text-sm text-blue-800">Status</p><p class="mt-1 font-bold text-blue-900">Lunas</p></div><div class="rounded-xl bg-slate-50 p-3"><p class="text-sm text-slate-500">Dibayar</p><p class="mt-1 text-xl font-bold text-slate-900">Rp {{ number_format($tagihan->paid_amount, 0, ',', '.') }}</p></div></div>
             @elseif($pending)
-                <p class="mt-4 text-sm text-slate-600">{{ $isReRegistrationFee ? 'Pembayaran awal daftar ulang sudah tercatat. Setelah disetujui, kamu dapat melanjutkan pembayaran komponen berikutnya dari rincian biaya.' : 'Pembayaran sudah tercatat. Kamu tidak perlu melakukan pembayaran lagi. Formulir akan terbuka setelah pemeriksaan panitia selesai.' }}</p>
+                <p class="mt-4 text-sm text-slate-600">{{ $isReRegistrationFee ? 'Pembayaran daftar ulang sedang diperiksa. Setelah disetujui, pembayaran berikutnya dilakukan langsung di sekolah setiap hari Jumat.' : 'Pembayaran sudah tercatat. Kamu tidak perlu melakukan pembayaran lagi. Formulir akan terbuka setelah pemeriksaan panitia selesai.' }}</p>
             @elseif($checkout)
                 <p class="mt-4 text-2xl font-bold text-slate-900">Rp {{ number_format($checkout->amount, 0, ',', '.') }}</p>
                 <div class="mt-4 flex flex-wrap gap-2">
@@ -71,26 +82,30 @@
                             @endif
                             <div class="divide-y divide-slate-100 rounded-xl border border-slate-200">
                             @foreach($quote['items'] as $item)
-                                <label class="flex cursor-pointer items-center justify-between gap-3 p-4"><span class="flex items-center gap-3"><input type="checkbox" value="{{ $item['name'] }}" x-model="selected" class="h-5 w-5 rounded border-slate-300 text-sky-700 focus:ring-sky-600"><span class="text-sm font-semibold text-slate-800">{{ $item['name'] }}</span></span><span class="text-sm font-bold text-slate-900">Rp {{ number_format($item['amount'], 0, ',', '.') }}</span></label>
+                                @php($itemPayable = $itemPaymentAmounts->get($item['name'], $item['amount']))
+                                <label class="flex cursor-pointer items-center justify-between gap-3 p-4"><span class="flex items-center gap-3"><input type="checkbox" value="{{ $item['name'] }}" x-model="selected" class="h-5 w-5 rounded border-slate-300 text-sky-700 focus:ring-sky-600"><span class="text-sm font-semibold text-slate-800">{{ $item['name'] }}</span></span><span class="text-right text-sm font-bold text-slate-900">@if($itemPayable < $item['amount'])<span class="mr-1 text-xs font-semibold text-slate-400 line-through">Rp {{ number_format($item['amount'], 0, ',', '.') }}</span>@endif Rp {{ number_format($itemPayable, 0, ',', '.') }}</span></label>
                             @endforeach
                             </div>
+                            <p class="mt-4 rounded-xl bg-sky-50 px-3 py-2 text-sm font-semibold text-sky-900">Unggah bukti di sini khusus untuk transfer. Pembayaran tunai dilakukan di sekolah dan dicatat oleh panitia.</p>
+                            @if($isReRegistrationFee)<p class="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900">Pembayaran DU melalui SPMB hanya satu kali. Setelah disetujui, pembayaran berikutnya dilakukan di sekolah setiap hari Jumat.</p>@endif
                         </div>
                         <div class="border-t border-slate-100 p-5"><div class="mb-3 flex items-center justify-between gap-3"><span class="text-sm font-semibold text-slate-600">Dipilih</span><strong class="text-xl text-slate-900" x-text="new Intl.NumberFormat('id-ID').format(total).replace(/^/, 'Rp ')">Rp 0</strong></div>
-                            @if($isReRegistrationFee)<label class="mb-4 block text-sm font-semibold text-slate-700">Nominal yang dibayar sekarang <span class="font-normal text-slate-500">(opsional)</span><input type="number" min="1" :max="total" x-model.number="payAmount" placeholder="Kosong = bayar komponen penuh" class="mt-2 w-full rounded-xl border-slate-300" inputmode="numeric"></label>@endif
+                            @if($activePromotion)<p class="mb-4 rounded-xl bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800">Promo aktif sudah dihitung pada nominal tiap biaya yang dipilih.</p>@endif
                             @if($gatewayReady)
-                                <form method="POST" action="{{ route('peserta.pembayaran.checkout', $tagihan) }}" @submit="opening = true">@csrf @foreach($quote['items'] as $item)<input type="checkbox" class="hidden" name="selected_items[]" value="{{ $item['name'] }}" x-model="selected">@endforeach <input type="hidden" name="expected_amount" x-bind:value="{{ $isReRegistrationFee ? 'payableAmount' : 'total' }}"><button class="btn-primary w-full" :disabled="selected.length === 0 || {{ $isReRegistrationFee ? 'payableAmount' : 'total' }} < 1 || opening" x-text="opening ? 'Membuka…' : 'Bayar Rp ' + new Intl.NumberFormat('id-ID').format({{ $isReRegistrationFee ? 'payableAmount' : 'total' }})">Bayar</button></form>
+                                <form method="POST" action="{{ route('peserta.pembayaran.checkout', $tagihan) }}" @submit="opening = true">@csrf @foreach($quote['items'] as $item)<input type="checkbox" class="hidden" name="selected_items[]" value="{{ $item['name'] }}" x-model="selected">@endforeach <input type="hidden" name="expected_amount" x-bind:value="total"><button class="btn-primary w-full" :disabled="selected.length === 0 || total < 1 || opening" x-text="opening ? 'Membuka…' : 'Bayar Rp ' + new Intl.NumberFormat('id-ID').format(total)">Bayar</button></form>
                             @elseif($rekeningAktif->isNotEmpty())
                                 <button type="button" @click="paying = !paying" class="btn-primary w-full" :disabled="selected.length === 0">Bayar pilihan</button>
                                 <div x-show="paying" x-cloak class="mt-4 rounded-xl bg-sky-50 p-4">
                                     @php($rekening = $rekeningAktif->first())
                                     <p class="text-sm font-semibold text-sky-900">{{ $rekening->nama_bank }} · {{ $rekening->nomor_rekening }} a.n. {{ $rekening->atas_nama }}</p>
-                                    <form method="POST" action="{{ route('peserta.pembayaran.store', $tagihan) }}" enctype="multipart/form-data" class="mt-3 space-y-3">@csrf @foreach($quote['items'] as $item)<input type="checkbox" class="hidden" name="selected_items[]" value="{{ $item['name'] }}" x-model="selected">@endforeach <input type="hidden" name="amount" x-bind:value="total"><input type="hidden" name="payment_method" value="transfer"><input type="file" name="proof_file" accept=".jpg,.jpeg,.png,.pdf" required class="w-full text-sm"><button class="btn-primary">Kirim bukti</button></form>
+                                    <form method="POST" action="{{ route('peserta.pembayaran.store', $tagihan) }}" enctype="multipart/form-data" class="mt-3 space-y-3">@csrf @foreach($quote['items'] as $item)<input type="checkbox" class="hidden" name="selected_items[]" value="{{ $item['name'] }}" x-model="selected">@endforeach <input type="hidden" name="amount" x-bind:value="total"><input type="hidden" name="payment_method" value="transfer"><input type="file" name="proof_file" accept=".jpg,.jpeg,.png,.pdf" required class="w-full text-sm"><button class="btn-primary">Kirim bukti transfer</button></form>
                                 </div>
                             @endif
                         </div>
                     </section>
                 </div>
             @elseif($gatewayReady && $quote['amount'] > 0)
+                @if($activePromotion && $quote['discount'] > 0)<p class="mt-4 text-sm font-semibold text-slate-500"><span class="line-through">Rp {{ number_format($tagihan->remaining_amount, 0, ',', '.') }}</span> <span class="ml-2 text-emerald-700">Hemat Rp {{ number_format($quote['discount'], 0, ',', '.') }}</span></p>@endif
                 <p class="mt-4 text-2xl font-bold text-slate-900">Rp {{ number_format($quote['amount'], 0, ',', '.') }}</p>
                 <p class="mt-1 text-sm font-medium text-slate-500">Pilih cara pembayaran yang paling nyaman.</p>
                 <div class="mt-4 grid gap-3 sm:grid-cols-2">
@@ -105,12 +120,20 @@
                     </div>
                 </div>
             @elseif($rekeningAktif->isNotEmpty() && $quote['amount'] > 0)
+                @if($activePromotion && $quote['discount'] > 0)<p class="mt-4 text-sm font-semibold text-slate-500"><span class="line-through">Rp {{ number_format($tagihan->remaining_amount, 0, ',', '.') }}</span> <span class="ml-2 text-emerald-700">Hemat Rp {{ number_format($quote['discount'], 0, ',', '.') }}</span></p>@endif
                 <p class="mt-4 text-2xl font-bold text-slate-900">Rp {{ number_format($quote['amount'], 0, ',', '.') }}</p>
+                @if($isRegistrationFee)
+                    <div class="mt-4 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-950"><span class="font-bold">Khusus transfer:</span> unggah bukti di halaman ini hanya setelah transfer ke rekening sekolah. Jika membayar tunai, datang ke sekolah; pembayaran akan diinput oleh panitia.</div>
+                @endif
+                @if($isReRegistrationFee)
+                    <div class="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950"><span class="font-bold">Pembayaran DU satu kali di SPMB:</span> setelah pembayaran ini disetujui, pembayaran berikutnya dilakukan langsung di sekolah setiap hari Jumat dan dicatat panitia.</div>
+                @endif
                 <button type="button" @click="paying = !paying" class="btn-primary mt-4">Bayar sekarang</button>
                 <div x-show="paying" x-cloak class="mt-4 rounded-xl bg-sky-50 p-4">
                     @php($rekening = $rekeningAktif->first())
                     <p class="text-sm font-semibold text-sky-900">{{ $rekening->nama_bank }} · {{ $rekening->nomor_rekening }} a.n. {{ $rekening->atas_nama }}</p>
-                    <form method="POST" action="{{ route('peserta.pembayaran.store', $tagihan) }}" enctype="multipart/form-data" class="mt-3 space-y-3">@csrf<input type="hidden" name="amount" value="{{ $quote['amount'] }}"><input type="hidden" name="payment_method" value="transfer"><input type="file" name="proof_file" accept=".jpg,.jpeg,.png,.pdf" required class="w-full text-sm"><button class="btn-primary">Kirim bukti</button></form>
+                    <p class="mt-2 text-xs font-semibold text-sky-800">Upload bukti ini hanya untuk transfer. Pembayaran tunai dicatat oleh panitia di sekolah.</p>
+                    <form method="POST" action="{{ route('peserta.pembayaran.store', $tagihan) }}" enctype="multipart/form-data" class="mt-3 space-y-3">@csrf<input type="hidden" name="amount" value="{{ $quote['amount'] }}"><input type="hidden" name="payment_method" value="transfer"><input type="file" name="proof_file" accept=".jpg,.jpeg,.png,.pdf" required class="w-full text-sm"><button class="btn-primary">Kirim bukti transfer</button></form>
                 </div>
             @else
                 <p class="mt-4 text-sm text-slate-600">Hubungi bendahara untuk pembayaran ini.</p>
