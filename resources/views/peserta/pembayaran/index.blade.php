@@ -123,7 +123,7 @@
                 @if($activePromotion && $quote['discount'] > 0)<p class="mt-4 text-sm font-semibold text-slate-500"><span class="line-through">Rp {{ number_format($tagihan->remaining_amount, 0, ',', '.') }}</span> <span class="ml-2 text-emerald-700">Hemat Rp {{ number_format($quote['discount'], 0, ',', '.') }}</span></p>@endif
                 <p class="mt-4 text-2xl font-bold text-slate-900">Rp {{ number_format($quote['amount'], 0, ',', '.') }}</p>
                 @if($isRegistrationFee)
-                    <div class="mt-4 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-950"><span class="font-bold">Khusus transfer:</span> unggah bukti di halaman ini hanya setelah transfer ke rekening sekolah. Jika membayar tunai, datang ke sekolah; pembayaran akan diinput oleh panitia.</div>
+                    <div class="mt-4 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-950"><span class="font-bold">Pembayaran mandiri:</span> hanya melalui transfer. Pembayaran tunai dicatat panitia di sekolah.</div>
                 @endif
                 @if($isReRegistrationFee)
                     <div class="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950"><span class="font-bold">Pembayaran DU satu kali di SPMB:</span> setelah pembayaran ini disetujui, pembayaran berikutnya dilakukan langsung di sekolah setiap hari Jumat dan dicatat panitia.</div>
@@ -132,7 +132,7 @@
                 <div x-show="paying" x-cloak class="mt-4 rounded-xl bg-sky-50 p-4">
                     @php($rekening = $rekeningAktif->first())
                     <p class="text-sm font-semibold text-sky-900">{{ $rekening->nama_bank }} · {{ $rekening->nomor_rekening }} a.n. {{ $rekening->atas_nama }}</p>
-                    <p class="mt-2 text-xs font-semibold text-sky-800">Upload bukti ini hanya untuk transfer. Pembayaran tunai dicatat oleh panitia di sekolah.</p>
+                    <p class="mt-2 text-xs font-semibold text-sky-800">Transfer ke rekening ini, lalu unggah bukti pembayaran.</p>
                     <form method="POST" action="{{ route('peserta.pembayaran.store', $tagihan) }}" enctype="multipart/form-data" class="mt-3 space-y-3">@csrf<input type="hidden" name="amount" value="{{ $quote['amount'] }}"><input type="hidden" name="payment_method" value="transfer"><input type="file" name="proof_file" accept=".jpg,.jpeg,.png,.pdf" required class="w-full text-sm"><button class="btn-primary">Kirim bukti transfer</button></form>
                 </div>
             @else
