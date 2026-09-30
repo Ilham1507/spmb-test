@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\User;
 use App\Models\TransaksiPembayaran;
+use App\Support\FeeCategory;
 use Illuminate\Support\Facades\Log;
 
 class PaymentReceiptNotifier
@@ -98,8 +99,8 @@ class PaymentReceiptNotifier
     }
 
     /**
-     * Keep WhatsApp concise when a student pays many re-registration items.
-     * The complete item list remains available in the payment detail.
+     * Students choose fee groups on their payment screen, so WhatsApp must
+     * describe those groups instead of exposing one underlying fee detail.
      */
     private function feeSummary(TransaksiPembayaran $transaction): string
     {
@@ -113,13 +114,41 @@ class PaymentReceiptNotifier
             return $transaction->tagihan?->jenisTagihan?->name ?? 'Tagihan sekolah';
         }
 
-        if ($items->count() === 1) {
-            return (string) $items->first();
+        $paymentType = $transaction->tagihan?->jenisTagihan?->name ?? 'Tagihan sekolah';
+        $isReRegistration = str_contains(strtolower($paymentType), 'daftar ulang')
+            || str_contains(strtolower($paymentType), 'du');
+        if (! $isReRegistration) {
+            return $items->count() === 1
+                ? (string) $items->first()
+                : $paymentType.' — '.$items->count().' rincian biaya terpilih';
         }
 
-        $paymentType = $transaction->tagihan?->jenisTagihan?->name ?? 'Tagihan sekolah';
+        $categoriesByItem = collect($transaction->tagihan?->rincian_biaya ?? [])
+            ->mapWithKeys(function ($item) {
+                $name = trim((string) ($item['name'] ?? ''));
+                if ($name === '') {
+                    return [];
+                }
 
-        return $paymentType.' — '.$items->count().' rincian biaya terpilih';
+                $category = trim((string) ($item['category'] ?? '')) ?: FeeCategory::for($name);
+
+                return [$name => $category];
+            });
+        $groups = $items
+            ->map(fn ($name) => $categoriesByItem[$name] ?? FeeCategory::for((string) $name))
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($groups->count() === 1) {
+            return $paymentType.' — '.$groups->first();
+        }
+
+        if ($groups->count() <= 3) {
+            return $paymentType.' — '.$groups->implode(', ');
+        }
+
+        return $paymentType.' — '.$groups->count().' kelompok biaya terpilih';
     }
 
     /**
