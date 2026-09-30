@@ -93,9 +93,10 @@
 
                             <div class="grid gap-4 md:grid-cols-2">
                                 <div>
-                                    <label class="admin-label">Bukti pembayaran</label>
-                                    <input type="file" name="proof_file" accept=".jpg,.jpeg,.png,.pdf" class="admin-input mt-2 px-3 py-2.5" required>
-                                    <p class="mt-2 text-xs font-semibold text-slate-500">JPG, PNG, atau PDF · maks. 2 MB</p>
+                                    <label class="admin-label" x-text="paymentMethod === 'transfer' ? 'Bukti transfer' : 'Bukti pembayaran'"></label>
+                                    <input x-show="paymentMethod === 'transfer'" :required="paymentMethod === 'transfer'" type="file" name="proof_file" accept=".jpg,.jpeg,.png,.pdf" class="admin-input mt-2 px-3 py-2.5">
+                                    <p x-show="paymentMethod === 'transfer'" class="mt-2 text-xs font-semibold text-slate-500">JPG, PNG, atau PDF · maks. 2 MB</p>
+                                    <p x-show="paymentMethod === 'cash'" class="mt-2 text-xs font-semibold text-violet-700">Pembayaran tunai dicatat langsung oleh panitia; bukti transfer tidak diperlukan.</p>
                                 </div>
                                 <div>
                                     <label class="admin-label">Nomor referensi / catatan <span class="font-medium text-slate-400">(opsional)</span></label>
