@@ -95,7 +95,7 @@
             tutorialOpen: false,
             tutorialStep: 0,
             tutorialForce: @js($forceTutorial ?? false),
-            tutorialKey: 'spmb-dashboard-tour-v10-{{ auth()->id() }}-{{ $pendaftar?->id }}',
+            tutorialKey: 'spmb-dashboard-tour-v11-{{ auth()->id() }}-{{ $pendaftar?->id }}',
             activeTarget: null,
             activeLayer: null,
             steps: [
@@ -108,8 +108,8 @@
                 { target: '[data-participant-shortcut-form]', title: 'Formulir data', text: 'Tekan ini untuk mengisi data diri, keluarga, sekolah asal, dan pilihan jurusan.' },
                 { target: '[data-participant-shortcut-documents]', title: 'Dokumen', text: 'Tekan ini untuk mengunggah berkas yang diminta dalam pendaftaran.' },
                 { target: '[data-participant-shortcut-test]', title: 'Tes SPMB', text: 'Tekan ini untuk melihat jadwal tes, mengikuti tes saat dibuka, dan melihat hasilnya.' },
-                { target: '[data-participant-profile-link]', title: 'Profil akun', text: 'Pilih Profil Saya pada menu akun untuk melihat dan mengubah profil akunmu.', openProfile: true },
-                { target: '[data-participant-logout]', title: 'Keluar dari akun', text: 'Gunakan tombol ini jika ingin keluar dengan aman dari akunmu.', openProfile: true },
+                { target: '[data-participant-profile-link]', spotlight: '[data-participant-account-menu]', title: 'Profil akun', text: 'Pilih Profil Saya pada menu akun untuk melihat dan mengubah profil akunmu.', openProfile: true },
+                { target: '[data-participant-logout]', spotlight: '[data-participant-account-menu]', title: 'Keluar dari akun', text: 'Gunakan tombol ini jika ingin keluar dengan aman dari akunmu.', openProfile: true },
             ],
             init() {
                 document.querySelectorAll('.participant-page-tour-target, .participant-tour-target, .participant-tour-layer').forEach((node) => {
@@ -139,15 +139,16 @@
                 const selector = typeof step.target === 'function' ? step.target() : step.target;
                 const target = document.querySelector(selector);
                 if (!target) return;
-                if (target.closest('.portal-page-content')) {
-                    const rect = target.getBoundingClientRect();
+                const spotlight = step.spotlight ? document.querySelector(step.spotlight) : target;
+                if (spotlight.closest('.portal-page-content')) {
+                    const rect = spotlight.getBoundingClientRect();
                     const compactScreen = isCompactScreen();
                     if (compactScreen || rect.top < 12 || rect.bottom > window.innerHeight - 12) {
                         target.scrollIntoView({ behavior: 'auto', block: compactScreen ? 'center' : 'center' });
                     }
                 }
-                this.activeTarget = target;
-                this.activeLayer = target.closest('[data-participant-account-menu], .portal-topbar, .participant-sidebar');
+                this.activeTarget = spotlight;
+                this.activeLayer = spotlight.closest('[data-participant-account-menu], .portal-topbar, .participant-sidebar');
                 this.activeTarget.classList.add('participant-page-tour-target');
                 this.activeLayer?.classList.add('participant-tour-layer');
                 requestAnimationFrame(() => requestAnimationFrame(() => this.reposition()));
@@ -155,6 +156,12 @@
             reposition() {
                 if (this.tutorialOpen && this.activeTarget && this.$refs.tourTip) {
                     window.positionParticipantTourTip?.(this.$refs.tourTip, this.activeTarget);
+                    window.positionParticipantTourBackdrop?.({
+                        top: this.$refs.tourShadeTop,
+                        right: this.$refs.tourShadeRight,
+                        bottom: this.$refs.tourShadeBottom,
+                        left: this.$refs.tourShadeLeft,
+                    }, this.activeTarget);
                 }
             },
             currentStepText() {
@@ -282,7 +289,10 @@
 @if($status === 'draft' && (!$visitMatchCandidate || ($forceTutorial ?? false)))
     <template x-teleport="body">
         <div x-cloak x-show="tutorialOpen" x-transition.opacity class="participant-action-tour fixed inset-0 z-[125]" aria-live="polite">
-            <div class="absolute inset-0 bg-slate-950/55 backdrop-blur-[1px]"></div>
+            <div x-ref="tourShadeTop" class="fixed bg-slate-950/55 backdrop-blur-[1px]"></div>
+            <div x-ref="tourShadeRight" class="fixed bg-slate-950/55 backdrop-blur-[1px]"></div>
+            <div x-ref="tourShadeBottom" class="fixed bg-slate-950/55 backdrop-blur-[1px]"></div>
+            <div x-ref="tourShadeLeft" class="fixed bg-slate-950/55 backdrop-blur-[1px]"></div>
             <div x-ref="tourTip" @resize.window="reposition()" class="participant-page-tour-tip fixed z-[133] w-[calc(100%-2rem)] max-w-md rounded-3xl bg-white p-5 shadow-2xl sm:p-6">
                 <div class="flex items-center justify-between gap-3">
                     <p class="text-xs font-black uppercase tracking-[.16em] text-teal-700">Panduan pendaftaran</p>

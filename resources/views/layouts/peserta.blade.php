@@ -342,7 +342,7 @@
                 tip.style.top = `${viewportPadding}px`;
                 tip.style.bottom = 'auto';
                 tip.style.maxHeight = 'min(38dvh, 300px)';
-                tip.style.overflowY = 'auto';
+                tip.style.overflowY = 'hidden';
                 const topCard = tip.getBoundingClientRect();
                 const focus = target.getBoundingClientRect();
                 const overlapsTopCard = focus.top < topCard.bottom + 16 && focus.bottom > topCard.top - 16;
@@ -362,7 +362,7 @@
 
             tip.style.width = `${tipWidth}px`;
             tip.style.maxHeight = 'calc(100dvh - 32px)';
-            tip.style.overflowY = 'auto';
+            tip.style.overflowY = 'hidden';
             tip.style.right = 'auto';
             tip.style.bottom = 'auto';
 
@@ -387,6 +387,25 @@
                 tip.style.top = `${Math.round(canPlaceBelow ? targetRect.bottom + gap : clampTop(targetRect.top - cardHeight - gap))}px`;
                 tip.dataset.placement = canPlaceBelow ? 'bottom' : 'top';
             }
+        };
+        window.positionParticipantTourBackdrop = function (panels, target) {
+            if (!panels || !target) return;
+            const rect = target.getBoundingClientRect();
+            const viewportWidth = window.visualViewport?.width || window.innerWidth;
+            const viewportHeight = window.visualViewport?.height || window.innerHeight;
+            const gap = 9;
+            const top = Math.max(0, rect.top - gap);
+            const bottom = Math.min(viewportHeight, rect.bottom + gap);
+            const left = Math.max(0, rect.left - gap);
+            const right = Math.min(viewportWidth, rect.right + gap);
+            const set = (panel, styles) => {
+                if (!panel) return;
+                Object.assign(panel.style, styles);
+            };
+            set(panels.top, { left: '0px', top: '0px', width: `${viewportWidth}px`, height: `${top}px` });
+            set(panels.bottom, { left: '0px', top: `${bottom}px`, width: `${viewportWidth}px`, height: `${Math.max(0, viewportHeight - bottom)}px` });
+            set(panels.left, { left: '0px', top: `${top}px`, width: `${left}px`, height: `${Math.max(0, bottom - top)}px` });
+            set(panels.right, { left: `${right}px`, top: `${top}px`, width: `${Math.max(0, viewportWidth - right)}px`, height: `${Math.max(0, bottom - top)}px` });
         };
         document.addEventListener('DOMContentLoaded', function () {
             const tour = document.getElementById('participant-page-tour');
