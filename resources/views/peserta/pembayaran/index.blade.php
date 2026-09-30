@@ -11,6 +11,17 @@
     @if(isset($errors) && $errors->any())
         <div role="alert" class="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">{{ $errors->first() }}</div>
     @endif
+    @if(session('du_payment_submitted'))
+        <div x-data="{ open: true }" x-cloak x-show="open" class="fixed inset-0 z-[2147483647] flex items-center justify-center bg-slate-950/55 p-4" role="dialog" aria-modal="true" aria-label="Informasi pembayaran daftar ulang">
+            <section class="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
+                <p class="text-xs font-black uppercase tracking-[.16em] text-teal-700">Pembayaran berhasil dikirim</p>
+                <h2 class="mt-2 text-xl font-black text-slate-900">Bukti transfer sedang diperiksa</h2>
+                <p class="mt-3 text-sm leading-6 text-slate-600">Pembayaran daftar ulang melalui SPMB hanya satu kali. Setelah pembayaran ini disetujui, pembayaran berikutnya dilakukan langsung di sekolah.</p>
+                <div class="mt-4 rounded-2xl bg-teal-50 px-4 py-3 text-sm font-bold text-teal-900">Jadwal pembayaran di sekolah: Selasa dan Jumat, pukul 07.30–14.30 WIB.</div>
+                <button type="button" @click="open = false" class="mt-5 w-full rounded-xl bg-teal-700 px-4 py-3 text-sm font-black text-white hover:bg-teal-800">Saya mengerti</button>
+            </section>
+        </div>
+    @endif
     @forelse($tagihans as $tagihan)
         @php
             $summary = \App\Support\PaymentSummary::forBill($tagihan);
@@ -79,7 +90,7 @@
             @if($paid)
                 <div class="mt-4 grid gap-3 sm:grid-cols-2"><div class="rounded-xl bg-blue-50 p-3"><p class="text-sm text-blue-800">Status</p><p class="mt-1 font-bold text-blue-900">Lunas</p></div><div class="rounded-xl bg-slate-50 p-3"><p class="text-sm text-slate-500">Dibayar</p><p class="mt-1 text-xl font-bold text-slate-900">Rp {{ number_format($tagihan->paid_amount, 0, ',', '.') }}</p></div></div>
             @elseif($pending)
-                <p class="mt-4 text-sm text-slate-600">{{ $isReRegistrationFee ? 'Pembayaran daftar ulang sedang diperiksa. Setelah disetujui, pembayaran berikutnya dilakukan langsung di sekolah setiap hari Jumat.' : 'Pembayaran sudah tercatat. Kamu tidak perlu melakukan pembayaran lagi. Formulir akan terbuka setelah pemeriksaan panitia selesai.' }}</p>
+                <p class="mt-4 text-sm text-slate-600">{{ $isReRegistrationFee ? 'Pembayaran daftar ulang sedang diperiksa petugas.' : 'Pembayaran sudah tercatat. Kamu tidak perlu melakukan pembayaran lagi. Formulir akan terbuka setelah pemeriksaan panitia selesai.' }}</p>
             @elseif($checkout)
                 <p class="mt-4 text-2xl font-bold text-slate-900">Rp {{ number_format($checkout->amount, 0, ',', '.') }}</p>
                 <div class="mt-4 flex flex-wrap gap-2">
@@ -112,7 +123,6 @@
                             @endforeach
                             </div>
                             <p class="mt-4 rounded-xl bg-sky-50 px-3 py-2 text-sm font-semibold text-sky-900">Unggah bukti di sini khusus untuk transfer. Pembayaran tunai dilakukan di sekolah dan dicatat oleh panitia.</p>
-                            @if($isReRegistrationFee)<p class="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900">Pembayaran DU melalui SPMB hanya satu kali. Setelah disetujui, pembayaran berikutnya dilakukan di sekolah setiap hari Jumat.</p>@endif
                         </div>
                         <div class="border-t border-slate-100 p-5"><div class="mb-3"><label class="text-sm font-semibold text-slate-600">Nominal yang dibayar</label><input type="number" min="1" :max="selectedTotal" x-model="amount" placeholder="Masukkan nominal pembayaran" class="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-lg font-bold text-slate-900"><p class="mt-2 text-xs text-slate-500">Maksimal sesuai kelompok yang dipilih: <strong x-text="'Rp ' + new Intl.NumberFormat('id-ID').format(selectedTotal)"></strong></p></div>
                             @if($gatewayReady)
@@ -148,9 +158,6 @@
                 <p class="mt-4 text-2xl font-bold text-slate-900">Rp {{ number_format($quote['amount'], 0, ',', '.') }}</p>
                 @if($isRegistrationFee)
                     <div class="mt-4 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-950"><span class="font-bold">Pembayaran mandiri:</span> hanya melalui transfer. Pembayaran tunai dicatat panitia di sekolah.</div>
-                @endif
-                @if($isReRegistrationFee)
-                    <div class="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950"><span class="font-bold">Pembayaran DU satu kali di SPMB:</span> setelah pembayaran ini disetujui, pembayaran berikutnya dilakukan langsung di sekolah setiap hari Jumat dan dicatat panitia.</div>
                 @endif
                 <button type="button" @click="paying = !paying" class="btn-primary mt-4">Bayar sekarang</button>
                 <div x-show="paying" x-cloak class="mt-4 rounded-xl bg-sky-50 p-4">

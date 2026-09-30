@@ -143,7 +143,7 @@ class PembayaranController extends Controller
 
         if ($this->isReRegistrationFee($tagihan) && $tagihan->transaksi()->exists()) {
             return redirect()->route('peserta.pembayaran')
-                ->with('warning', 'Pembayaran DU melalui SPMB hanya satu kali. Pembayaran berikutnya dilakukan langsung di sekolah setiap hari Jumat.');
+                ->with('warning', 'Pembayaran DU melalui SPMB hanya satu kali. Pembayaran berikutnya dilakukan langsung di sekolah setiap Selasa dan Jumat pukul 07.30–14.30 WIB.');
         }
 
         $request->validate([
@@ -194,7 +194,8 @@ class PembayaranController extends Controller
 
         if ($isReRegistrationFee) {
             $redirect = redirect()->route('peserta.pembayaran')
-                ->with('success', 'Bukti transfer DU dikirim. Setelah disetujui, pembayaran berikutnya dilakukan langsung di sekolah setiap hari Jumat.');
+                ->with('success', 'Bukti transfer daftar ulang berhasil dikirim dan sedang diperiksa petugas.')
+                ->with('du_payment_submitted', true);
 
             return $approvalNotificationSent ? $redirect : $redirect->with('warning', $notificationWarning);
         }
