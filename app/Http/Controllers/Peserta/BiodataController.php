@@ -11,7 +11,10 @@ use App\Support\FormFieldCatalog;
 use App\Support\ParticipantNameFormatter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
+use Throwable;
 
 class BiodataController extends Controller
 {
@@ -40,29 +43,48 @@ class BiodataController extends Controller
             ),
         ];
 
-        $request->validate($rules, [
+        $validated = $request->validate($rules, [
             'nisn.digits' => 'NISN harus terdiri dari tepat 10 digit angka.',
             'nik.digits' => 'NIK harus terdiri dari tepat 16 digit angka sesuai Kartu Keluarga/KTP.',
             'no_kk.digits' => 'Nomor KK harus terdiri dari tepat 16 digit angka.',
             'required' => ':attribute wajib diisi sebelum melanjutkan.',
         ]);
 
-        $pendaftar = $this->getOrCreatePendaftar();
-        $fullName = ParticipantNameFormatter::titleCase((string) Auth::user()->name);
-        if (Auth::user()->name !== $fullName) Auth::user()->update(['name' => $fullName]);
-        BiodataPendaftar::updateOrCreate(
-            ['applicant_id' => $pendaftar->id],
-            [
-                'full_name'   => $fullName,
-                'nisn'        => $request->nisn,
-                'nik'         => $request->nik,
-                'no_kk'       => $request->no_kk,
-                'gender'      => $request->jenis_kelamin,
-                'birth_place' => $request->tempat_lahir,
-                'birth_date'  => $request->tanggal_lahir,
-                'religion'    => $request->agama,
-            ]
-        );
+        try {
+            DB::transaction(function () use ($validated) {
+                $user = Auth::user();
+                if (! $user) {
+                    throw new \RuntimeException('Sesi siswa tidak ditemukan.');
+                }
+
+                $pendaftar = $this->getOrCreatePendaftar();
+                $fullName = ParticipantNameFormatter::titleCase((string) $user->name);
+                if ($user->name !== $fullName) {
+                    $user->update(['name' => $fullName]);
+                }
+
+                BiodataPendaftar::updateOrCreate(
+                    ['applicant_id' => $pendaftar->id],
+                    [
+                        'full_name' => $fullName,
+                        'nisn' => $validated['nisn'] ?? null,
+                        'nik' => $validated['nik'] ?? null,
+                        'no_kk' => $validated['no_kk'] ?? null,
+                        'gender' => $validated['jenis_kelamin'] ?? null,
+                        'birth_place' => $validated['tempat_lahir'] ?? null,
+                        'birth_date' => $validated['tanggal_lahir'] ?? null,
+                        'religion' => $validated['agama'] ?? null,
+                    ]
+                );
+            }, 3);
+        } catch (Throwable $exception) {
+            Log::error('Penyimpanan biodata peserta gagal.', [
+                'user_id' => Auth::id(),
+                'error' => $exception->getMessage(),
+            ]);
+
+            return back()->withInput()->with('error', 'Data diri belum dapat disimpan. Silakan coba lagi; data yang diisi tetap dipertahankan.');
+        }
 
         return $this->redirectAfterParticipantSave($request, 'peserta.alamat', 'Biodata berhasil disimpan.', 'peserta.alamat');
     }

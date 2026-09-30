@@ -13,6 +13,7 @@ use App\Support\RegistrationFee;
 use App\Support\ReRegistrationFee;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Throwable;
@@ -81,25 +82,35 @@ class PembayaranController extends Controller
     public function startReRegistration(Jurusan $jurusan)
     {
         abort_unless($jurusan->status === 'aktif', 404);
-        $pendaftar = PendaftarSetup::getOrCreateFor(Auth::user());
-        $registrationBill = RegistrationFee::ensureBill($pendaftar);
-        if (! RegistrationFee::isPaid($registrationBill)) {
-            return redirect()->route('peserta.pembayaran')
-                ->with('warning', 'Lunasi pembayaran formulir terlebih dahulu sebelum memilih pembayaran daftar ulang.');
-        }
+        try {
+            $pendaftar = PendaftarSetup::getOrCreateFor(Auth::user());
+            $registrationBill = RegistrationFee::ensureBill($pendaftar);
+            if (! RegistrationFee::isPaid($registrationBill)) {
+                return redirect()->route('peserta.pembayaran')
+                    ->with('warning', 'Lunasi pembayaran formulir terlebih dahulu sebelum memilih pembayaran daftar ulang.');
+            }
 
-        $existingBill = TagihanPendaftar::where('applicant_id', $pendaftar->id)
-            ->whereHas('jenisTagihan', fn ($query) => $query->whereRaw('LOWER(name) LIKE ?', ['%daftar ulang%']))
-            ->first();
+            $existingBill = TagihanPendaftar::where('applicant_id', $pendaftar->id)
+                ->whereHas('jenisTagihan', fn ($query) => $query->whereRaw('LOWER(name) LIKE ?', ['%daftar ulang%']))
+                ->first();
 
-        if ($existingBill && (int) $pendaftar->major_choice_1 !== (int) $jurusan->id) {
-            return back()->with('warning', 'Pembayaran daftar ulang sudah dibuat untuk jurusan lain. Hubungi panitia bila pilihan jurusan perlu diubah.');
-        }
+            if ($existingBill && (int) $pendaftar->major_choice_1 !== (int) $jurusan->id) {
+                return back()->with('warning', 'Pembayaran daftar ulang sudah dibuat untuk jurusan lain. Hubungi panitia bila pilihan jurusan perlu diubah.');
+            }
 
-        if (! $pendaftar->major_choice_1) {
-            $pendaftar->update(['major_choice_1' => $jurusan->id]);
+            if (! $pendaftar->major_choice_1) {
+                $pendaftar->update(['major_choice_1' => $jurusan->id]);
+            }
+            ReRegistrationFee::ensureBill($pendaftar->refresh());
+        } catch (Throwable $exception) {
+            Log::error('Pemilihan jurusan untuk biaya daftar ulang gagal.', [
+                'user_id' => Auth::id(),
+                'jurusan_id' => $jurusan->id,
+                'error' => $exception->getMessage(),
+            ]);
+
+            return back()->with('error', 'Jurusan belum dapat dipilih untuk biaya daftar ulang. Silakan coba lagi.');
         }
-        ReRegistrationFee::ensureBill($pendaftar->refresh());
 
         return redirect()->route('peserta.pembayaran')
             ->with('success', 'Rincian daftar ulang '.$jurusan->name.' sudah disiapkan. Kamu dapat memilih biaya yang akan dibayar.');
