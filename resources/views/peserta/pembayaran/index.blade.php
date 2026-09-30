@@ -35,8 +35,26 @@
 
                 return [(string) $item['name'] => (int) round($promo['amount'])];
             });
+            $categoryFor = function (array $item): string {
+                $category = trim((string) ($item['category'] ?? ''));
+                if ($category !== '') return $category;
+
+                $name = strtolower((string) ($item['name'] ?? ''));
+                return match (true) {
+                    str_contains($name, 'seragam'), str_contains($name, 'baju'), str_contains($name, 'pakaian'), str_contains($name, 'atribut'), str_contains($name, 'sepatu'), str_contains($name, 'tas') => 'Seragam & Perlengkapan',
+                    str_contains($name, 'buku'), str_contains($name, 'modul'), str_contains($name, 'lks'), str_contains($name, 'bahasa') => 'Buku & Pembelajaran',
+                    str_contains($name, 'pasport'), str_contains($name, 'khs'), str_contains($name, 'skrs'), str_contains($name, 'kartu pelajar'), str_contains($name, 'photo'), str_contains($name, 'dokumen') => 'Administrasi & Dokumen',
+                    str_contains($name, 'praktik'), str_contains($name, 'kejuruan'), str_contains($name, 'pkl') => 'Praktik & Kejuruan',
+                    str_contains($name, 'ujian'), str_contains($name, 'tes'), str_contains($name, 'cbt'), str_contains($name, 'cambridge') => 'Asesmen & Kompetensi',
+                    str_contains($name, 'fortasi'), str_contains($name, 'kegiatan'), str_contains($name, 'ipm'), str_contains($name, 'majalah'), str_contains($name, 'go siswa') => 'Kegiatan & Kesiswaan',
+                    str_contains($name, 'uks'), str_contains($name, 'kesehatan'), str_contains($name, 'ta’awin'), str_contains($name, "ta'awin") => 'Kesehatan & Perlindungan',
+                    str_contains($name, 'infak'), str_contains($name, 'zakat'), str_contains($name, 'zis') => 'Kerohanian & Sosial',
+                    str_contains($name, 'spp'), str_contains($name, 'gedung'), str_contains($name, 'tabungan'), str_contains($name, 'pembinaan'), str_contains($name, 'simulasi') => 'Biaya Pendidikan',
+                    default => 'Lainnya',
+                };
+            };
             $paymentGroups = collect($quote['items'])
-                ->groupBy(fn ($item) => trim((string) ($item['category'] ?? '')) ?: 'Lainnya')
+                ->groupBy($categoryFor)
                 ->map(fn ($items, $category) => [
                     'name' => $category,
                     'items' => $items->values()->all(),
