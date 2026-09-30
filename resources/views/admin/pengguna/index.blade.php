@@ -6,6 +6,16 @@
 
 @section('content')
 <div x-data="{ addOpen: {{ old('_modal') === 'add' || ($errors->any() && old('_modal') !== 'edit') ? 'true' : 'false' }}, editId: {{ old('_modal') === 'edit' ? (int) old('user_id') : 'null' }} }">
+    <section class="admin-card bg-white">
+        <form method="GET" action="{{ route('admin.users.index') }}" class="flex flex-col gap-2 md:flex-row">
+            <x-list-search placeholder="Cari nama atau nomor WhatsApp staf" class="min-w-0 flex-1" />
+            <button type="submit" class="admin-primary-button bg-blue-700 hover:bg-blue-800">Cari</button>
+            @if(request('search'))
+                <a href="{{ route('admin.users.index') }}" class="inline-flex min-h-[42px] items-center justify-center rounded-xl bg-slate-100 px-4 text-sm font-black text-slate-600 hover:bg-slate-200">Reset</a>
+            @endif
+        </form>
+    </section>
+
     <section class="admin-card overflow-hidden bg-white p-0">
         <div class="admin-card-header border-b border-slate-100">
             <div>
@@ -73,9 +83,7 @@
             </table>
         </div>
 
-        @if($users->hasPages())
-            <x-per-page-pagination :paginator="$users" />
-        @endif
+        <x-per-page-pagination :paginator="$users" />
     </section>
 
     <template x-teleport="body"><div x-cloak x-show="addOpen" x-transition.opacity class="fixed inset-0 z-[2147483000] flex items-center justify-center bg-slate-950/45 p-3 sm:p-4 backdrop-blur-sm" @keydown.escape.window="addOpen=false">
@@ -106,12 +114,7 @@
                 </div>
 
                 <div>
-                    <label class="admin-label">Akses *</label>
-                    <select name="role" required class="admin-input">
-                        <option value="panitia" @selected(old('role', 'panitia') === 'panitia')>Panitia</option>
-                        <option value="bendahara" @selected(old('role') === 'bendahara')>Bendahara</option>
-                        <option value="kepala_sekolah" @selected(old('role') === 'kepala_sekolah')>Kepala Sekolah</option>
-                    </select>
+                    <x-form-select name="role" label="Akses" :required="true" :options="['panitia' => 'Panitia', 'bendahara' => 'Bendahara', 'kepala_sekolah' => 'Kepala Sekolah']" :value="old('role', 'panitia')" placeholder="Pilih akses" :menu-z-index="2147483500" />
                     @error('role')<p class="admin-error">{{ $message }}</p>@enderror
                 </div>
 
@@ -160,13 +163,8 @@
                     </div>
 
                     <div>
-                        <label class="admin-label">Akses *</label>
                         @php $selectedRole = old('user_id') == $user->id ? old('role', $user->role?->name) : $user->role?->name; @endphp
-                        <select name="role" required class="admin-input">
-                            <option value="panitia" @selected($selectedRole === 'panitia')>Panitia</option>
-                            <option value="bendahara" @selected($selectedRole === 'bendahara')>Bendahara</option>
-                            <option value="kepala_sekolah" @selected($selectedRole === 'kepala_sekolah')>Kepala Sekolah</option>
-                        </select>
+                        <x-form-select name="role" label="Akses" :required="true" :options="['panitia' => 'Panitia', 'bendahara' => 'Bendahara', 'kepala_sekolah' => 'Kepala Sekolah']" :value="$selectedRole" placeholder="Pilih akses" :menu-z-index="2147483500" />
                         @if(old('user_id') == $user->id) @error('role')<p class="admin-error">{{ $message }}</p>@enderror @endif
                     </div>
 

@@ -16,10 +16,17 @@ use Throwable;
 
 class UserController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $users = User::with('role')
             ->whereHas('role', fn ($query) => $query->whereIn('name', ['panitia', 'bendahara', 'kepala_sekolah']))
+            ->when($request->filled('search'), function ($query) use ($request) {
+                $search = trim((string) $request->input('search'));
+                $query->where(function ($inner) use ($search) {
+                    $inner->where('name', 'like', "%{$search}%")
+                        ->orWhere('phone', 'like', "%{$search}%");
+                });
+            })
             ->latest('id')
             ->paginate(Pagination::perPage())->withQueryString();
         $teacherCount = User::whereHas('role', fn ($query) => $query->whereIn('name', ['panitia', 'bendahara', 'kepala_sekolah']))->count();

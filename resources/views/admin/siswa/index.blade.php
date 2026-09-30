@@ -90,9 +90,7 @@
             </table>
         </div>
 
-        @if($students->hasPages())
-            <x-per-page-pagination :paginator="$students" />
-        @endif
+        <x-per-page-pagination :paginator="$students" />
     </section>
 
     @foreach($students as $student)
