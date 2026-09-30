@@ -43,7 +43,14 @@ class PembayaranController extends Controller
             $registrationBill = RegistrationFee::ensureBill($applicant);
             $candidates = collect();
 
-            if (! RegistrationFee::isPaid($registrationBill) && (float) $registrationBill->remaining_amount > 0) {
+            // Bukti dari peserta sudah masuk? Jangan tampilkan lagi pada
+            // pencarian input manual. Petugas cukup memprosesnya di daftar
+            // approval agar tidak tercatat menjadi pembayaran ganda.
+            $registrationPending = $registrationBill->transaksi()
+                ->where('status', 'pending')
+                ->exists();
+
+            if (! $registrationPending && ! RegistrationFee::isPaid($registrationBill) && (float) $registrationBill->remaining_amount > 0) {
                 $candidates->push([
                     'key' => 'applicant:'.$applicant->id,
                     'fee_type' => 'formulir',
@@ -56,7 +63,10 @@ class PembayaranController extends Controller
 
             if (RegistrationFee::isPaid($registrationBill)) {
                 $duBill = ReRegistrationFee::ensureBill($applicant);
-                if ($duBill && (float) $duBill->remaining_amount > 0) {
+                $duPending = $duBill?->transaksi()
+                    ->where('status', 'pending')
+                    ->exists() ?? false;
+                if ($duBill && ! $duPending && (float) $duBill->remaining_amount > 0) {
                     $candidates->push([
                         'key' => 'applicant:'.$applicant->id,
                         'fee_type' => 'daftar_ulang',
