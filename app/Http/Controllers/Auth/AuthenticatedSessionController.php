@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\RiwayatLogin;
 use Illuminate\View\View;
+use Throwable;
 
 class AuthenticatedSessionController extends Controller
 {
@@ -30,12 +31,18 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerate();
 
         $user = Auth::user();
-        RiwayatLogin::create([
-            'pengguna_id' => $user->id,
-            'ip_address' => $request->ip(),
-            'user_agent' => substr((string) $request->userAgent(), 0, 1000),
-            'login_at' => now(),
-        ]);
+        try {
+            RiwayatLogin::create([
+                'pengguna_id' => $user->id,
+                'ip_address' => $request->ip(),
+                'user_agent' => substr((string) $request->userAgent(), 0, 1000),
+                'login_at' => now(),
+            ]);
+        } catch (Throwable $exception) {
+            // Login tetap harus berhasil meskipun arsip riwayat lama belum
+            // tersedia atau sedang bermasalah.
+            report($exception);
+        }
         if ($user->hasRole('admin')) {
             return redirect()->route('admin.dashboard');
         } elseif ($user->hasRole('panitia')) {
