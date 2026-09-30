@@ -28,9 +28,11 @@ Route::middleware('web')->get('/verifikasi-email/{token}', [KontakController::cl
 Route::middleware(['web', 'peserta'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/hasil-tes', [HasilTesController::class, 'index'])->name('hasil-tes.index');
-    Route::get('/cetak', [CetakController::class, 'index'])->name('cetak');
-    Route::get('/formulir', [CetakController::class, 'preview'])->name('formulir');
-    Route::get('/pdf', [CetakController::class, 'pdf'])->name('pdf');
+    Route::middleware(\App\Http\Middleware\EnsureRegistrationFeePaid::class)->group(function () {
+        Route::get('/cetak', [CetakController::class, 'index'])->name('cetak');
+        Route::get('/formulir', [CetakController::class, 'preview'])->name('formulir');
+        Route::get('/pdf', [CetakController::class, 'pdf'])->name('pdf');
+    });
     Route::post('/kunjungan/{kunjungan}/kirim-otp', [KunjunganMatchController::class, 'sendOtp'])
         ->middleware('throttle:3,1')->name('kunjungan.otp.send');
     Route::post('/kunjungan/{kunjungan}/verifikasi', [KunjunganMatchController::class, 'verify'])
