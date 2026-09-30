@@ -95,7 +95,7 @@
             tutorialOpen: false,
             tutorialStep: 0,
             tutorialForce: @js($forceTutorial ?? false),
-            tutorialKey: 'spmb-dashboard-tour-v12-{{ auth()->id() }}-{{ $pendaftar?->id }}',
+            tutorialKey: 'spmb-dashboard-tour-v13-{{ auth()->id() }}-{{ $pendaftar?->id }}',
             activeTarget: null,
             activeLayer: null,
             steps: [
@@ -108,8 +108,8 @@
                 { target: '[data-participant-shortcut-form]', title: 'Formulir data', text: 'Tekan ini untuk mengisi data diri, keluarga, sekolah asal, dan pilihan jurusan.' },
                 { target: '[data-participant-shortcut-documents]', title: 'Dokumen', text: 'Tekan ini untuk mengunggah berkas yang diminta dalam pendaftaran.' },
                 { target: '[data-participant-shortcut-test]', title: 'Tes SPMB', text: 'Tekan ini untuk melihat jadwal tes, mengikuti tes saat dibuka, dan melihat hasilnya.' },
-                { target: '[data-participant-profile-link]', spotlight: '[data-participant-account-menu]', title: 'Profil akun', text: 'Pilih Profil Saya pada menu akun untuk melihat dan mengubah profil akunmu.', openProfile: true },
-                { target: '[data-participant-logout]', spotlight: '[data-participant-account-menu]', title: 'Keluar dari akun', text: 'Gunakan tombol ini jika ingin keluar dengan aman dari akunmu.', openProfile: true },
+                { target: '[data-participant-profile-link]', spotlight: '[data-participant-account-dropdown]', title: 'Profil akun', text: 'Pilih Profil Saya pada menu akun untuk melihat dan mengubah profil akunmu.', openProfile: true },
+                { target: '[data-participant-logout]', spotlight: '[data-participant-account-dropdown]', title: 'Keluar dari akun', text: 'Gunakan tombol ini jika ingin keluar dengan aman dari akunmu.', openProfile: true },
             ],
             init() {
                 document.querySelectorAll('.participant-page-tour-target, .participant-tour-target, .participant-tour-layer').forEach((node) => {
