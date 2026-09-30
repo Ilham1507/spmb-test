@@ -162,9 +162,10 @@ class PembayaranController extends Controller
                 $quote = \App\Support\PaymentQuote::forBill(
                     $bill,
                     $request->input('selected_items'),
+                    (int) $request->amount,
                 );
                 if (! $quote['valid_selection']) {
-                    throw \Illuminate\Validation\ValidationException::withMessages(['selected_items' => 'Nominal DU tidak boleh melebihi sisa tagihan.']);
+                    throw \Illuminate\Validation\ValidationException::withMessages(['selected_items' => 'Pilih kelompok biaya dan masukkan nominal yang tidak melebihi total kelompok tersebut.']);
                 }
                 if ((int) $request->amount !== $quote['amount']) {
                     throw \Illuminate\Validation\ValidationException::withMessages(['payment' => 'Pilihan biaya atau nominal berubah. Muat ulang halaman sebelum mengirim bukti.']);
