@@ -57,6 +57,6 @@
         <div x-cloak x-show="mobileMenuOpen" x-transition.opacity class="fixed inset-0 z-[60] bg-slate-950/45 backdrop-blur-sm md:hidden" @click="mobileMenuOpen=false"></div>
         <main class="flex min-w-0 flex-1 flex-col overflow-hidden"><x-portal-page-header :title="trim($__env->yieldContent('page_title', 'Dashboard'))" accent="teal" heading-only /><section class="portal-page-content flex-1 overflow-y-auto p-4 lg:p-6"><div class="mx-auto max-w-[1500px]"><x-portal-flash />@yield('content')<x-portal-footer /></div></section></main>
     </div>
-    <x-global-loading /><x-auto-list-tools />@stack('scripts')
+    <x-global-loading /><x-delete-confirmation-modal /><x-auto-list-tools />@stack('scripts')
 </body>
 </html>

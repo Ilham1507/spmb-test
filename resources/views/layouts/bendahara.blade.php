@@ -102,6 +102,7 @@
     </main>
     </div>
     <x-global-loading />
+    <x-delete-confirmation-modal />
     <x-auto-list-tools />
 </body>
 </html>

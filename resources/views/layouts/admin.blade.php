@@ -230,6 +230,7 @@
         </div>
     </div>
     @unless($isPrintPage)<x-global-loading />@endunless
+    <x-delete-confirmation-modal />
     <x-auto-list-tools />
     <script>
         document.addEventListener('spmb-academic-year-preview', (event) => {
