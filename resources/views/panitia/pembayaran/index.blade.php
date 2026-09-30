@@ -60,7 +60,6 @@
                                             </span>
                                         </button>
                                     </template>
-                                    <p x-show="filteredCandidates.length === 0" class="px-3 py-4 text-sm font-semibold text-slate-500">Tidak ada pendaftar dengan tagihan yang perlu dibayar.</p>
                                 </div>
                             </div>
 
