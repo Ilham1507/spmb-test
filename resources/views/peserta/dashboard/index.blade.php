@@ -95,7 +95,7 @@
             tutorialOpen: false,
             tutorialStep: 0,
             tutorialForce: @js($forceTutorial ?? false),
-            tutorialKey: 'spmb-dashboard-tour-v9-{{ auth()->id() }}-{{ $pendaftar?->id }}',
+            tutorialKey: 'spmb-dashboard-tour-v10-{{ auth()->id() }}-{{ $pendaftar?->id }}',
             activeTarget: null,
             activeLayer: null,
             steps: [
@@ -141,16 +141,16 @@
                 if (!target) return;
                 if (target.closest('.portal-page-content')) {
                     const rect = target.getBoundingClientRect();
-                    const mustPlaceAboveMobileTip = isCompactScreen();
-                    if (mustPlaceAboveMobileTip || rect.top < 12 || rect.bottom > window.innerHeight - 12) {
-                        target.scrollIntoView({ behavior: 'auto', block: mustPlaceAboveMobileTip ? 'start' : 'center' });
+                    const compactScreen = isCompactScreen();
+                    if (compactScreen || rect.top < 12 || rect.bottom > window.innerHeight - 12) {
+                        target.scrollIntoView({ behavior: 'auto', block: compactScreen ? 'center' : 'center' });
                     }
                 }
                 this.activeTarget = target;
                 this.activeLayer = target.closest('[data-participant-account-menu], .portal-topbar, .participant-sidebar');
                 this.activeTarget.classList.add('participant-page-tour-target');
                 this.activeLayer?.classList.add('participant-tour-layer');
-                requestAnimationFrame(() => this.reposition());
+                requestAnimationFrame(() => requestAnimationFrame(() => this.reposition()));
             },
             reposition() {
                 if (this.tutorialOpen && this.activeTarget && this.$refs.tourTip) {
@@ -280,29 +280,31 @@
     @endif
 
 @if($status === 'draft' && (!$visitMatchCandidate || ($forceTutorial ?? false)))
-    <div x-cloak x-show="tutorialOpen" x-transition.opacity class="participant-action-tour fixed inset-0 z-[125]" aria-live="polite">
-        <div class="absolute inset-0 bg-slate-950/55 backdrop-blur-[1px]"></div>
-        <div x-ref="tourTip" @resize.window="reposition()" class="participant-page-tour-tip fixed z-[133] w-[calc(100%-2rem)] max-w-md rounded-3xl bg-white p-5 shadow-2xl sm:p-6">
-            <div class="flex items-center justify-between gap-3">
-                <p class="text-xs font-black uppercase tracking-[.16em] text-teal-700">Panduan pendaftaran</p>
-                <span class="rounded-full bg-teal-50 px-2.5 py-1 text-[11px] font-black text-teal-700" x-text="`Langkah ${tutorialStep + 1} dari ${steps.length}`"></span>
-            </div>
-            <div class="flex items-start gap-4">
-                <div class="participant-tour-pulse mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-xl">☝</div>
-                <div>
-                    <p class="text-lg font-black text-slate-950" x-text="steps[tutorialStep]?.title"></p>
-                    <p class="mt-2 text-sm font-semibold leading-relaxed text-slate-600" x-text="currentStepText()"></p>
+    <template x-teleport="body">
+        <div x-cloak x-show="tutorialOpen" x-transition.opacity class="participant-action-tour fixed inset-0 z-[125]" aria-live="polite">
+            <div class="absolute inset-0 bg-slate-950/55 backdrop-blur-[1px]"></div>
+            <div x-ref="tourTip" @resize.window="reposition()" class="participant-page-tour-tip fixed z-[133] w-[calc(100%-2rem)] max-w-md rounded-3xl bg-white p-5 shadow-2xl sm:p-6">
+                <div class="flex items-center justify-between gap-3">
+                    <p class="text-xs font-black uppercase tracking-[.16em] text-teal-700">Panduan pendaftaran</p>
+                    <span class="rounded-full bg-teal-50 px-2.5 py-1 text-[11px] font-black text-teal-700" x-text="`Langkah ${tutorialStep + 1} dari ${steps.length}`"></span>
                 </div>
-            </div>
-            <div class="mt-5 flex items-center justify-between gap-3">
-                <button @click="finishTutorial()" class="text-sm font-black text-slate-500 underline underline-offset-4">Lewati</button>
-                <div class="flex gap-2">
-                    <button x-show="tutorialStep > 0" @click="previous()" class="rounded-xl bg-slate-100 px-4 py-2.5 text-sm font-black text-slate-700">Kembali</button>
-                    <button @click="next()" class="rounded-xl bg-teal-700 px-4 py-2.5 text-sm font-black text-white" x-text="tutorialStep + 1 === steps.length ? 'Selesai' : 'Lanjut'"></button>
+                <div class="flex items-start gap-4">
+                    <div class="participant-tour-pulse mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-xl">☝</div>
+                    <div>
+                        <p class="text-lg font-black text-slate-950" x-text="steps[tutorialStep]?.title"></p>
+                        <p class="mt-2 text-sm font-semibold leading-relaxed text-slate-600" x-text="currentStepText()"></p>
+                    </div>
+                </div>
+                <div class="mt-5 flex items-center justify-between gap-3">
+                    <button @click="finishTutorial()" class="text-sm font-black text-slate-500 underline underline-offset-4">Lewati</button>
+                    <div class="flex gap-2">
+                        <button x-show="tutorialStep > 0" @click="previous()" class="rounded-xl bg-slate-100 px-4 py-2.5 text-sm font-black text-slate-700">Kembali</button>
+                        <button @click="next()" class="rounded-xl bg-teal-700 px-4 py-2.5 text-sm font-black text-white" x-text="tutorialStep + 1 === steps.length ? 'Selesai' : 'Lanjut'"></button>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
+    </template>
 @endif
 </div>
 
