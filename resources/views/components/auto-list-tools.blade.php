@@ -5,8 +5,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Dashboard is a concise overview: it must never receive the automatic
     // search, page-size selector, or client-side pagination toolbar.
     if (!body || table.closest('[data-no-auto-tools], .finance-dashboard, .spmb-dashboard, .panitia-spmb-dashboard, .participant-dashboard')) return;
-    let ancestor = table.parentElement, hasServerTools = false;
-    for (let i=0; ancestor && i<5; i+=1, ancestor=ancestor.parentElement) if (ancestor.querySelector?.('.spmb-pagination')) { hasServerTools=true; break; }
+    // Pagination server-side may be repositioned above the table after the
+    // page loads. Check the whole list card so we never add a second, local
+    // search and pagination bar to a list that already uses global controls.
+    const listCard = table.closest('.admin-card, .portal-dashboard-panel, section, article');
+    const hasServerTools = Boolean(listCard?.querySelector('.spmb-pagination'));
     if (hasServerTools) return;
     const rows = [...body.rows].filter(row => !row.querySelector('[colspan]'));
     if (!rows.length) return;

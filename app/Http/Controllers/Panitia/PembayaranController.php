@@ -89,7 +89,7 @@ class PembayaranController extends Controller
      * Panitia may record a cash/transfer payment at the school desk. Recording
      * it is itself the required panitia approval; the proof remains mandatory.
      */
-    public function store(Request $request, WhatsappCloudApiService $whatsapp)
+    public function store(Request $request, WhatsappCloudApiService $whatsapp, \App\Services\InvoiceEmailNotifier $invoiceEmail)
     {
         $validated = $request->validate([
             'candidate' => ['required', 'string', 'max:40'],
@@ -202,11 +202,12 @@ class PembayaranController extends Controller
         } catch (Throwable $exception) {
             Log::warning('Notifikasi pembayaran input panitia gagal dikirim.', ['transaction_id' => $transaction->id, 'error' => $exception->getMessage()]);
         }
+        $invoiceEmail->send($transaction);
 
         return back()->with('success', 'Pembayaran disetujui oleh panitia. Notifikasi WhatsApp siswa sudah dikirim.');
     }
 
-    public function verify(Request $request, TransaksiPembayaran $transaksi, WhatsappCloudApiService $whatsapp)
+    public function verify(Request $request, TransaksiPembayaran $transaksi, WhatsappCloudApiService $whatsapp, \App\Services\InvoiceEmailNotifier $invoiceEmail)
     {
         $validated = $request->validate([
             'status' => ['required', 'in:verified,rejected'],
@@ -237,6 +238,9 @@ class PembayaranController extends Controller
         });
 
         $transaksi->refresh()->load(['tagihan.jenisTagihan', 'tagihan.pendaftar.biodata', 'tagihan.pendaftar.user', 'verifier']);
+        if ($validated['status'] === 'verified') {
+            $invoiceEmail->send($transaksi);
+        }
 
         try {
             $this->sendDecisionNotification($whatsapp, $transaksi);

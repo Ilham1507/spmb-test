@@ -32,7 +32,7 @@
             'peserta.wali' => ['target' => '#nama', 'title' => 'Data wali bersifat opsional', 'text' => 'Isi bagian ini hanya bila wali berbeda dari orang tua.'],
             'peserta.sekolah' => ['target' => '#search_sekolah', 'title' => 'Cari sekolah asal', 'text' => 'Ketik nama sekolah, NPSN, atau kecamatan, lalu pilih hasil yang sesuai.'],
             'peserta.jurusan' => ['target' => '#jurusan-pilihan-utama', 'title' => 'Pilih jurusan', 'text' => 'Tekan pilihan jurusan, lalu tentukan jurusan yang diminati.'],
-            'peserta.kontak' => ['target' => 'form input', 'title' => 'Pastikan kontak aktif', 'text' => 'Nomor WhatsApp ini digunakan untuk masuk dan menerima informasi SPMB.'],
+            'peserta.kontak' => ['target' => 'form input', 'title' => 'Pastikan kontak aktif', 'text' => 'Nomor WhatsApp digunakan untuk masuk. Isi dan verifikasi email jika ingin menerima invoice pembayaran melalui email.'],
             'peserta.dokumen' => ['target' => 'input[type=file]', 'title' => 'Unggah dokumen', 'text' => 'Tekan di sini untuk memilih berkas yang diminta.'],
             'peserta.review' => ['target' => 'form button[type=submit]', 'title' => 'Periksa sebelum mengirim', 'text' => 'Pastikan data sudah benar, lalu kirim pendaftaran.'],
         ];

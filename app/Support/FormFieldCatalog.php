@@ -47,6 +47,7 @@ class FormFieldCatalog
             ],
             'Kontak' => [
                 'no_handphone' => 'No Handphone',
+                'email' => 'Email',
             ],
             'Dokumen Pendukung' => [
                 'foto_3x4' => 'Foto berwarna 3x4', 'foto_seluruh_badan' => 'Foto Seluruh Badan',
@@ -109,7 +110,7 @@ class FormFieldCatalog
     {
         $saved = json_decode(SystemSetting::values()['form_fields'] ?? '', true);
         return is_array($saved)
-            ? array_values(array_unique(array_intersect($saved, self::keys())))
+            ? array_values(array_unique([...array_intersect($saved, self::keys()), 'email']))
             : self::keys();
     }
 

@@ -73,7 +73,7 @@ class PembayaranController extends Controller
         });
     }
 
-    public function store(Request $request, \App\Services\PaymentReceiptNotifier $receiptNotifier, \App\Services\PaymentCheckoutService $checkoutService, WhatsappCloudApiService $whatsapp)
+    public function store(Request $request, \App\Services\PaymentReceiptNotifier $receiptNotifier, \App\Services\PaymentCheckoutService $checkoutService, WhatsappCloudApiService $whatsapp, \App\Services\InvoiceEmailNotifier $invoiceEmail)
     {
         $validated = $request->validate([
             'bill_id' => ['required', Rule::exists('tagihan_pendaftar', 'id')],
@@ -219,6 +219,7 @@ class PembayaranController extends Controller
             ]);
             $whatsappWarning = 'Pembayaran tersimpan, tetapi notifikasi WhatsApp siswa belum terkirim.';
         }
+        $invoiceEmail->send($transaction);
 
         $redirect = redirect()->route($this->routeName('pembayaran.index'))
             ->with('success', 'Pembayaran berhasil dicatat.');
@@ -288,7 +289,7 @@ class PembayaranController extends Controller
     }
 
     /** Final handover after panitia approval. Only this step records DU as received. */
-    public function receive(Request $request, TransaksiPembayaran $transaksi, WhatsappCloudApiService $whatsapp, \App\Services\PaymentReceiptNotifier $receiptNotifier)
+    public function receive(Request $request, TransaksiPembayaran $transaksi, WhatsappCloudApiService $whatsapp, \App\Services\PaymentReceiptNotifier $receiptNotifier, \App\Services\InvoiceEmailNotifier $invoiceEmail)
     {
         abort_unless(Auth::user()?->hasRole('bendahara') || Auth::user()?->hasRole('admin'), 403);
 
@@ -336,6 +337,7 @@ class PembayaranController extends Controller
         } catch (Throwable $exception) {
             Log::warning('Notifikasi penerimaan bendahara gagal dikirim.', ['transaction_id' => $result->id, 'error' => $exception->getMessage()]);
         }
+        $invoiceEmail->send($result);
 
         return back()->with('success', 'Pembayaran diterima oleh bendahara. Invoice BMT sekarang dapat dicetak.');
     }

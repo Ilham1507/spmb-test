@@ -7,6 +7,9 @@ use App\Models\KontakPendaftar;
 use App\Support\FormFieldCatalog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 
 class KontakController extends Controller
 {
@@ -21,17 +24,74 @@ class KontakController extends Controller
 
     public function store(Request $request)
     {
+        $emailKey = collect(FormFieldCatalog::groups()['Kontak'] ?? [])
+            ->search(fn ($label) => strtolower($label) === 'email');
+        $rules = [];
+        if ($emailKey !== false && FormFieldCatalog::isEnabled($emailKey)) {
+            $rules['email'] = 'nullable|email|max:150';
+        }
+        $request->validate($rules);
+
         $data = [];
         if (FormFieldCatalog::isEnabled('no_handphone')) {
             $data['phone'] = Auth::user()->phone;
         }
+        if ($emailKey !== false && FormFieldCatalog::isEnabled($emailKey)) {
+            $data['email'] = filled($request->input('email'))
+                ? strtolower(trim((string) $request->input('email')))
+                : null;
+        }
         $pendaftar = Auth::user()->pendaftar;
         $contact = KontakPendaftar::firstOrNew(['applicant_id' => $pendaftar->id]);
+        $emailChanged = array_key_exists('email', $data) && $contact->email !== $data['email'];
 
         foreach ($data as $key => $value) {
             $contact->{$key} = $value;
         }
         $contact->save();
+
+        if ($emailChanged && empty($data['email'])) {
+            $contact->update([
+                'email_verified_at' => null,
+                'email_verification_token' => null,
+                'email_verification_expires_at' => null,
+            ]);
+        }
+
+        if (filled($data['email'] ?? null) && ($emailChanged || ! $contact->email_verified_at)) {
+            $contact->update([
+                'email_verified_at' => null,
+                'email_verification_token' => Str::random(64),
+                'email_verification_expires_at' => now()->addMinutes(30),
+            ]);
+
+            if ($request->input('action') !== 'send_verification') {
+                return back()->withInput()->with('warning', 'Email tersimpan. Tekan Kirim verifikasi email agar invoice pembayaran juga dapat dikirim ke email Anda.');
+            }
+
+            if (config('mail.default') === 'log') {
+                return back()->withInput()->with('warning', 'Email tersimpan, tetapi layanan email sekolah belum dihubungkan. Invoice tetap dikirim melalui WhatsApp.');
+            }
+
+            $verificationUrl = route('peserta.kontak.verify-email', ['token' => $contact->email_verification_token]);
+
+            try {
+                Mail::send('emails.verifikasi-email', [
+                    'name' => $pendaftar->biodata?->full_name ?: 'Calon Peserta Didik',
+                    'registrationNumber' => $pendaftar->registration_number,
+                    'verificationUrl' => $verificationUrl,
+                ], fn ($message) => $message
+                    ->to($contact->email)
+                    ->subject('Verifikasi Email — SPMB SMK Muhammadiyah 4 Cileungsi')
+                );
+            } catch (\Throwable $exception) {
+                Log::warning('Pengiriman verifikasi email pendaftar gagal.', ['applicant_id' => $pendaftar->id, 'error' => $exception->getMessage()]);
+
+                return back()->withInput()->with('error', 'Email tersimpan, tetapi tautan verifikasi belum dapat dikirim. Invoice tetap dikirim melalui WhatsApp.');
+            }
+
+            return back()->with('success', 'Tautan verifikasi dikirim ke email Anda. Setelah diverifikasi, invoice pembayaran juga dikirim ke email ini.');
+        }
 
         return $this->redirectAfterParticipantSave($request, 'peserta.dokumen', 'Data kontak berhasil disimpan.', 'peserta.dokumen');
     }
@@ -57,6 +117,6 @@ class KontakController extends Controller
         ]);
 
         return redirect()->route('peserta.kontak')
-            ->with('success', 'Email berhasil diverifikasi. Anda dapat melanjutkan ke dokumen.');
+            ->with('success', 'Email berhasil diverifikasi. Invoice pembayaran yang telah disetujui juga akan dikirim ke email ini.');
     }
 }
