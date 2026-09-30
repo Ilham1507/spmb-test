@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Throwable;
 
 class RegisteredUserController extends Controller
 {
@@ -78,7 +79,13 @@ class RegisteredUserController extends Controller
 
         // The visit is connected silently only when both the full name and
         // WhatsApp number match one unlinked visit record.
-        KunjunganMatcher::linkFor($pendaftar);
+        try {
+            KunjunganMatcher::linkFor($pendaftar);
+        } catch (Throwable $exception) {
+            // A legacy visit record must never prevent a new participant from
+            // creating an account. The failed match is recorded for review.
+            report($exception);
+        }
 
         event(new Registered($user));
 

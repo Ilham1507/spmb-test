@@ -17,6 +17,7 @@ use App\Support\ReRegistrationFee;
 use App\Support\FormFieldCatalog;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use Throwable;
 
 class DashboardController extends Controller
 {
@@ -37,7 +38,11 @@ class DashboardController extends Controller
         $registrationFeeBill = RegistrationFee::ensureBill($pendaftar);
         $registrationFeePaid = RegistrationFee::isPaid($registrationFeeBill);
         $registrationFeePending = RegistrationFee::hasPendingVerification($registrationFeeBill);
-        KunjunganMatcher::linkFor($pendaftar);
+        try {
+            KunjunganMatcher::linkFor($pendaftar);
+        } catch (Throwable $exception) {
+            report($exception);
+        }
         $forceTutorial = (bool) Cache::pull('participant-onboarding-force-'.$user->id, false);
         $registrationFeeOptions = ReRegistrationFee::optionsFor($pendaftar);
 
