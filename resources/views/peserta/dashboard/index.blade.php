@@ -326,46 +326,4 @@
 @endif
 </div>
 
-@if($visitMatchCandidate)
-    @php
-        $visitPhone = preg_replace('/^(\d{4})\d+(\d{3})$/', '$1••••$2', (string) $visitMatchCandidate->visitor_phone);
-        $matchedContact = \App\Support\KunjunganMatcher::matchedContact($visitMatchCandidate, auth()->user()->phone);
-        $otpMode = (int) session('visit_otp_visit_id') === (int) $visitMatchCandidate->id;
-    @endphp
-    <div x-data="{ open: true, otpMode: @js($otpMode) }" x-cloak x-show="open" class="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm" role="dialog" aria-modal="true">
-        <div @click.outside="" class="w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-2xl">
-            <div class="h-2 bg-emerald-500"></div>
-            <div class="p-5 sm:p-7">
-                <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-xl font-black text-emerald-700">✓</div>
-                <h2 class="mt-4 text-2xl font-black text-slate-950">Kami menemukan data kunjunganmu</h2>
-                <p class="mt-2 text-sm leading-relaxed text-slate-600">Nama dan {{ strtolower($matchedContact) }} cocok dengan buku kunjungan. Pastikan informasi berikut memang milikmu.</p>
-
-                <div class="mt-5 grid gap-3 rounded-2xl bg-slate-50 p-4 text-sm sm:grid-cols-2">
-                    <div><p class="text-xs font-bold uppercase text-slate-400">Nama calon siswa</p><p class="mt-1 font-black text-slate-900">{{ $visitMatchCandidate->full_name }}</p></div>
-                    <div><p class="text-xs font-bold uppercase text-slate-400">Sekolah asal</p><p class="mt-1 font-black text-slate-900">{{ $visitMatchCandidate->origin_school }}</p></div>
-                    <div><p class="text-xs font-bold uppercase text-slate-400">WA siswa saat kunjungan</p><p class="mt-1 font-black text-slate-900">{{ $visitPhone }}</p></div>
-                    <div><p class="text-xs font-bold uppercase text-slate-400">Guru penerima</p><p class="mt-1 font-black text-emerald-700">{{ $visitMatchCandidate->penerima?->name ?? '-' }}</p></div>
-                </div>
-
-                <div x-show="!otpMode" class="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                    <form method="POST" action="{{ route('peserta.kunjungan.dismiss', $visitMatchCandidate) }}">@csrf<button class="w-full rounded-2xl bg-slate-100 px-5 py-3 text-sm font-black text-slate-700">Bukan saya</button></form>
-                    <form method="POST" action="{{ route('peserta.kunjungan.otp.send', $visitMatchCandidate) }}">@csrf<button class="w-full rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-emerald-200">Ya, ini kunjungan saya</button></form>
-                </div>
-
-                <div x-show="otpMode" class="mt-5">
-                    <p class="mb-3 rounded-2xl bg-sky-50 p-3 text-sm font-semibold text-sky-800">Masukkan kode yang dikirim ke nomor akun <strong>{{ auth()->user()->phone }}</strong>. Setelah terhubung, nomor akun ini menjadi kontak utama.</p>
-                    <form method="POST" action="{{ route('peserta.kunjungan.otp.verify', $visitMatchCandidate) }}" class="space-y-3">
-                        @csrf
-                        <input name="otp" inputmode="numeric" maxlength="6" required autofocus class="w-full rounded-2xl border-2 border-slate-200 px-4 py-3 text-center text-2xl font-black tracking-[0.35em] focus:border-emerald-500 focus:outline-none" placeholder="000000">
-                        @error('otp')<p class="text-sm font-bold text-rose-600">{{ $message }}</p>@enderror
-                        <div class="flex flex-col gap-3 sm:flex-row sm:justify-end">
-                            <button type="button" @click="otpMode=false" class="rounded-2xl bg-slate-100 px-5 py-3 text-sm font-black text-slate-700">Kembali</button>
-                            <button class="rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-black text-white">Verifikasi & Hubungkan</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-@endif
 @endsection

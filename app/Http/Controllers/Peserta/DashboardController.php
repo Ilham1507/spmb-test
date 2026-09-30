@@ -37,7 +37,7 @@ class DashboardController extends Controller
         $registrationFeeBill = RegistrationFee::ensureBill($pendaftar);
         $registrationFeePaid = RegistrationFee::isPaid($registrationFeeBill);
         $registrationFeePending = RegistrationFee::hasPendingVerification($registrationFeeBill);
-        $visitMatchCandidate = KunjunganMatcher::candidateFor($pendaftar);
+        KunjunganMatcher::linkFor($pendaftar);
         $forceTutorial = (bool) Cache::pull('participant-onboarding-force-'.$user->id, false);
         $registrationFeeOptions = ReRegistrationFee::optionsFor($pendaftar);
 
@@ -133,7 +133,6 @@ class DashboardController extends Controller
             'jadwalSpmb',
             'jadwalTes',
             'hasilTes'
-            ,'visitMatchCandidate'
             ,'forceTutorial'
 
             ,'requiredStatuses'

@@ -4,7 +4,6 @@
 
     <form method="POST" action="{{ route('register') }}" class="auth-form auth-register" x-data="registrationCheck()" @submit.prevent="checkBeforeRegister($event)">
         @csrf
-        <input type="hidden" name="visit_id" :value="selectedVisit || ''">
         <div class="register-identity">
             <div>
                 <label for="name" class="mb-1.5 block">Nama Lengkap</label>
@@ -47,38 +46,6 @@
             <div class="w-full max-w-md rounded-3xl bg-white p-5 shadow-2xl sm:p-6" @click.outside="closeCheck()">
                 <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-100 text-lg font-black text-blue-700">?</div>
                 <template x-if="existingAccount"><div><h2 class="mt-4 text-xl font-black text-slate-950">Akun sudah ditemukan</h2><p class="mt-2 text-sm leading-relaxed text-slate-600">Apakah ini akun kamu?</p><div class="mt-4 rounded-2xl bg-slate-50 p-4"><p class="font-black text-slate-900" x-text="existingAccount?.name"></p><p class="mt-1 text-sm font-semibold text-slate-500" x-text="existingAccount?.phone"></p></div><div class="mt-5 grid gap-2 sm:grid-cols-2"><button type="button" @click="closeCheck()" class="rounded-xl bg-slate-100 px-4 py-3 text-sm font-black text-slate-700">Bukan / ubah nomor</button><a href="{{ route('login') }}" class="rounded-xl bg-blue-700 px-4 py-3 text-center text-sm font-black text-white">Ya, masuk</a></div></div></template>
-                <template x-if="!existingAccount">
-                    <div>
-                        <h2 class="mt-4 text-xl font-black text-slate-950">Pilih data kunjungan</h2>
-                        <div class="mt-5 space-y-2">
-                            <template x-for="visit in visits" :key="visit.id">
-                                <label class="block cursor-pointer rounded-2xl border-2 p-4 transition" :class="selectedVisit == visit.id ? 'border-blue-500 bg-blue-50 shadow-[0_10px_25px_rgba(37,99,235,.10)]' : 'border-slate-200 bg-white hover:border-blue-200'">
-                                    <span class="flex items-start gap-3">
-                                        <input type="radio" name="visit_choice" :value="visit.id" x-model="selectedVisit" class="mt-2">
-                                        <span class="min-w-0 flex-1">
-                                            <span class="flex items-center gap-3">
-                                                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-base font-black text-white shadow-sm" x-text="visit.name?.charAt(0).toUpperCase()"></span>
-                                                <span class="min-w-0">
-                                                    <strong class="block truncate text-base text-slate-900" x-text="visit.name"></strong>
-                                                    <small class="mt-1 inline-flex max-w-full rounded-lg bg-white px-2 py-1 text-xs font-bold text-slate-600 ring-1 ring-slate-200" x-text="visit.school"></small>
-                                                </span>
-                                            </span>
-                                            <span x-show="visit.matched_phone" class="mt-4 flex items-center gap-2 rounded-xl bg-white px-3 py-2.5 text-sm font-black text-blue-700 ring-1 ring-blue-100">
-                                                <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-xs text-white">✓</span>
-                                                <span class="min-w-0 truncate" x-text="'Nomor yang sama: '+visit.matched_phone"></span>
-                                            </span>
-                                            <small x-show="!visit.matched_phone" class="mt-3 block font-semibold text-slate-500" x-text="'Cocok: '+visit.match_reason"></small>
-                                        </span>
-                                    </span>
-                                </label>
-                            </template>
-                        </div>
-                        <div class="mt-5 grid gap-2 sm:grid-cols-2">
-                            <button type="button" @click="registerAsNew()" class="rounded-xl bg-slate-100 px-4 py-3 text-sm font-black text-slate-700">Bukan data saya</button>
-                            <button type="button" @click="confirmVisit()" :disabled="!selectedVisit" class="rounded-xl bg-blue-700 px-4 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-40">Ya, ini data saya</button>
-                        </div>
-                    </div>
-                </template>
             </div>
         </div>
     </form>
@@ -86,7 +53,7 @@
     <script>
         function registrationCheck() {
             return {
-                checking: false, checkOpen: false, showPassword: false, showConfirmation: false, existingAccount: null, visits: [], selectedVisit: '', submitError: '', form: null,
+                checking: false, checkOpen: false, showPassword: false, showConfirmation: false, existingAccount: null, submitError: '', form: null,
                 async checkBeforeRegister(event) {
                     const form = event.target;
                     this.form = form;
@@ -100,9 +67,7 @@
                         const response = await fetch(url, { headers: { Accept: 'application/json' } });
                         const result = await response.json();
                         this.existingAccount = result.existing_account || null;
-                        this.visits = result.visits || [];
-                        if (this.existingAccount || this.visits.length) {
-                            this.selectedVisit = this.visits.length === 1 ? this.visits[0].id : '';
+                        if (this.existingAccount) {
                             this.checkOpen = true;
                             form.classList.remove('is-submitting');
                             return;
@@ -111,8 +76,6 @@
                     this.submitForm();
                 },
                 closeCheck() { this.checkOpen = false; this.checking = false; },
-                confirmVisit() { if (this.selectedVisit) this.submitForm(); },
-                registerAsNew() { this.selectedVisit = ''; this.submitForm(); },
                 submitForm() {
                     this.checkOpen = false;
                     this.checking = true;

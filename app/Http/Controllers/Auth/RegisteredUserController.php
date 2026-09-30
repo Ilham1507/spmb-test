@@ -5,9 +5,8 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\BiodataPendaftar;
 use App\Models\KontakPendaftar;
-use App\Models\KunjunganPendaftar;
 use App\Models\User;
-use App\Support\FullNameNormalizer;
+use App\Support\KunjunganMatcher;
 use App\Support\PendaftarSetup;
 use App\Support\ParticipantNameFormatter;
 use App\Support\SpmbConfiguration;
@@ -50,24 +49,10 @@ class RegisteredUserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'phone' => ['required', 'string', 'regex:/^08[0-9]{8,13}$/', 'unique:pengguna,phone'],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'visit_id' => ['nullable', 'integer'],
         ], [
             'phone.regex' => 'No. WhatsApp harus diawali 08 dan berisi 10 sampai 15 digit angka.',
             'phone.unique' => 'No. WhatsApp ini sudah terdaftar. Silakan langsung masuk atau hubungi panitia.',
         ]);
-
-        $visit = null;
-        if ($request->filled('visit_id')) {
-            $visit = KunjunganPendaftar::query()
-                ->whereNull('applicant_id')
-                ->find($request->integer('visit_id'));
-
-            if (! $visit || ! $this->visitMatchesRegistration($visit, (string) $request->name, (string) $request->phone)) {
-                throw ValidationException::withMessages([
-                    'name' => 'Data kunjungan sudah berubah. Periksa kembali sebelum membuat akun.',
-                ]);
-            }
-        }
 
         $pesertaRole = \App\Models\Peran::where('name', 'peserta')->first();
 
@@ -91,18 +76,9 @@ class RegisteredUserController extends Controller
             ['phone' => $request->phone]
         );
 
-        if ($visit) {
-            $linked = KunjunganPendaftar::query()
-                ->whereKey($visit->id)
-                ->whereNull('applicant_id')
-                ->update(['applicant_id' => $pendaftar->id]);
-
-            if (! $linked) {
-                throw ValidationException::withMessages([
-                    'name' => 'Data kunjungan baru saja terhubung ke akun lain. Silakan hubungi panitia.',
-                ]);
-            }
-        }
+        // The visit is connected silently only when both the full name and
+        // WhatsApp number match one unlinked visit record.
+        KunjunganMatcher::linkFor($pendaftar);
 
         event(new Registered($user));
 
@@ -132,33 +108,7 @@ class RegisteredUserController extends Controller
             ]);
         }
 
-        $normalizedName = FullNameNormalizer::normalize($name);
-        $visits = KunjunganPendaftar::query()
-            ->whereNull('applicant_id')
-            ->where(function ($query) use ($normalizedName, $phone) {
-                if ($normalizedName !== '') {
-                    $query->where('normalized_full_name', $normalizedName);
-                }
-
-                if (preg_match('/^08[0-9]{8,13}$/', $phone)) {
-                    $query->orWhere('visitor_phone', $phone)
-                        ->orWhere('parent_phone', $phone);
-                }
-            })
-            ->latest('visited_at')
-            ->limit(3)
-            ->get()
-            ->map(fn (KunjunganPendaftar $visit) => [
-                'id' => $visit->id,
-                'name' => $visit->full_name,
-                'school' => $visit->origin_school ?: 'Sekolah belum dicatat',
-                'matched_phone' => $visit->visitor_phone === $phone
-                    ? $visit->visitor_phone
-                    : ($visit->parent_phone === $phone ? $visit->parent_phone : null),
-                'match_reason' => $this->visitMatchReason($visit, $normalizedName, $phone),
-            ]);
-
-        return response()->json(['existing_account' => null, 'visits' => $visits]);
+        return response()->json(['existing_account' => null, 'visits' => []]);
     }
 
     private function normalizePhone(string $value): string
@@ -179,22 +129,4 @@ class RegisteredUserController extends Controller
         return preg_replace('/^(\d{4})\d+(\d{3})$/', '$1••••$2', $phone) ?: $phone;
     }
 
-    private function visitMatchesRegistration(KunjunganPendaftar $visit, string $name, string $phone): bool
-    {
-        $normalizedName = FullNameNormalizer::normalize($name);
-
-        return ($normalizedName !== '' && $visit->normalized_full_name === $normalizedName)
-            || $visit->visitor_phone === $phone
-            || $visit->parent_phone === $phone;
-    }
-
-    private function visitMatchReason(KunjunganPendaftar $visit, string $normalizedName, string $phone): string
-    {
-        $reasons = [];
-        if ($normalizedName !== '' && $visit->normalized_full_name === $normalizedName) $reasons[] = 'nama sama';
-        if ($visit->visitor_phone === $phone) $reasons[] = 'nomor WhatsApp siswa sama';
-        if ($visit->parent_phone === $phone) $reasons[] = 'nomor WhatsApp orang tua sama';
-
-        return implode(' · ', $reasons) ?: 'data kunjungan cocok';
-    }
 }
