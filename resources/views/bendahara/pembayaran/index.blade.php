@@ -64,7 +64,7 @@
     </section>
 
     @if($pendingApprovals->isNotEmpty())
-        <section class="rounded-3xl border border-violet-200 bg-violet-50 p-5 shadow-sm" x-data="{ rejectOpen: false, rejectAction: '', rejectStudent: '', rejectAmount: '', approveOpen: false, approveAction: '', approveStudent: '', approveAmount: 0, approvalItems: [], approvedItems: [], get approvedTotal() { return this.approvalItems.filter(item => this.approvedItems.includes(item.name)).reduce((total, item) => total + Number(item.amount), 0) } }">
+        <section class="rounded-3xl border border-violet-200 bg-violet-50 p-5 shadow-sm" x-data="{ rejectOpen: false, rejectAction: '', rejectStudent: '', rejectAmount: '' }">
             <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                     <p class="text-xs font-black uppercase tracking-[.14em] text-violet-700">Persetujuan pembayaran</p>
@@ -77,9 +77,6 @@
                 @foreach($pendingApprovals as $transaction)
                     @php
                         $student = $transaction->tagihan?->pendaftar?->biodata?->full_name ?? $transaction->tagihan?->pendaftar?->user?->name ?? 'Peserta';
-                        $feeName = strtolower((string) $transaction->tagihan?->jenisTagihan?->name);
-                        $isDuApproval = str_contains($feeName, 'daftar ulang') || str_contains($feeName, 'du');
-                        $approvalItems = collect($transaction->tagihan?->rincian_biaya ?? [])->filter(fn ($item) => filled($item['name'] ?? null) && (float) ($item['amount'] ?? 0) > 0);
                     @endphp
                     <article class="flex flex-col gap-4 rounded-2xl border border-violet-100 bg-white p-4 lg:flex-row lg:items-center lg:justify-between">
                         <div>
@@ -89,24 +86,12 @@
                         </div>
                         <div class="flex flex-wrap items-center gap-2">
                             <a href="{{ route($routePrefix.'pembayaran.proof', $transaction) }}" target="_blank" rel="noopener" class="rounded-xl border border-violet-200 bg-white px-4 py-2.5 text-sm font-black text-violet-800 hover:bg-violet-50">Lihat bukti</a>
-                            @if($isDuApproval && $approvalItems->isNotEmpty())
-                                <button type="button" class="rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white hover:bg-emerald-800" @click="approveAction = @js(route($routePrefix.'pembayaran.verify', $transaction)); approveStudent = @js($student); approveAmount = @js((int) $transaction->amount); approvalItems = @js($approvalItems->map(fn ($item) => ['name' => (string) $item['name'], 'amount' => (int) $item['amount']])->values()); approvedItems = []; approveOpen = true">Pilih rincian & setujui</button>
-                            @else
-                                <form method="POST" action="{{ route($routePrefix.'pembayaran.verify', $transaction) }}">@csrf @method('PATCH')<input type="hidden" name="status" value="verified"><button type="submit" class="rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white hover:bg-emerald-800">Setujui</button></form>
-                            @endif
+                            <form method="POST" action="{{ route($routePrefix.'pembayaran.verify', $transaction) }}">@csrf @method('PATCH')<input type="hidden" name="status" value="verified"><button type="submit" class="rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white hover:bg-emerald-800">Setujui</button></form>
                             <button type="button" class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-black text-rose-700 hover:bg-rose-100" @click="rejectAction = @js(route($routePrefix.'pembayaran.verify', $transaction)); rejectStudent = @js($student); rejectAmount = @js('Rp '.number_format($transaction->amount, 0, ',', '.')); rejectOpen = true">Tolak</button>
                         </div>
                     </article>
                 @endforeach
             </div>
-            <template x-teleport="body">
-                <div x-cloak x-show="approveOpen" x-transition.opacity class="fixed inset-0 z-[2147483647] flex items-center justify-center bg-slate-950/60 p-4" @keydown.escape.window="approveOpen = false">
-                    <section class="flex max-h-[calc(100vh-2rem)] w-full max-w-xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="finance-approve-payment-title" @click.outside="approveOpen = false">
-                        <header class="flex items-start justify-between border-b border-slate-100 px-6 py-5"><div><p class="text-xs font-black uppercase tracking-[.16em] text-emerald-700">Persetujuan pembayaran</p><h2 id="finance-approve-payment-title" class="mt-1 text-xl font-black text-slate-900">Pilih rincian yang dibayar</h2><p class="mt-1 text-sm text-slate-500"><strong x-text="approveStudent"></strong> · Target <strong x-text="'Rp ' + Number(approveAmount).toLocaleString('id-ID')"></strong></p></div><button type="button" @click="approveOpen = false" class="rounded-xl px-3 py-2 text-sm font-black text-slate-500 hover:bg-slate-100">Tutup</button></header>
-                        <form method="POST" :action="approveAction" class="flex min-h-0 flex-1 flex-col">@csrf @method('PATCH')<input type="hidden" name="status" value="verified"><div class="min-h-0 flex-1 overflow-y-auto px-6 py-4"><p class="mb-3 text-sm font-semibold text-slate-600">Centang rincian hingga totalnya minimal sebesar nominal bukti transfer. Sistem akan membagi nominal terakhir secara otomatis bila diperlukan.</p><div class="space-y-2"><template x-for="item in approvalItems" :key="item.name"><label class="flex cursor-pointer items-center justify-between gap-3 rounded-2xl border px-4 py-3 transition" :class="approvedItems.includes(item.name) ? 'border-emerald-300 bg-emerald-50' : 'border-slate-200 bg-white hover:border-emerald-200'"><span class="flex min-w-0 items-center gap-3"><input type="checkbox" name="selected_items[]" :value="item.name" x-model="approvedItems" class="h-5 w-5 rounded border-slate-300 text-emerald-700 focus:ring-emerald-600"><span class="truncate text-sm font-bold text-slate-800" x-text="item.name"></span></span><strong class="shrink-0 text-sm text-slate-900" x-text="'Rp ' + Number(item.amount).toLocaleString('id-ID')"></strong></label></template></div></div><footer class="border-t border-slate-100 bg-white px-6 py-4"><div class="mb-3 flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3 text-sm"><span class="font-semibold text-slate-600">Total rincian dipilih</span><strong :class="approvedTotal >= Number(approveAmount) ? 'text-emerald-700' : 'text-rose-700'" x-text="'Rp ' + approvedTotal.toLocaleString('id-ID')"></strong></div><div class="grid grid-cols-2 gap-3"><button type="button" @click="approveOpen = false" class="rounded-xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-700 hover:bg-slate-50">Batal</button><button type="submit" :disabled="approvedTotal < Number(approveAmount)" class="rounded-xl bg-emerald-700 px-4 py-3 text-sm font-black text-white shadow-lg shadow-emerald-200 hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-45">Setujui pembayaran</button></div></footer></form>
-                    </section>
-                </div>
-            </template>
             <template x-teleport="body">
                 <div x-cloak x-show="rejectOpen" x-transition.opacity class="fixed inset-0 z-[2147483647] flex items-center justify-center bg-slate-950/60 p-4" @keydown.escape.window="rejectOpen = false">
                     <section class="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="finance-reject-payment-title" @click.outside="rejectOpen = false">

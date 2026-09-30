@@ -258,13 +258,9 @@ class PembayaranController extends Controller
                 throw \Illuminate\Validation\ValidationException::withMessages(['payment' => 'Nominal melebihi sisa tagihan. Cocokkan transaksi sebelum menyetujui.']);
             }
             if ($validated['status'] === 'verified' && $this->isReRegistrationFee($bill)) {
-                $quote = \App\Support\PaymentQuote::forBill($bill, $validated['selected_items'] ?? [], (int) $transaction->amount);
-                if (! $quote['valid_selection'] || (int) $quote['amount'] !== (int) $transaction->amount) {
-                    throw \Illuminate\Validation\ValidationException::withMessages([
-                        'selected_items' => 'Pilih rincian biaya daftar ulang yang totalnya sesuai dengan nominal pembayaran.',
-                    ]);
-                }
-                $transaction->update(['selected_items' => $quote['selected_items']]);
+                // Approval uses the amount received. Fee-detail allocation is
+                // intentionally not required for partial DU payments.
+                $transaction->update(['selected_items' => null]);
             }
             $transaction->update([
                 'status' => $validated['status'], 'verified_by' => Auth::id(), 'verified_at' => now(),
