@@ -103,9 +103,10 @@ class PembayaranController extends Controller
             'notes' => ['nullable', 'string', 'max:500'],
         ]);
 
-        $proofPath = $request->file('proof_file')->store('bukti_pembayaran', 'local');
+        $proofPath = null;
 
         try {
+            $proofPath = $request->file('proof_file')->store('bukti_pembayaran', 'local');
             $result = DB::transaction(function () use ($validated, $proofPath) {
                 [$candidateType, $candidateId] = array_pad(explode(':', (string) $validated['candidate'], 2), 2, null);
                 if ($candidateType !== 'applicant' || ! ctype_digit((string) $candidateId)) {
@@ -191,26 +192,53 @@ class PembayaranController extends Controller
 
                 return compact('transaction', 'isRegistration');
             }, 3);
-        } catch (Throwable $exception) {
-            Storage::disk('local')->delete($proofPath);
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            if ($proofPath) {
+                Storage::disk('local')->delete($proofPath);
+            }
+
             throw $exception;
+        } catch (Throwable $exception) {
+            if ($proofPath) {
+                Storage::disk('local')->delete($proofPath);
+            }
+
+            Log::error('Pencatatan pembayaran manual panitia gagal.', [
+                'user_id' => Auth::id(),
+                'candidate' => $validated['candidate'] ?? null,
+                'error' => $exception->getMessage(),
+            ]);
+
+            return back()->withInput()->with('error', 'Pembayaran belum dapat dicatat. Data tidak disimpan; periksa kembali bukti dan data pendaftar lalu coba lagi.');
         }
 
         $transaction = $result['transaction']->fresh(['tagihan.jenisTagihan', 'tagihan.pendaftar.biodata', 'tagihan.pendaftar.user', 'verifier']);
-        $notificationSent = false;
-        try {
-            $this->sendDecisionNotification($whatsapp, $transaction);
-            $notificationSent = true;
-        } catch (Throwable $exception) {
-            Log::warning('Notifikasi pembayaran input panitia gagal dikirim.', ['transaction_id' => $transaction->id, 'error' => $exception->getMessage()]);
-        }
-        $invoiceEmail->send($transaction);
+        $transactionId = $transaction->id;
 
-        $redirect = back()->with('success', 'Pembayaran disetujui oleh panitia.');
+        // Notification and invoice delivery must not keep the manual-payment
+        // form open or turn a successful database write into a 500 response.
+        app()->terminating(function () use ($transactionId, $whatsapp, $invoiceEmail): void {
+            $payment = TransaksiPembayaran::with([
+                'tagihan.jenisTagihan', 'tagihan.pendaftar.biodata', 'tagihan.pendaftar.user',
+                'tagihan.pendaftar.kunjungan.penerima', 'verifier',
+            ])->find($transactionId);
+            if (! $payment) {
+                return;
+            }
 
-        return $notificationSent
-            ? $redirect->with('info', 'Notifikasi WhatsApp siswa sudah dikirim.')
-            : $redirect->with('warning', 'Pembayaran disetujui, tetapi notifikasi WhatsApp siswa belum terkirim.');
+            try {
+                $this->sendDecisionNotification($whatsapp, $payment);
+            } catch (Throwable $exception) {
+                Log::warning('Notifikasi pembayaran input panitia gagal dikirim.', [
+                    'transaction_id' => $transactionId,
+                    'error' => $exception->getMessage(),
+                ]);
+            }
+
+            $invoiceEmail->send($payment);
+        });
+
+        return back()->with('success', 'Pembayaran dicatat dan disetujui. Notifikasi WhatsApp siswa dikirim otomatis.');
     }
 
     public function verify(Request $request, TransaksiPembayaran $transaksi, WhatsappCloudApiService $whatsapp, \App\Services\InvoiceEmailNotifier $invoiceEmail)
