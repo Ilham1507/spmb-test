@@ -36,7 +36,10 @@ return [
     ],
 
     'whatsapp' => [
-        'provider' => env('WHATSAPP_PROVIDER', 'waslah'),
+        // auto: gunakan Waslah bila tokennya ada, atau Meta Cloud API bila
+        // kredensial Meta yang tersedia. Hindari provider kosong membuat semua
+        // notifikasi gagal tanpa pernah mencoba Meta.
+        'provider' => env('WHATSAPP_PROVIDER', 'auto'),
         'waslah_token' => env('WASLAH_API_TOKEN'),
         'waslah_instance_key' => env('WASLAH_INSTANCE_KEY'),
         'api_version' => env('WHATSAPP_API_VERSION', 'v25.0'),

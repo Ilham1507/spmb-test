@@ -151,12 +151,20 @@ class WhatsappCloudApiService
 
     private function usesWaslah(): bool
     {
-        // This installation uses Waslah for payment notifications. Respect an
-        // explicitly configured Meta provider only when no Waslah key exists.
-        if (trim((string) config('services.whatsapp.waslah_token')) === ''
-            && config('services.whatsapp.provider') !== 'waslah') return false;
-        $this->waslahToken();
-        return true;
+        $provider = strtolower(trim((string) config('services.whatsapp.provider', 'auto')));
+        $waslahToken = trim((string) config('services.whatsapp.waslah_token'));
+
+        if ($provider === 'meta') {
+            return false;
+        }
+
+        if ($waslahToken !== '') {
+            return true;
+        }
+
+        // A missing Waslah key must not prevent a configured Meta Cloud API
+        // sender from delivering every notification.
+        return false;
     }
 
     private function waslahToken(): string
