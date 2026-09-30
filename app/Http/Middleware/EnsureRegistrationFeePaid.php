@@ -19,6 +19,11 @@ class EnsureRegistrationFeePaid
         }
 
         $pendaftar = PendaftarSetup::getOrCreateFor($user);
+        // The same authenticated User instance is reused by the controllers
+        // later in this request. Keep its relation fresh so every Save &
+        // Continue action writes to the registration just prepared above,
+        // including newly created accounts.
+        $user->setRelation('pendaftar', $pendaftar);
         $tagihan = RegistrationFee::ensureBill($pendaftar);
 
         if (RegistrationFee::isPaid($tagihan)) {
