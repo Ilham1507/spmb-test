@@ -217,12 +217,14 @@
             </div>
         </div>
         @if($status !== 'rejected')
-            <a id="participant-primary-action" href="{{ route($nextRoute) }}{{ $nextRoute === 'peserta.pembayaran' ? '?tour=1' : '' }}" @click="tutorialOpen && finishTutorial()" class="participant-main-action mt-5 inline-flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-3.5 text-sm font-black md:w-auto">
-                {{ $nextTarget }} <span aria-hidden="true">→</span>
-            </a>
-            @if($status === 'draft' && !$visitMatchCandidate)
-                <button type="button" @click="startTutorial()" class="mt-3 block text-sm font-black text-teal-700 underline decoration-teal-300 underline-offset-4">Butuh panduan? Lihat tutorial singkat</button>
-            @endif
+            <div class="mt-5 flex flex-wrap items-center gap-3">
+                <a id="participant-primary-action" href="{{ route($nextRoute) }}{{ $nextRoute === 'peserta.pembayaran' ? '?tour=1' : '' }}" @click="tutorialOpen && finishTutorial()" class="participant-main-action inline-flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-3.5 text-sm font-black sm:w-auto">
+                    {{ $nextTarget }} <span aria-hidden="true">→</span>
+                </a>
+                @if($status === 'draft' && !$visitMatchCandidate)
+                    <button type="button" @click="startTutorial()" class="text-sm font-black text-teal-700 underline decoration-teal-300 underline-offset-4">Butuh panduan? Lihat tutorial singkat</button>
+                @endif
+            </div>
         @endif
     </section>
 
