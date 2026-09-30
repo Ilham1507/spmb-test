@@ -78,41 +78,49 @@ class GelombangController extends Controller
 
         $details = $data['details'] ?? [];
 
-        DB::transaction(function () use ($details) {
-            // The page submits only the major currently edited in the popup.
-            // Never iterate every gelombang/jurusan here: missing request data means
-            // "not edited", not "delete its fees".
-            foreach ($details as $gelombangId => $majorDetails) {
-                $gelombang = GelombangPendaftaran::query()->find($gelombangId);
-                if (! $gelombang || ! is_array($majorDetails)) continue;
+        try {
+            DB::transaction(function () use ($details) {
+                // The page submits only the major currently edited in the popup.
+                // Never iterate every gelombang/jurusan here: missing request data means
+                // "not edited", not "delete its fees".
+                foreach ($details as $gelombangId => $majorDetails) {
+                    $gelombang = GelombangPendaftaran::query()->find($gelombangId);
+                    if (! $gelombang || ! is_array($majorDetails)) continue;
 
-                foreach ($majorDetails as $jurusanId => $rawComponents) {
-                    $jurusan = Jurusan::query()->where('status', 'aktif')->find($jurusanId);
-                    if (! $jurusan || ! is_array($rawComponents)) continue;
+                    foreach ($majorDetails as $jurusanId => $rawComponents) {
+                        $jurusan = Jurusan::query()->where('status', 'aktif')->find($jurusanId);
+                        if (! $jurusan || ! is_array($rawComponents)) continue;
 
-                    $components = collect($rawComponents)
-                        ->map(fn ($item) => ['name' => trim((string) ($item['name'] ?? '')), 'category' => trim((string) ($item['category'] ?? 'Lainnya')) ?: 'Lainnya', 'amount' => (float) ($item['amount'] ?? 0)])
-                        ->filter(fn ($item) => $item['name'] !== '' && $item['amount'] > 0)
-                        ->values()
-                        ->all();
+                        $components = collect($rawComponents)
+                            ->map(fn ($item) => ['name' => trim((string) ($item['name'] ?? '')), 'category' => trim((string) ($item['category'] ?? 'Lainnya')) ?: 'Lainnya', 'amount' => (float) ($item['amount'] ?? 0)])
+                            ->filter(fn ($item) => $item['name'] !== '' && $item['amount'] > 0)
+                            ->values()
+                            ->all();
 
-                    $relation = GelombangJurusan::firstOrNew([
-                        'gelombang_id' => $gelombang->id,
-                        'jurusan_id' => $jurusan->id,
-                    ]);
+                        $relation = GelombangJurusan::firstOrNew([
+                            'gelombang_id' => $gelombang->id,
+                            'jurusan_id' => $jurusan->id,
+                        ]);
 
-                    // An empty list intentionally deletes only this selected major's fee.
-                    if ($components === []) {
-                        $relation->delete();
-                        continue;
+                        // An empty list intentionally deletes only this selected major's fee.
+                        if ($components === []) {
+                            $relation->delete();
+                            continue;
+                        }
+
+                        $relation->biaya_masuk = collect($components)->sum('amount');
+                        $relation->rincian_biaya = $components;
+                        $relation->save();
                     }
-
-                    $relation->biaya_masuk = collect($components)->sum('amount');
-                    $relation->rincian_biaya = $components;
-                    $relation->save();
                 }
-            }
-        });
+            });
+        } catch (\Throwable $exception) {
+            Log::error('Unable to save major fee breakdown.', [
+                'exception' => $exception,
+            ]);
+
+            return back()->with('error', 'Rincian biaya belum tersimpan: '.$exception->getMessage());
+        }
 
         return back()->with('success', 'Biaya jurusan berhasil disimpan.');
     }
