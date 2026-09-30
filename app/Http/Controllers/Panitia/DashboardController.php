@@ -15,18 +15,31 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        $totalPendaftar = Pendaftar::count();
-        $submitted = Pendaftar::where('registration_status', 'submitted')->count();
-        $verified = Pendaftar::where('registration_status', 'verified')->count();
-        $accepted = Pendaftar::where('registration_status', 'accepted')->count();
-        $rejected = Pendaftar::where('registration_status', 'rejected')->count();
-        $reRegistered = Pendaftar::where('registration_status', 're_registered')->count();
-        $draft = Pendaftar::where('registration_status', 'draft')->count();
-        $needsCorrection = Pendaftar::where('correction_status', 'requested')->count();
-        $correctionsReturned = Pendaftar::where('correction_status', 'resubmitted')->count();
-        $readyForReview = Pendaftar::where('registration_status', 'submitted')
-            ->where(fn ($query) => $query->whereNull('correction_status')->orWhere('correction_status', 'resubmitted'))
-            ->count();
+        // Keep login responsive on Railway: the old dashboard issued a
+        // separate database query for every status.
+        $applicantStats = Pendaftar::query()->selectRaw(<<<'SQL'
+            COUNT(*) as total,
+            SUM(registration_status = 'submitted') as submitted,
+            SUM(registration_status = 'verified') as verified,
+            SUM(registration_status = 'accepted') as accepted,
+            SUM(registration_status = 'rejected') as rejected,
+            SUM(registration_status = 're_registered') as re_registered,
+            SUM(registration_status = 'draft') as draft,
+            SUM(correction_status = 'requested') as needs_correction,
+            SUM(correction_status = 'resubmitted') as corrections_returned,
+            SUM(registration_status = 'submitted' AND (correction_status IS NULL OR correction_status = 'resubmitted')) as ready_for_review
+        SQL)->first();
+
+        $totalPendaftar = (int) ($applicantStats?->total ?? 0);
+        $submitted = (int) ($applicantStats?->submitted ?? 0);
+        $verified = (int) ($applicantStats?->verified ?? 0);
+        $accepted = (int) ($applicantStats?->accepted ?? 0);
+        $rejected = (int) ($applicantStats?->rejected ?? 0);
+        $reRegistered = (int) ($applicantStats?->re_registered ?? 0);
+        $draft = (int) ($applicantStats?->draft ?? 0);
+        $needsCorrection = (int) ($applicantStats?->needs_correction ?? 0);
+        $correctionsReturned = (int) ($applicantStats?->corrections_returned ?? 0);
+        $readyForReview = (int) ($applicantStats?->ready_for_review ?? 0);
 
         $activeCbtSessions = CbtAccessSession::where('status', 'open')
             ->whereNull('closed_at')
@@ -45,17 +58,28 @@ class DashboardController extends Controller
             ->latest('visited_at')
             ->take(5)
             ->get();
-        $activityChart = collect(range(11, 0))->map(function ($monthsAgo) {
+        $chartStart = Carbon::today()->subMonths(11)->startOfMonth();
+        $visitCounts = KunjunganPendaftar::query()
+            ->where('visited_at', '>=', $chartStart)
+            ->selectRaw("DATE_FORMAT(visited_at, '%Y-%m') as period, COUNT(*) as total")
+            ->groupBy('period')
+            ->pluck('total', 'period');
+        $applicantCounts = Pendaftar::query()
+            ->where('created_at', '>=', $chartStart)
+            ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as period, COUNT(*) as total")
+            ->groupBy('period')
+            ->pluck('total', 'period');
+
+        $activityChart = collect(range(11, 0))->map(function ($monthsAgo) use ($visitCounts, $applicantCounts) {
             $date = Carbon::today()->subMonths($monthsAgo);
-            $start = $date->copy()->startOfMonth();
-            $end = $date->copy()->endOfMonth();
             $monthNames = [1 => 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+            $period = $date->format('Y-m');
 
             return [
                 'label' => $monthNames[(int) $date->format('n')],
                 'year' => $date->format('Y'),
-                'visits' => KunjunganPendaftar::whereBetween('visited_at', [$start, $end])->count(),
-                'applicants' => Pendaftar::whereBetween('created_at', [$start, $end])->count(),
+                'visits' => (int) ($visitCounts->get($period) ?? 0),
+                'applicants' => (int) ($applicantCounts->get($period) ?? 0),
             ];
         });
 
