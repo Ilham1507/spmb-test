@@ -6,14 +6,15 @@
 
 @section('content')
 <div x-data="{ editId: null }" class="space-y-4">
-    <section class="admin-card bg-white">
-        <form method="GET" action="{{ route('admin.siswa.index') }}" class="flex flex-col gap-2 md:flex-row">
+    <section class="admin-card flex flex-col gap-3 bg-white md:flex-row md:items-center md:justify-between">
+        <form method="GET" action="{{ route('admin.siswa.index') }}" class="flex min-w-0 flex-1 flex-col gap-2 md:flex-row">
             <x-list-search placeholder="Cari nama, WhatsApp, NISN, NIK, atau nomor pendaftaran" class="min-w-0 flex-1" />
             <button type="submit" class="admin-primary-button bg-emerald-600 hover:bg-emerald-700">Cari</button>
             @if(request('search'))
                 <a href="{{ route('admin.siswa.index') }}" class="inline-flex min-h-[42px] items-center justify-center rounded-xl bg-slate-100 px-4 text-sm font-black text-slate-600 hover:bg-slate-200">Reset</a>
             @endif
         </form>
+        <x-per-page-pagination :paginator="$students" toolbar />
     </section>
 
     <section class="admin-card overflow-hidden bg-white p-0">
@@ -90,7 +91,6 @@
             </table>
         </div>
 
-        <x-per-page-pagination :paginator="$students" />
     </section>
 
     @foreach($students as $student)

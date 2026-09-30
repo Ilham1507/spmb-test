@@ -1,4 +1,4 @@
-@props(['paginator', 'static' => false, 'forceDown' => false])
+@props(['paginator', 'static' => false, 'toolbar' => false, 'forceDown' => false])
 
 @php
     $pageName = $paginator->getPageName();
@@ -7,7 +7,7 @@
     $selected = \App\Support\Pagination::perPage($paginator->perPage());
 @endphp
 
-<div class="spmb-pagination flex flex-col gap-3 border-b border-slate-100 bg-white px-3 py-3 sm:flex-row sm:items-center sm:justify-between" @if($static) data-static-pagination @endif style="--spmb-pagination-accent: {{ $accent }}">
+<div class="spmb-pagination flex flex-col gap-3 border-b border-slate-100 bg-white px-3 py-3 sm:flex-row sm:items-center sm:justify-between" @if($static) data-static-pagination @endif @if($toolbar) data-toolbar-pagination @endif style="--spmb-pagination-accent: {{ $accent }}">
     <form method="GET" class="flex items-center gap-2 text-xs font-bold text-slate-500" @form-select-changed.window="if ($event.detail.name === 'per_page') $nextTick(() => $el.requestSubmit())">
         @foreach($query as $key => $value)
             @if(is_scalar($value))
@@ -35,11 +35,14 @@
     @media (max-width: 640px) { .spmb-pagination-links nav { justify-content: flex-start; } }
     [data-static-pagination] { border: 0; background: transparent; padding: 0; flex: 0 0 auto; }
     [data-static-pagination] .spmb-pagination-links { display: none; }
+    [data-toolbar-pagination] { border: 0; background: transparent; padding: 0; flex: 0 0 auto; }
+    [data-toolbar-pagination] .spmb-pagination-links nav { justify-content: flex-end; }
+    @media (max-width: 640px) { [data-toolbar-pagination] { width: 100%; } [data-toolbar-pagination] .spmb-pagination-links nav { justify-content: flex-start; } }
 </style>
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.spmb-pagination').forEach((pagination) => {
-            if (pagination.hasAttribute('data-static-pagination')) return;
+            if (pagination.hasAttribute('data-static-pagination') || pagination.hasAttribute('data-toolbar-pagination')) return;
             if (pagination.closest('.md\\:hidden')) return;
             let container = pagination.parentElement;
 

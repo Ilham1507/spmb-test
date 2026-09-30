@@ -6,14 +6,15 @@
 
 @section('content')
 <div x-data="{ addOpen: {{ old('_modal') === 'add' || ($errors->any() && old('_modal') !== 'edit') ? 'true' : 'false' }}, editId: {{ old('_modal') === 'edit' ? (int) old('user_id') : 'null' }} }">
-    <section class="admin-card bg-white">
-        <form method="GET" action="{{ route('admin.users.index') }}" class="flex flex-col gap-2 md:flex-row">
+    <section class="admin-card flex flex-col gap-3 bg-white md:flex-row md:items-center md:justify-between">
+        <form method="GET" action="{{ route('admin.users.index') }}" class="flex min-w-0 flex-1 flex-col gap-2 md:flex-row">
             <x-list-search placeholder="Cari nama atau nomor WhatsApp staf" class="min-w-0 flex-1" />
             <button type="submit" class="admin-primary-button bg-blue-700 hover:bg-blue-800">Cari</button>
             @if(request('search'))
                 <a href="{{ route('admin.users.index') }}" class="inline-flex min-h-[42px] items-center justify-center rounded-xl bg-slate-100 px-4 text-sm font-black text-slate-600 hover:bg-slate-200">Reset</a>
             @endif
         </form>
+        <x-per-page-pagination :paginator="$users" toolbar />
     </section>
 
     <section class="admin-card overflow-hidden bg-white p-0">
@@ -83,7 +84,6 @@
             </table>
         </div>
 
-        <x-per-page-pagination :paginator="$users" />
     </section>
 
     <template x-teleport="body"><div x-cloak x-show="addOpen" x-transition.opacity class="fixed inset-0 z-[2147483000] flex items-center justify-center bg-slate-950/45 p-3 sm:p-4 backdrop-blur-sm" @keydown.escape.window="addOpen=false">
