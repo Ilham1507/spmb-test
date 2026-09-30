@@ -42,7 +42,8 @@ php artisan migrate --force --path=database/migrations/2026_09_29_120000_add_soc
 php artisan migrate --force --path=database/migrations/2026_09_29_120000_reset_demo_participant_data.php
 php artisan migrate --force --path=database/migrations/2026_09_30_120000_delete_confirmed_ilham_participant_data.php
 php artisan migrate --force --path=database/migrations/2026_09_30_155000_delete_ilham_payment_data.php
-php artisan migrate --force --path=database/migrations/2026_09_30_160000_reset_all_payment_data_for_reentry.php
+# Payment-data reset is intentionally not run during application startup.
+# A failed bulk reset must never make the entire public SPMB service unavailable.
 # The school finder depends on this SMP/MTs reference data. It is idempotent
 # (matched by NPSN), so it can safely run again whenever Railway restarts.
 php artisan db:seed --force --class=Database\\Seeders\\CileungsiSmpSeeder
