@@ -47,7 +47,7 @@
                                 <input id="payment-candidate-search" type="search" x-model="search" @input="selectedKey=''" class="admin-input mt-2" placeholder="Ketik nama atau nomor WhatsApp pendaftar" autocomplete="off">
                                 <p class="mt-2 text-xs font-semibold text-slate-500" x-show="!search.trim()">Ketik nama atau nomor WhatsApp untuk mencari pendaftar.</p>
 
-                                <div x-cloak x-show="search.trim().length" class="mt-2 max-h-60 overflow-y-auto rounded-2xl border border-violet-100 bg-white p-1.5 shadow-lg shadow-violet-100/60">
+                                <div x-cloak x-show="filteredCandidates.length > 0" class="mt-2 max-h-60 overflow-y-auto rounded-2xl border border-violet-100 bg-white p-1.5 shadow-lg shadow-violet-100/60">
                                     <template x-for="candidate in filteredCandidates" :key="candidate.key">
                                         <button type="button" @click="selectCandidate(candidate)" class="flex w-full items-center justify-between gap-3 rounded-xl px-3 py-3 text-left transition hover:bg-violet-50">
                                             <span>
