@@ -32,7 +32,6 @@ class UserController extends Controller
         $request->merge(['phone' => $this->normalizePhone((string) $request->input('phone'))]);
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:150'],
-            'email' => ['nullable', 'email', 'max:150', 'unique:pengguna,email'],
             'phone' => ['required', 'regex:/^08[0-9]{8,13}$/', 'unique:pengguna,phone'],
             'password' => ['required', 'string', 'min:8'],
             'role' => ['required', Rule::in(['panitia', 'bendahara', 'kepala_sekolah'])],
@@ -45,7 +44,6 @@ class UserController extends Controller
 
         User::create([
             'name' => $validated['name'],
-            'email' => $validated['email'] ?? null,
             'phone' => $validated['phone'],
             'password' => Hash::make($validated['password']),
             'role_id' => $role->id,
@@ -61,7 +59,6 @@ class UserController extends Controller
         $request->merge(['phone' => $this->normalizePhone((string) $request->input('phone'))]);
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:150'],
-            'email' => ['nullable', 'email', 'max:150', Rule::unique('pengguna', 'email')->ignore($user->id)],
             'phone' => ['required', 'regex:/^08[0-9]{8,13}$/', Rule::unique('pengguna', 'phone')->ignore($user->id)],
             'role' => ['required', Rule::in(['panitia', 'bendahara', 'kepala_sekolah'])],
             'password' => ['nullable', 'string', 'min:8'],
@@ -79,7 +76,6 @@ class UserController extends Controller
 
         $data = [
             'name' => $validated['name'],
-            'email' => $validated['email'] ?? null,
             'role_id' => $role->id,
         ];
 

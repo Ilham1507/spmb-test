@@ -25,7 +25,6 @@
                     <tr>
                         <th>Nama</th>
                         <th>WhatsApp Login</th>
-                        <th>Email</th>
                         <th>Akses</th>
                         <th class="text-right">Aksi</th>
                     </tr>
@@ -57,7 +56,6 @@
                                 <span class="font-bold text-slate-700">{{ $user->phone ?: '-' }}</span>
                                 @if(!$user->phone)<p class="mt-1 text-[10px] font-bold text-amber-600">Belum bisa login dengan WhatsApp</p>@endif
                             </td>
-                            <td class="text-xs font-semibold text-slate-500">{{ $user->email ?: '-' }}</td>
                             <td><span class="rounded-full px-2.5 py-1 text-xs font-black {{ $roleClass }}">{{ $roleLabel }}</span></td>
                             <td>
                                 <div class="flex justify-end gap-2">
@@ -80,7 +78,7 @@
         @endif
     </section>
 
-    <div x-cloak x-show="addOpen" x-transition.opacity class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/45 p-3 sm:p-4 backdrop-blur-sm" @keydown.escape.window="addOpen=false">
+    <template x-teleport="body"><div x-cloak x-show="addOpen" x-transition.opacity class="fixed inset-0 z-[2147483000] flex items-center justify-center bg-slate-950/45 p-3 sm:p-4 backdrop-blur-sm" @keydown.escape.window="addOpen=false">
         <div @click.outside="addOpen=false" class="user-account-dialog flex max-h-[calc(100dvh-24px)] w-full max-w-xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl sm:max-h-[calc(100dvh-32px)]">
             <div class="shrink-0 flex items-start justify-between border-b border-slate-100 p-5">
                 <div>
@@ -108,12 +106,6 @@
                 </div>
 
                 <div>
-                    <label class="admin-label">Email <span class="font-medium text-slate-400">(opsional)</span></label>
-                    <input type="email" name="email" value="{{ old('email') }}" class="admin-input" placeholder="nama@smk.sch.id">
-                    @error('email')<p class="admin-error">{{ $message }}</p>@enderror
-                </div>
-
-                <div>
                     <label class="admin-label">Akses *</label>
                     <select name="role" required class="admin-input">
                         <option value="panitia" @selected(old('role', 'panitia') === 'panitia')>Panitia</option>
@@ -135,10 +127,10 @@
                 </div>
             </form>
         </div>
-    </div>
+    </div></template>
 
     @foreach($users as $user)
-        <div x-cloak x-show="editId==={{ $user->id }}" x-transition.opacity class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/45 p-3 sm:p-4 backdrop-blur-sm" @keydown.escape.window="editId=null">
+        <template x-teleport="body"><div x-cloak x-show="editId==={{ $user->id }}" x-transition.opacity class="fixed inset-0 z-[2147483000] flex items-center justify-center bg-slate-950/45 p-3 sm:p-4 backdrop-blur-sm" @keydown.escape.window="editId=null">
             <div @click.outside="editId=null" class="user-account-dialog flex max-h-[calc(100dvh-24px)] w-full max-w-xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl sm:max-h-[calc(100dvh-32px)]">
                 <div class="shrink-0 flex items-start justify-between border-b border-slate-100 p-5">
                     <div>
@@ -168,12 +160,6 @@
                     </div>
 
                     <div>
-                        <label class="admin-label">Email <span class="font-medium text-slate-400">(opsional)</span></label>
-                        <input type="email" name="email" value="{{ old('user_id') == $user->id ? old('email', $user->email) : $user->email }}" class="admin-input" placeholder="nama@smk.sch.id">
-                        @if(old('user_id') == $user->id) @error('email')<p class="admin-error">{{ $message }}</p>@enderror @endif
-                    </div>
-
-                    <div>
                         <label class="admin-label">Akses *</label>
                         @php $selectedRole = old('user_id') == $user->id ? old('role', $user->role?->name) : $user->role?->name; @endphp
                         <select name="role" required class="admin-input">
@@ -196,7 +182,7 @@
                     </div>
                 </form>
             </div>
-        </div>
+        </div></template>
     @endforeach
 </div>
 @endsection
