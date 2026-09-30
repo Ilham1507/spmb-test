@@ -319,8 +319,17 @@ class PembayaranController extends Controller
         if ($transaction->status === 'verified') {
             $pdfUrl = URL::temporarySignedRoute('invoice.public.pdf', now()->addMinutes(30), ['transaksi' => $transaction->id]);
             if ($this->isRegistrationFee($transaction)) {
-                // A document caption is rendered as one WhatsApp bubble with the PDF.
-                $whatsapp->sendDocument((string) $phone, $pdfUrl, 'Bukti Pembayaran SPMB - '.($transaction->tagihan?->pendaftar?->registration_number ?: $transaction->id).'.pdf', $message);
+                // A PDF attachment depends on the Waslah media endpoint. Do
+                // not let a media failure silence the student's approval chat.
+                try {
+                    $whatsapp->sendDocument((string) $phone, $pdfUrl, 'Bukti Pembayaran SPMB - '.($transaction->tagihan?->pendaftar?->registration_number ?: $transaction->id).'.pdf', $message);
+                } catch (Throwable $exception) {
+                    Log::warning('Lampiran invoice WhatsApp gagal; mengirim notifikasi teks sebagai fallback.', [
+                        'transaction_id' => $transaction->id,
+                        'error' => $exception->getMessage(),
+                    ]);
+                    $whatsapp->send((string) $phone, $message);
+                }
                 return;
             }
 

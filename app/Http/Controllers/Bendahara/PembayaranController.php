@@ -531,7 +531,15 @@ Silakan unggah ulang bukti pembayaran yang benar melalui sistem.";
 
         if ($transaction->status === 'verified' && $isRegistrationFee) {
             $pdfUrl = URL::temporarySignedRoute('invoice.public.pdf', now()->addMinutes(30), ['transaksi' => $transaction->id]);
-            $whatsapp->sendDocument((string) $phone, $pdfUrl, 'Bukti Pembayaran SPMB - '.($transaction->tagihan?->pendaftar?->registration_number ?: $transaction->id).'.pdf', $message);
+            try {
+                $whatsapp->sendDocument((string) $phone, $pdfUrl, 'Bukti Pembayaran SPMB - '.($transaction->tagihan?->pendaftar?->registration_number ?: $transaction->id).'.pdf', $message);
+            } catch (Throwable $exception) {
+                Log::warning('Lampiran invoice WhatsApp gagal; mengirim notifikasi teks sebagai fallback.', [
+                    'transaction_id' => $transaction->id,
+                    'error' => $exception->getMessage(),
+                ]);
+                $whatsapp->send((string) $phone, $message);
+            }
             return;
         }
 
