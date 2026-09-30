@@ -390,15 +390,17 @@ class PembayaranController extends Controller
             } else {
                 $message = \App\Support\WhatsappGreeting::opening()."\n\n"
                     ."🎉 Pembayaran daftar ulang SPMB atas nama {$name} telah disetujui oleh {$approver}. 🎉\n\n"
-                    ."Pembayaran daftar ulang melalui SPMB hanya satu kali. Pembayaran berikutnya dilakukan langsung di sekolah setiap hari Jumat dan akan dicatat oleh panitia.\n\n"
+                    ."Pembayaran daftar ulang melalui SPMB hanya satu kali. Pembayaran berikutnya dilakukan langsung di sekolah setiap Selasa dan Jumat pukul 07.30–14.30 WIB dan akan dicatat oleh panitia.\n\n"
                     ."Status pembayaran dapat dipantau di: ".route('login')."\n\n"
                     ."Terima kasih 🙏🏻";
             }
         } else {
             $reason = $transaction->notes ? "\nCatatan: {$transaction->notes}" : '';
+            $paymentType = $transaction->tagihan?->jenisTagihan?->name ?? 'SPMB';
             $message = \App\Support\WhatsappGreeting::opening()."\n\n"
-                ."Pembayaran formulir SPMB atas nama {$name} belum dapat disetujui oleh {$approver}.{$reason}\n\n"
-                ."Silakan periksa kembali dan kirim bukti pembayaran yang benar melalui sistem.";
+                ."Bukti pembayaran {$paymentType} atas nama {$name} belum dapat disetujui oleh {$approver}.{$reason}\n\n"
+                ."Silakan unggah ulang bukti transfer yang benar melalui menu Pembayaran:\n".route('login')."\n\n"
+                ."Setelah dikirim ulang, petugas akan menerima notifikasi WhatsApp untuk memeriksa bukti tersebut.";
         }
 
         if ($transaction->status === 'verified') {

@@ -57,7 +57,7 @@ class PaymentReceiptNotifier
      * from send(): the payment is still pending and must not be described as
      * verified to either staff or the student.
      */
-    public function notifyApprovalNeeded(TransaksiPembayaran $transaction): bool
+    public function notifyApprovalNeeded(TransaksiPembayaran $transaction, bool $isResubmission = false): bool
     {
         try {
             $transaction->loadMissing([
@@ -82,7 +82,9 @@ class PaymentReceiptNotifier
 
             foreach ($approvalTargets as $target) {
                 $this->whatsapp->send($target['phone'], \App\Support\WhatsappGreeting::opening()."\n\n"
-                    ."Bukti transfer baru menunggu approval.\n\n"
+                    .($isResubmission
+                        ? "Bukti transfer ulang menunggu approval.\n\n"
+                        : "Bukti transfer baru menunggu approval.\n\n")
                     ."Siswa: {$student}\nNo. pendaftaran: {$registrationNumber}\nBiaya: {$feeNames}\nNominal: Rp {$amount}\nMetode: Transfer\nPenerima kunjungan: {$receiver}\n\n"
                     ."Silakan periksa bukti dan setujui pembayaran di:\n{$target['url']}");
             }

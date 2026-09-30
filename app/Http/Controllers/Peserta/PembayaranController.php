@@ -141,7 +141,7 @@ class PembayaranController extends Controller
                 ->with('warning', 'Konfirmasi pembayaran kamu sudah dikirim dan sedang dicek panitia. Tunggu sampai diverifikasi, ya.');
         }
 
-        if ($this->isReRegistrationFee($tagihan) && $tagihan->transaksi()->exists()) {
+        if ($this->isReRegistrationFee($tagihan) && $tagihan->transaksi()->where('status', 'verified')->exists()) {
             return redirect()->route('peserta.pembayaran')
                 ->with('warning', 'Pembayaran DU melalui SPMB hanya satu kali. Pembayaran berikutnya dilakukan langsung di sekolah setiap Selasa dan Jumat pukul 07.30–14.30 WIB.');
         }
@@ -156,9 +156,11 @@ class PembayaranController extends Controller
             'selected_items.*' => 'string|max:255',
         ]);
         $proofPath = $request->file('proof_file')->store('bukti_pembayaran', 'local');
+        $isResubmission = false;
         try {
-            $transaction = \Illuminate\Support\Facades\DB::transaction(function () use ($tagihan, $request, $proofPath) {
+            $transaction = \Illuminate\Support\Facades\DB::transaction(function () use ($tagihan, $request, $proofPath, &$isResubmission) {
                 $bill = TagihanPendaftar::lockForUpdate()->findOrFail($tagihan->id);
+                $isResubmission = $bill->transaksi()->where('status', 'rejected')->exists();
                 $quote = \App\Support\PaymentQuote::forBill(
                     $bill,
                     $request->input('selected_items'),
@@ -189,7 +191,7 @@ class PembayaranController extends Controller
         }
 
         $isReRegistrationFee = $this->isReRegistrationFee($tagihan);
-        $approvalNotificationSent = $paymentNotifier->notifyApprovalNeeded($transaction);
+        $approvalNotificationSent = $paymentNotifier->notifyApprovalNeeded($transaction, $isResubmission);
         $notificationWarning = 'Bukti pembayaran tersimpan, tetapi notifikasi WhatsApp ke petugas penerima belum terkirim. Hubungi admin untuk memeriksa koneksi WhatsApp sekolah.';
 
         if ($isReRegistrationFee) {
