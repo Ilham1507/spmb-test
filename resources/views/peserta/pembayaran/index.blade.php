@@ -32,6 +32,7 @@
             $initialSelection = old('selected_items', []);
             $isRegistrationFee = str_contains(strtolower((string) $tagihan->jenisTagihan?->name), 'formulir') || str_contains(strtolower((string) $tagihan->jenisTagihan?->name), 'pendaftaran');
             $isReRegistrationFee = str_contains(strtolower((string) $tagihan->jenisTagihan?->name), 'daftar ulang') || str_contains(strtolower((string) $tagihan->jenisTagihan?->name), 'du');
+            $hasVerifiedSystemDu = $isReRegistrationFee && $tagihan->transaksi->contains('status', 'verified');
             $activePromotion = !$paid && !$pending && !$checkout
                 ? (\App\Support\PromotionEvent::activeFor((string) $tagihan->jenisTagihan?->name, $pendaftar->id)
                     ?? collect($quote['items'])->map(fn ($item) => \App\Support\PromotionEvent::activeFor((string) $tagihan->jenisTagihan?->name, $pendaftar->id, (string) $item['name']))->filter()->first())
@@ -75,6 +76,12 @@
                 <div class="mt-4 grid gap-3 sm:grid-cols-2"><div class="rounded-xl bg-blue-50 p-3"><p class="text-sm text-blue-800">Status</p><p class="mt-1 font-bold text-blue-900">Lunas</p></div><div class="rounded-xl bg-slate-50 p-3"><p class="text-sm text-slate-500">Dibayar</p><p class="mt-1 text-xl font-bold text-slate-900">Rp {{ number_format($tagihan->paid_amount, 0, ',', '.') }}</p></div></div>
             @elseif($pending)
                 <p class="mt-4 text-sm text-slate-600">{{ $isReRegistrationFee ? 'Pembayaran daftar ulang sedang diperiksa petugas.' : 'Pembayaran sudah tercatat. Kamu tidak perlu melakukan pembayaran lagi. Formulir akan terbuka setelah pemeriksaan panitia selesai.' }}</p>
+            @elseif($hasVerifiedSystemDu)
+                <p class="mt-4 text-2xl font-bold text-slate-900">Sisa Rp {{ number_format($tagihan->remaining_amount, 0, ',', '.') }}</p>
+                <div class="mt-4 rounded-2xl border border-teal-200 bg-teal-50 px-4 py-4 text-sm leading-6 text-teal-950">
+                    <p class="font-black">Pembayaran berikutnya tidak dilakukan melalui sistem.</p>
+                    <p class="mt-1">Silakan lanjutkan pembayaran langsung di BMT PCM Cileungsi, Kampus E SMK Muhammadiyah 4 Cileungsi, setiap Selasa dan Jumat pukul 07.30–14.30 WIB.</p>
+                </div>
             @elseif($checkout)
                 <p class="mt-4 text-2xl font-bold text-slate-900">Rp {{ number_format($checkout->amount, 0, ',', '.') }}</p>
                 <div class="mt-4 flex flex-wrap gap-2">

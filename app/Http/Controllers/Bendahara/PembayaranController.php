@@ -239,6 +239,8 @@ class PembayaranController extends Controller
 
     public function verify(Request $request, TransaksiPembayaran $transaksi, WhatsappCloudApiService $whatsapp, \App\Services\PaymentReceiptNotifier $receiptNotifier)
     {
+        abort_unless(Auth::user()?->hasRole('admin') || (Auth::user()?->hasRole('bendahara') && $request->input('status') === 'rejected'), 403);
+
         $validated = $request->validate([
             'status' => ['required', 'in:verified,rejected'],
             'notes' => ['nullable', 'string', 'max:255'],
@@ -258,9 +260,13 @@ class PembayaranController extends Controller
                 throw \Illuminate\Validation\ValidationException::withMessages(['payment' => 'Nominal melebihi sisa tagihan. Cocokkan transaksi sebelum menyetujui.']);
             }
             if ($validated['status'] === 'verified' && $this->isReRegistrationFee($bill)) {
-                // Approval uses the amount received. Fee-detail allocation is
-                // intentionally not required for partial DU payments.
-                $transaction->update(['selected_items' => null]);
+                $quote = \App\Support\PaymentQuote::forBill($bill, $validated['selected_items'] ?? [], (int) $transaction->amount);
+                if (! $quote['valid_selection']) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'selected_items' => 'Pilih rincian biaya yang terkait dengan pembayaran ini. Total rincian yang dipilih minimal sebesar nominal transfer.',
+                    ]);
+                }
+                $transaction->update(['selected_items' => $quote['selected_items']]);
             }
             $transaction->update([
                 'status' => $validated['status'], 'verified_by' => Auth::id(), 'verified_at' => now(),
@@ -297,10 +303,13 @@ class PembayaranController extends Controller
             : 'Bukti pembayaran ditolak. Notifikasi WhatsApp terkirim agar siswa mengirim ulang bukti.');
     }
 
-    /** Final handover after approval. Allocation has already been recorded by the approver. */
+    /**
+     * Bendahara may receive a pending transfer directly. That single action
+     * verifies it, records the receipt, reduces the bill, and notifies the student.
+     */
     public function receive(Request $request, TransaksiPembayaran $transaksi, WhatsappCloudApiService $whatsapp, \App\Services\PaymentReceiptNotifier $receiptNotifier, \App\Services\InvoiceEmailNotifier $invoiceEmail)
     {
-        abort_unless(Auth::user()?->hasRole('bendahara') || Auth::user()?->hasRole('admin'), 403);
+        abort_unless(Auth::user()?->hasRole('bendahara'), 403);
 
         $request->validate([
             'notes' => ['nullable', 'string', 'max:1000'],
@@ -310,11 +319,28 @@ class PembayaranController extends Controller
             $transaction = TransaksiPembayaran::lockForUpdate()->findOrFail($transaksi->id);
             $bill = TagihanPendaftar::with('jenisTagihan')->lockForUpdate()->findOrFail($transaction->bill_id);
 
-            if ($transaction->status !== 'verified') {
-                throw \Illuminate\Validation\ValidationException::withMessages(['payment' => 'Pembayaran harus disetujui oleh petugas terlebih dahulu.']);
-            }
             if ($transaction->treasurer_received_at) {
                 throw \Illuminate\Validation\ValidationException::withMessages(['payment' => 'Pembayaran ini sudah diterima bendahara.']);
+            }
+            if ($transaction->status === 'rejected') {
+                throw \Illuminate\Validation\ValidationException::withMessages(['payment' => 'Pembayaran ini sudah ditolak dan tidak dapat diterima.']);
+            }
+            if ($transaction->status === 'pending') {
+                if ((float) $transaction->amount > (float) $bill->remaining_amount) {
+                    throw \Illuminate\Validation\ValidationException::withMessages(['payment' => 'Nominal melebihi sisa tagihan. Cocokkan transaksi sebelum diterima.']);
+                }
+
+                // Bendahara is the final financial receiver, so no separate
+                // panitia/admin approval is needed for this direct path.
+                $transaction->update([
+                    'status' => 'verified',
+                    'verified_by' => Auth::id(),
+                    'verified_at' => now(),
+                ]);
+                \App\Support\VerifiedPayment::apply($bill, $transaction);
+            }
+            if ($transaction->status !== 'verified') {
+                throw \Illuminate\Validation\ValidationException::withMessages(['payment' => 'Status pembayaran tidak dapat diterima.']);
             }
 
             $transaction->update([
@@ -334,7 +360,7 @@ class PembayaranController extends Controller
         }
         $invoiceEmail->send($result);
 
-        return back()->with('success', 'Pembayaran diterima oleh bendahara. Invoice BMT sekarang dapat dicetak.');
+        return back()->with('success', 'Pembayaran diterima langsung oleh bendahara. Tagihan diperbarui dan notifikasi WhatsApp siswa telah dikirim.');
     }
 
     public function receipt(TransaksiPembayaran $transaksi)
@@ -551,11 +577,15 @@ Catatan: {$transaction->notes}" : '';
         $type = $transaction->tagihan?->jenisTagihan?->name ?? 'Pembayaran SPMB';
         $receivedBy = $transaction->treasurerReceiver?->name ?? Auth::user()?->name ?? 'bendahara sekolah';
         $amount = number_format((float) $transaction->amount, 0, ',', '.');
+        $receivedDirectly = $transaction->verified_by && $transaction->verified_by === $transaction->treasurer_received_by;
+        $approvalLine = $receivedDirectly
+            ? 'Pembayaran diterima dan disetujui langsung oleh bendahara.'
+            : 'Disetujui petugas: '.($transaction->verifier?->name ?? '-').'.';
         $message = \App\Support\WhatsappGreeting::opening()."\n\n"
             ."Pembayaran {$type} atas nama {$name} sebesar Rp {$amount} sudah diterima oleh bendahara {$receivedBy}.\n\n"
-            ."Disetujui petugas: ".($transaction->verifier?->name ?? '-')."\n"
+            .$approvalLine."\n"
             ."Invoice dapat dilihat dari akun siswa atau email terverifikasi.\n\n"
-            ."Untuk pembayaran lanjutan, silakan ke BMT PCM Cileungsi setiap Senin dan Selasa, Kampus E SMK Muhammadiyah 4 Cileungsi, pukul 07.30–14.30.";
+            ."Untuk pembayaran lanjutan, silakan ke BMT PCM Cileungsi setiap Selasa dan Jumat, Kampus E SMK Muhammadiyah 4 Cileungsi, pukul 07.30–14.30 WIB.";
         // Receipt text is the reliable first delivery. The PDF is optional
         // and must never suppress the notification when media upload fails.
         $whatsapp->send($phone, $message);

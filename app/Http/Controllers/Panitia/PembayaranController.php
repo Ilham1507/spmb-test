@@ -296,10 +296,16 @@ class PembayaranController extends Controller
 
             if ($validated['status'] === 'verified' && $bill) {
                 if ($this->isReRegistrationBill($bill)) {
-                    // Approval follows the transfer amount itself. It must
-                    // not force staff to allocate the payment to individual
-                    // fee details; the remaining bill stays available.
-                    $transaction->update(['selected_items' => null]);
+                    $quote = \App\Support\PaymentQuote::forBill($bill, $validated['selected_items'] ?? [], (int) $transaction->amount);
+                    if (! $quote['valid_selection']) {
+                        throw \Illuminate\Validation\ValidationException::withMessages([
+                            'selected_items' => 'Pilih rincian biaya yang terkait dengan pembayaran ini. Total rincian yang dipilih minimal sebesar nominal transfer.',
+                        ]);
+                    }
+                    // The selected details only explain the payment. The bill
+                    // is still reduced by the transfer amount, not by the
+                    // total of every selected detail.
+                    $transaction->update(['selected_items' => $quote['selected_items']]);
                 }
 
                 \App\Support\VerifiedPayment::apply($bill, $transaction);
