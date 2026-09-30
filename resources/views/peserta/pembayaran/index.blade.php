@@ -96,7 +96,7 @@
                 @php($settledItems = $summary['items']->where('status', 'Lunas'))
                 <div class="mt-4 grid gap-3 sm:grid-cols-3"><div class="rounded-xl bg-slate-50 p-3"><p class="text-sm text-slate-500">Total</p><p class="mt-1 text-xl font-bold text-slate-900">Rp {{ number_format($tagihan->total_amount, 0, ',', '.') }}</p></div><div class="rounded-xl bg-blue-50 p-3"><p class="text-sm text-blue-800">Terbayar</p><p class="mt-1 font-bold text-blue-900">{{ $settledItems->pluck('name')->join(', ') ?: '—' }}</p></div><div class="rounded-xl bg-sky-50 p-3"><p class="text-sm text-sky-800">Sisa</p><p class="mt-1 text-xl font-bold text-sky-900">Rp {{ number_format($payableTotal, 0, ',', '.') }}</p></div></div>
                 <button type="button" @click="selectionOpen = true" class="btn-primary mt-4">Bayar</button>
-                <div x-cloak x-show="selectionOpen" x-transition.opacity @keydown.escape.window="selectionOpen = false" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/50 p-4" @click.self="selectionOpen = false">
+                <div x-cloak x-show="selectionOpen" x-transition.opacity @keydown.escape.window="selectionOpen = false" class="fixed inset-0 z-[2147483647] flex items-center justify-center bg-slate-950/50 p-4" @click.self="selectionOpen = false">
                 <section role="dialog" aria-modal="true" aria-label="Pilih biaya pembayaran" class="flex min-h-0 w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white shadow-2xl" style="height: calc(100% - 2rem); max-height: 42rem;">
                         <div class="flex items-center justify-between border-b border-slate-100 px-5 py-4"><h4 class="font-bold text-slate-900">Bayar daftar ulang</h4><button type="button" @click="selectionOpen = false" class="rounded-lg px-3 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100">Tutup</button></div>
                         <div class="overflow-y-auto p-5">
@@ -164,7 +164,7 @@
             @endif
             <button type="button" @click="historyOpen = true" class="ml-5 mt-5 border-t border-slate-100 pt-3 text-sm font-semibold text-sky-800">{{ $quote['requires_selection'] ? 'Rincian' : 'Rincian & riwayat' }}</button>
 
-            <div x-cloak x-show="historyOpen" x-transition.opacity @keydown.escape.window="historyOpen = false" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/50 p-4" @click.self="historyOpen = false">
+            <div x-cloak x-show="historyOpen" x-transition.opacity @keydown.escape.window="historyOpen = false" class="fixed inset-0 z-[2147483647] flex items-center justify-center bg-slate-950/50 p-4" @click.self="historyOpen = false">
                 <section role="dialog" aria-modal="true" aria-label="Rincian dan riwayat pembayaran" class="flex min-h-0 w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white shadow-2xl" style="height: calc(100% - 2rem); max-height: 42rem;">
                     <div class="flex shrink-0 items-center justify-between border-b border-slate-100 px-5 py-4"><h4 class="font-bold text-slate-900">{{ $tagihan->jenisTagihan?->name ?? 'Tagihan sekolah' }}</h4><button type="button" @click="historyOpen = false" class="rounded-lg px-3 py-1 text-sm font-bold text-slate-600 hover:bg-slate-100">Tutup</button></div>
                     <div class="overflow-y-auto p-5">
@@ -205,7 +205,7 @@
             </div>
 
             @if($checkout && $checkout->status === 'pending')
-                <div x-cloak x-show="cancelOpen" x-transition.opacity @keydown.escape.window="cancelOpen = false" class="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/50 p-4" @click.self="cancelOpen = false">
+                <div x-cloak x-show="cancelOpen" x-transition.opacity @keydown.escape.window="cancelOpen = false" class="fixed inset-0 z-[2147483647] flex items-center justify-center bg-slate-950/50 p-4" @click.self="cancelOpen = false">
                     <section role="dialog" aria-modal="true" aria-label="Batalkan pembayaran" class="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl">
                         <h4 class="text-lg font-bold text-slate-900">Batalkan pembayaran?</h4>
                         <p class="mt-2 text-sm text-slate-600">VA ini tidak bisa digunakan lagi setelah dibatalkan. Kamu dapat membuat pembayaran baru nanti.</p>
