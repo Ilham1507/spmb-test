@@ -95,7 +95,7 @@
             tutorialOpen: false,
             tutorialStep: 0,
             tutorialForce: @js($forceTutorial ?? false),
-            tutorialKey: 'spmb-dashboard-tour-v13-{{ auth()->id() }}-{{ $pendaftar?->id }}',
+            tutorialKey: 'spmb-dashboard-tour-v14-{{ auth()->id() }}-{{ $pendaftar?->id }}',
             activeTarget: null,
             activeLayer: null,
             steps: [
@@ -148,7 +148,7 @@
                     const rect = spotlight.getBoundingClientRect();
                     const compactScreen = isCompactScreen();
                     if (compactScreen || rect.top < 12 || rect.bottom > window.innerHeight - 12) {
-                        target.scrollIntoView({ behavior: 'auto', block: compactScreen ? 'center' : 'center' });
+                        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     }
                 }
                 this.activeTarget = spotlight;
@@ -166,6 +166,7 @@
                         bottom: this.$refs.tourShadeBottom,
                         left: this.$refs.tourShadeLeft,
                     }, this.activeTarget);
+                    window.positionParticipantTourFocus?.(this.$refs.tourFocus, this.activeTarget);
                 }
             },
             currentStepText() {
@@ -297,6 +298,7 @@
             <div x-ref="tourShadeRight" class="fixed bg-slate-950/55 backdrop-blur-[1px]"></div>
             <div x-ref="tourShadeBottom" class="fixed bg-slate-950/55 backdrop-blur-[1px]"></div>
             <div x-ref="tourShadeLeft" class="fixed bg-slate-950/55 backdrop-blur-[1px]"></div>
+            <div x-ref="tourFocus" class="participant-tour-focus fixed z-[131]" aria-hidden="true"></div>
             <div x-ref="tourTip" @resize.window="reposition()" class="participant-page-tour-tip fixed z-[133] w-[calc(100%-2rem)] max-w-md rounded-3xl bg-white p-5 shadow-2xl sm:p-6">
                 <div class="flex items-center justify-between gap-3">
                     <p class="text-xs font-black uppercase tracking-[.16em] text-teal-700">Panduan pendaftaran</p>

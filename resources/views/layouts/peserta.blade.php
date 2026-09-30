@@ -407,6 +407,16 @@
             set(panels.left, { left: '0px', top: `${top}px`, width: `${left}px`, height: `${Math.max(0, bottom - top)}px` });
             set(panels.right, { left: `${right}px`, top: `${top}px`, width: `${Math.max(0, viewportWidth - right)}px`, height: `${Math.max(0, bottom - top)}px` });
         };
+        window.positionParticipantTourFocus = function (focus, target) {
+            if (!focus || !target) return;
+            const rect = target.getBoundingClientRect();
+            const gap = 7;
+            focus.style.left = `${Math.max(0, rect.left - gap)}px`;
+            focus.style.top = `${Math.max(0, rect.top - gap)}px`;
+            focus.style.width = `${Math.max(0, rect.width + (gap * 2))}px`;
+            focus.style.height = `${Math.max(0, rect.height + (gap * 2))}px`;
+            focus.style.opacity = '1';
+        };
         document.addEventListener('DOMContentLoaded', function () {
             const tour = document.getElementById('participant-page-tour');
             if (!tour) return;
