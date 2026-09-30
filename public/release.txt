@@ -1,1 +1,1 @@
-required-verified-email
+receipt-pdf-and-email-copy-fixed
