@@ -221,7 +221,7 @@
                 <a id="participant-primary-action" href="{{ route($nextRoute) }}{{ $nextRoute === 'peserta.pembayaran' ? '?tour=1' : '' }}" @click="tutorialOpen && finishTutorial()" class="participant-main-action inline-flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-3.5 text-sm font-black sm:w-auto">
                     {{ $nextTarget }} <span aria-hidden="true">→</span>
                 </a>
-                @if($status === 'draft' && !$visitMatchCandidate)
+                @if($status === 'draft')
                     <button type="button" @click="startTutorial()" class="text-sm font-black text-teal-700 underline decoration-teal-300 underline-offset-4">Butuh panduan? Lihat tutorial singkat</button>
                 @endif
             </div>
@@ -293,7 +293,7 @@
         </section>
     @endif
 
-@if($status === 'draft' && (!$visitMatchCandidate || ($forceTutorial ?? false)))
+@if($status === 'draft')
     <template x-teleport="body">
         <div x-cloak x-show="tutorialOpen" x-transition.opacity class="participant-action-tour fixed inset-0 z-[125]" aria-live="polite">
             <div x-ref="tourShadeTop" class="fixed bg-slate-950/55 backdrop-blur-[1px]"></div>
