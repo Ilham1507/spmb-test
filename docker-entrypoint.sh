@@ -47,6 +47,7 @@ php artisan migrate --force --path=database/migrations/2026_09_30_180000_delete_
 # normal foreign-key order, so it cannot disturb accounts or applicant data.
 php artisan migrate --force --path=database/migrations/2026_09_30_190000_reset_all_payment_data_safely.php
 php artisan migrate --force --path=database/migrations/2026_09_30_200000_ensure_manual_payment_columns.php
+php artisan migrate --force --path=database/migrations/2026_09_30_210000_delete_selected_participant_data.php
 # The school finder depends on this SMP/MTs reference data. It is idempotent
 # (matched by NPSN), so it can safely run again whenever Railway restarts.
 php artisan db:seed --force --class=Database\\Seeders\\CileungsiSmpSeeder
