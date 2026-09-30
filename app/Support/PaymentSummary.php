@@ -28,7 +28,7 @@ class PaymentSummary
 
             return [
                 'name' => $name,
-                'category' => trim((string) ($item['category'] ?? '')) ?: 'Lainnya',
+                'category' => trim((string) ($item['category'] ?? '')) ?: FeeCategory::for($name),
                 'amount' => $amount,
                 'status' => $status,
             ];

@@ -30,7 +30,13 @@ class ReRegistrationFee
             return (object) [
                 'jurusan' => $jurusan,
                 'amount' => (float) ($waveFee?->biaya_masuk ?: $jurusan->biaya_masuk ?: 0),
-                'items' => collect($waveFee?->rincian_biaya ?? [])->values(),
+                'items' => collect($waveFee?->rincian_biaya ?? [])
+                    ->map(function ($item) {
+                        $name = (string) ($item['name'] ?? '');
+                        $item['category'] = trim((string) ($item['category'] ?? '')) ?: FeeCategory::for($name);
+
+                        return $item;
+                    })->values(),
             ];
         })->values();
     }

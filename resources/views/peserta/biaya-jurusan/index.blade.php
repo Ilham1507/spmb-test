@@ -28,10 +28,7 @@
                         <div class="mt-3 space-y-3">
                             @foreach($groupedItems as $category => $items)
                                 <section class="overflow-hidden rounded-2xl border border-slate-200">
-                                    <header class="flex items-center justify-between gap-3 bg-teal-50 px-3 py-2.5"><p class="text-xs font-black uppercase tracking-wide text-teal-800">{{ $category }}</p><b class="shrink-0 text-sm text-teal-900">Rp {{ number_format($items->sum(fn ($item) => (float) ($item['amount'] ?? 0)), 0, ',', '.') }}</b></header>
-                                    <div class="divide-y divide-slate-100">
-                                        @foreach($items as $item)<div class="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 px-3 py-3 text-sm"><span class="break-words font-medium leading-snug text-slate-600">{{ $item['name'] ?? 'Biaya' }}</span><b class="whitespace-nowrap text-right text-slate-900">Rp {{ number_format((float) ($item['amount'] ?? 0), 0, ',', '.') }}</b></div>@endforeach
-                                    </div>
+                                    <div class="flex items-center justify-between gap-3 bg-teal-50 px-4 py-3"><p class="text-sm font-black text-teal-900">{{ $category }}</p><b class="shrink-0 text-base text-teal-900">Rp {{ number_format($items->sum(fn ($item) => (float) ($item['amount'] ?? 0)), 0, ',', '.') }}</b></div>
                                 </section>
                             @endforeach
                         </div>
