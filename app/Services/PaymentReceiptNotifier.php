@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\User;
 use App\Models\TransaksiPembayaran;
 use Illuminate\Support\Facades\Log;
 
@@ -68,22 +69,22 @@ class PaymentReceiptNotifier
             $bill = $transaction->tagihan;
             $applicant = $bill?->pendaftar;
             $visit = $applicant?->kunjunganPenerimaanUtama();
-            $target = trim((string) ($visit?->penerima?->phone ?: config('services.panitia.whatsapp_number')));
-            if ($target === '') {
-                throw new \RuntimeException('Nomor WhatsApp penerima kunjungan belum tersedia.');
-            }
-
             $student = $applicant?->biodata?->full_name ?? $applicant?->user?->name ?? 'Calon siswa';
             $feeNames = $this->feeSummary($transaction);
             $registrationNumber = $applicant?->registration_number ?: '-';
             $amount = number_format((float) $transaction->amount, 0, ',', '.');
             $receiver = $visit?->penerima?->name ?? 'Panitia SPMB';
-            $approvalUrl = route('panitia.pembayaran.index');
+            $approvalTargets = $this->approvalTargets($visit?->penerima?->phone);
+            if ($approvalTargets === []) {
+                throw new \RuntimeException('Nomor WhatsApp petugas approval belum tersedia.');
+            }
 
-            $this->whatsapp->send($target, \App\Support\WhatsappGreeting::opening()."\n\n"
-                ."Bukti transfer baru menunggu approval.\n\n"
-                ."Siswa: {$student}\nNo. pendaftaran: {$registrationNumber}\nBiaya: {$feeNames}\nNominal: Rp {$amount}\nMetode: Transfer\nPenerima kunjungan: {$receiver}\n\n"
-                ."Silakan periksa bukti dan setujui pembayaran di:\n{$approvalUrl}");
+            foreach ($approvalTargets as $target) {
+                $this->whatsapp->send($target['phone'], \App\Support\WhatsappGreeting::opening()."\n\n"
+                    ."Bukti transfer baru menunggu approval.\n\n"
+                    ."Siswa: {$student}\nNo. pendaftaran: {$registrationNumber}\nBiaya: {$feeNames}\nNominal: Rp {$amount}\nMetode: Transfer\nPenerima kunjungan: {$receiver}\n\n"
+                    ."Silakan periksa bukti dan setujui pembayaran di:\n{$target['url']}");
+            }
 
             return true;
         } catch (\Throwable $exception) {
@@ -119,5 +120,50 @@ class PaymentReceiptNotifier
         $paymentType = $transaction->tagihan?->jenisTagihan?->name ?? 'Tagihan sekolah';
 
         return $paymentType.' — '.$items->count().' rincian biaya terpilih';
+    }
+
+    /**
+     * Panitia, bendahara, and admin share the approval lane. A phone number
+     * appears once only, even when one user carries more than one role.
+     *
+     * @return array<int, array{phone: string, url: string}>
+     */
+    private function approvalTargets(?string $visitReceiverPhone): array
+    {
+        $targets = [];
+        $addTarget = function (?string $phone, string $route) use (&$targets): void {
+            $phone = trim((string) $phone);
+            if ($phone === '') {
+                return;
+            }
+
+            $key = preg_replace('/\D+/', '', $phone) ?: $phone;
+            $targets[$key] = ['phone' => $phone, 'url' => route($route)];
+        };
+
+        // Keep the visit receiver in the loop, even if they are not assigned
+        // one of the standard approval roles.
+        $addTarget($visitReceiverPhone, 'panitia.pembayaran.index');
+
+        User::query()
+            ->with('role')
+            ->whereHas('role', fn ($query) => $query->whereIn('name', ['panitia', 'bendahara', 'admin']))
+            ->whereNotNull('phone')
+            ->where('phone', '!=', '')
+            ->get()
+            ->each(function (User $user) use ($addTarget): void {
+                $route = match ($user->role?->name) {
+                    'bendahara' => 'bendahara.pembayaran.index',
+                    'admin' => 'admin.pembayaran.index',
+                    default => 'panitia.pembayaran.index',
+                };
+                $addTarget($user->phone, $route);
+            });
+
+        if ($targets === []) {
+            $addTarget(config('services.panitia.whatsapp_number'), 'panitia.pembayaran.index');
+        }
+
+        return array_values($targets);
     }
 }

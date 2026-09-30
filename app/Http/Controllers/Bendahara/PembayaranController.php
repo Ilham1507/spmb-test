@@ -54,7 +54,11 @@ class PembayaranController extends Controller
         $this->onlyShowReRegistrationAfterRegistrationPaid($inputBills);
         $inputBills = $inputBills->orderBy('id')->get();
 
-        return view('bendahara.pembayaran.index', compact('bills', 'inputBills', 'search', 'billStatus', 'transactionStatus'));
+        $pendingApprovals = TransaksiPembayaran::with([
+            'tagihan.jenisTagihan', 'tagihan.pendaftar.biodata', 'tagihan.pendaftar.user',
+        ])->where('status', 'pending')->latest('payment_date')->latest('id')->get();
+
+        return view('bendahara.pembayaran.index', compact('bills', 'inputBills', 'pendingApprovals', 'search', 'billStatus', 'transactionStatus'));
     }
 
     public function refreshCheckout(\App\Models\PaymentCheckout $checkout, \App\Services\PaymentCheckoutService $service)
@@ -235,8 +239,6 @@ class PembayaranController extends Controller
 
     public function verify(Request $request, TransaksiPembayaran $transaksi, WhatsappCloudApiService $whatsapp, \App\Services\PaymentReceiptNotifier $receiptNotifier)
     {
-        return back()->with('warning', 'Approval pembayaran hanya dilakukan oleh panitia. Bendahara menunggu transaksi berstatus Disetujui panitia.');
-
         $validated = $request->validate([
             'status' => ['required', 'in:verified,rejected'],
             'notes' => ['nullable', 'string', 'max:255'],
@@ -304,7 +306,7 @@ class PembayaranController extends Controller
             $bill = TagihanPendaftar::with('jenisTagihan')->lockForUpdate()->findOrFail($transaction->bill_id);
 
             if ($transaction->status !== 'verified') {
-                throw \Illuminate\Validation\ValidationException::withMessages(['payment' => 'Pembayaran harus disetujui panitia terlebih dahulu.']);
+                throw \Illuminate\Validation\ValidationException::withMessages(['payment' => 'Pembayaran harus disetujui oleh petugas terlebih dahulu.']);
             }
             if ($transaction->treasurer_received_at) {
                 throw \Illuminate\Validation\ValidationException::withMessages(['payment' => 'Pembayaran ini sudah diterima bendahara.']);
@@ -557,7 +559,7 @@ Silakan unggah ulang bukti pembayaran yang benar melalui sistem.";
         $amount = number_format((float) $transaction->amount, 0, ',', '.');
         $message = \App\Support\WhatsappGreeting::opening()."\n\n"
             ."Pembayaran {$type} atas nama {$name} sebesar Rp {$amount} sudah diterima oleh bendahara {$receivedBy}.\n\n"
-            ."Disetujui panitia: ".($transaction->verifier?->name ?? '-')."\n"
+            ."Disetujui petugas: ".($transaction->verifier?->name ?? '-')."\n"
             ."Invoice dapat dilihat dari akun siswa atau email terverifikasi.\n\n"
             ."Untuk pembayaran lanjutan, silakan ke BMT PCM Cileungsi setiap Senin dan Selasa, Kampus E SMK Muhammadiyah 4 Cileungsi, pukul 07.30–14.30.";
         // Receipt text is the reliable first delivery. The PDF is optional
