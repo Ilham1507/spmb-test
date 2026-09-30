@@ -102,7 +102,7 @@
                     @method('PATCH')
                     <input type="hidden" name="status" value="verified">
                     <div class="min-h-0 flex-1 overflow-y-auto px-6 py-4">
-                        <p class="mb-3 text-sm font-semibold text-slate-600">Centang rincian yang sesuai dengan nominal bukti transfer.</p>
+                        <p class="mb-3 text-sm font-semibold text-slate-600">Centang rincian hingga totalnya minimal sebesar nominal bukti transfer. Sistem akan membagi nominal terakhir secara otomatis bila diperlukan.</p>
                         <div class="space-y-2">
                             <template x-for="item in approvalItems" :key="item.name">
                                 <label class="flex cursor-pointer items-center justify-between gap-3 rounded-2xl border px-4 py-3 transition" :class="approvedItems.includes(item.name) ? 'border-emerald-300 bg-emerald-50' : 'border-slate-200 bg-white hover:border-emerald-200'">
@@ -113,10 +113,10 @@
                         </div>
                     </div>
                     <footer class="border-t border-slate-100 bg-white px-6 py-4">
-                        <div class="mb-3 flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3 text-sm"><span class="font-semibold text-slate-600">Total rincian dipilih</span><strong :class="approvedTotal === Number(approveAmount) ? 'text-emerald-700' : 'text-rose-700'" x-text="'Rp ' + approvedTotal.toLocaleString('id-ID')"></strong></div>
+                        <div class="mb-3 flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3 text-sm"><span class="font-semibold text-slate-600">Total rincian dipilih</span><strong :class="approvedTotal >= Number(approveAmount) ? 'text-emerald-700' : 'text-rose-700'" x-text="'Rp ' + approvedTotal.toLocaleString('id-ID')"></strong></div>
                         <div class="grid grid-cols-2 gap-3">
                             <button type="button" @click="approveOpen = false" class="rounded-xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-700 hover:bg-slate-50">Batal</button>
-                            <button type="submit" :disabled="approvedTotal !== Number(approveAmount)" class="rounded-xl bg-emerald-700 px-4 py-3 text-sm font-black text-white shadow-lg shadow-emerald-200 hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-45">Setujui pembayaran</button>
+                            <button type="submit" :disabled="approvedTotal < Number(approveAmount)" class="rounded-xl bg-emerald-700 px-4 py-3 text-sm font-black text-white shadow-lg shadow-emerald-200 hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-45">Setujui pembayaran</button>
                         </div>
                     </footer>
                 </form>
