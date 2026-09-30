@@ -95,7 +95,7 @@
             tutorialOpen: false,
             tutorialStep: 0,
             tutorialForce: @js($forceTutorial ?? false),
-            tutorialKey: 'spmb-dashboard-tour-v11-{{ auth()->id() }}-{{ $pendaftar?->id }}',
+            tutorialKey: 'spmb-dashboard-tour-v12-{{ auth()->id() }}-{{ $pendaftar?->id }}',
             activeTarget: null,
             activeLayer: null,
             steps: [
@@ -130,10 +130,14 @@
                 const step = this.steps[this.tutorialStep];
                 if (step.openProfile) {
                     window.dispatchEvent(new CustomEvent('participant-tour-open-account'));
+                    window.requestAnimationFrame(() => {
+                        const profileButton = document.querySelector('[data-participant-profile-button]');
+                        if (profileButton?.getAttribute('aria-expanded') !== 'true') profileButton?.click();
+                    });
                 } else {
                     window.dispatchEvent(new CustomEvent('participant-tour-close-account'));
                 }
-                this.$nextTick(() => window.setTimeout(() => this.activateStep(step), step.openProfile ? 180 : 0));
+                this.$nextTick(() => window.setTimeout(() => this.activateStep(step), step.openProfile ? 260 : 0));
             },
             activateStep(step) {
                 const selector = typeof step.target === 'function' ? step.target() : step.target;
