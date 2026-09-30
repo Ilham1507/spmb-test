@@ -4,6 +4,25 @@ namespace App\Support;
 
 class FeeCategory
 {
+    public static function priority(string $category): int
+    {
+        return match ($category) {
+            'Administrasi & Dokumen' => 10,
+            'Biaya Pendidikan' => 20,
+            'Seragam & Perlengkapan' => 30,
+            'Buku & Pembelajaran' => 40,
+            'Praktik & Kejuruan' => 50,
+            'Kegiatan & Kesiswaan' => 60,
+            'Asesmen & Kompetensi' => 70,
+            'Kesehatan & Perlindungan' => 80,
+            'Fasilitas & Teknologi' => 90,
+            'Transportasi & Akomodasi' => 100,
+            'Kerohanian & Sosial' => 110,
+            'Lainnya' => 999,
+            default => 500,
+        };
+    }
+
     public static function for(string $name): string
     {
         $value = strtolower($name);

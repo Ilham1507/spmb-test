@@ -20,7 +20,9 @@ body{font-size:7pt;line-height:1.15}.school-head p{color:#334155;font-size:6.2pt
     $promotionLabel = $promotionNames->isNotEmpty() ? $promotionNames->implode(', ') : 'Tidak ada potongan';
     $paymentSequence = max(1, $bill->transaksi->where('amount', '>', 0)->count());
     $paymentItems = collect($summary['items']);
-    $paymentGroups = $paymentItems->groupBy(fn ($item) => trim((string) ($item['category'] ?? '')) ?: 'Lainnya');
+    $paymentGroups = $paymentItems
+        ->groupBy(fn ($item) => trim((string) ($item['category'] ?? '')) ?: 'Lainnya')
+        ->sortBy(fn ($items, $category) => \App\Support\FeeCategory::priority($category));
 @endphp
 @if($letterheadSrc)
 <img class="letterhead" src="{{ $letterheadSrc }}" alt="Kop surat sekolah">

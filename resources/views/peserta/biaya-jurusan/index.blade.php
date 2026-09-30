@@ -15,7 +15,9 @@
         @forelse($feeOptions as $option)
             @php
                 $isSelected = (int) $pendaftar->major_choice_1 === (int) $option->jurusan->id;
-                $groupedItems = $option->items->groupBy(fn ($item) => trim((string) ($item['category'] ?? '')) ?: 'Lainnya');
+                $groupedItems = $option->items
+                    ->groupBy(fn ($item) => trim((string) ($item['category'] ?? '')) ?: 'Lainnya')
+                    ->sortBy(fn ($items, $category) => \App\Support\FeeCategory::priority($category));
             @endphp
             <section class="overflow-hidden rounded-3xl border {{ $isSelected ? 'border-teal-300 bg-teal-50/40' : 'border-slate-200 bg-white' }} shadow-sm">
                 <div class="border-b border-slate-100 p-5">
