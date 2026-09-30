@@ -6,6 +6,7 @@ set -e
 # the current HTTPS domain instead of a stale HTTP address.
 php artisan config:clear
 php artisan route:clear
+php artisan view:clear
 
 # Railway MySQL uses caching_sha2_password. Bootstrap through PDO instead of
 # Alpine's MariaDB client, which cannot load that authentication plugin.
