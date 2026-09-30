@@ -64,7 +64,7 @@
     </section>
 
     @if($pendingApprovals->isNotEmpty())
-        <section class="rounded-3xl border border-violet-200 bg-violet-50 p-5 shadow-sm">
+        <section class="rounded-3xl border border-violet-200 bg-violet-50 p-5 shadow-sm" x-data="{ rejectOpen: false, rejectAction: '', rejectStudent: '', rejectAmount: '' }">
             <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                     <p class="text-xs font-black uppercase tracking-[.14em] text-violet-700">Persetujuan pembayaran</p>
@@ -101,11 +101,36 @@
                             @else
                                 <form method="POST" action="{{ route($routePrefix.'pembayaran.verify', $transaction) }}">@csrf @method('PATCH')<input type="hidden" name="status" value="verified"><button type="submit" class="rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white hover:bg-emerald-800">Setujui</button></form>
                             @endif
-                            <form method="POST" action="{{ route($routePrefix.'pembayaran.verify', $transaction) }}" onsubmit="return confirm('Tolak pembayaran ini?')">@csrf @method('PATCH')<input type="hidden" name="status" value="rejected"><button type="submit" class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-black text-rose-700 hover:bg-rose-100">Tolak</button></form>
+                            <button type="button" class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-black text-rose-700 hover:bg-rose-100" @click="rejectAction = @js(route($routePrefix.'pembayaran.verify', $transaction)); rejectStudent = @js($student); rejectAmount = @js('Rp '.number_format($transaction->amount, 0, ',', '.')); rejectOpen = true">Tolak</button>
                         </div>
                     </article>
                 @endforeach
             </div>
+            <template x-teleport="body">
+                <div x-cloak x-show="rejectOpen" x-transition.opacity class="fixed inset-0 z-[2147483647] flex items-center justify-center bg-slate-950/60 p-4" @keydown.escape.window="rejectOpen = false">
+                    <section class="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="finance-reject-payment-title" @click.outside="rejectOpen = false">
+                        <div class="flex items-start gap-4">
+                            <span class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-rose-100 text-2xl font-black text-rose-700">!</span>
+                            <div>
+                                <p class="text-xs font-black uppercase tracking-[.16em] text-rose-700">Konfirmasi penolakan</p>
+                                <h2 id="finance-reject-payment-title" class="mt-1 text-xl font-black text-slate-900">Tolak pembayaran?</h2>
+                                <p class="mt-2 text-sm leading-6 text-slate-600">Bukti pembayaran <strong x-text="rejectStudent"></strong> sebesar <strong x-text="rejectAmount"></strong> akan ditolak dan siswa akan menerima WA untuk mengunggah ulang bukti.</p>
+                            </div>
+                        </div>
+                        <form method="POST" :action="rejectAction" class="mt-5">
+                            @csrf
+                            @method('PATCH')
+                            <input type="hidden" name="status" value="rejected">
+                            <label class="text-sm font-black text-slate-700">Catatan penolakan <span class="font-semibold text-slate-400">(opsional)</span></label>
+                            <textarea name="notes" rows="3" maxlength="255" class="mt-2 w-full resize-none rounded-2xl border border-slate-200 px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-rose-400 focus:ring-4 focus:ring-rose-100" placeholder="Contoh: nominal atau foto bukti belum terbaca."></textarea>
+                            <div class="mt-5 grid grid-cols-2 gap-3">
+                                <button type="button" @click="rejectOpen = false" class="rounded-xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-700 hover:bg-slate-50">Batal</button>
+                                <button type="submit" class="rounded-xl bg-rose-600 px-4 py-3 text-sm font-black text-white shadow-lg shadow-rose-200 hover:bg-rose-700">Ya, tolak pembayaran</button>
+                            </div>
+                        </form>
+                    </section>
+                </div>
+            </template>
         </section>
     @endif
 

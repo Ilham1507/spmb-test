@@ -7,7 +7,7 @@
     $canApprove = auth()->user()?->hasRole('panitia') || auth()->user()?->hasRole('bendahara') || auth()->user()?->hasRole('kepala_sekolah') || auth()->user()?->hasRole('admin');
 @endphp
 
-<section class="payment-review-section payment-review-{{ $accent }}">
+<section class="payment-review-section payment-review-{{ $accent }}" x-data="{ rejectOpen: false, rejectAction: '', rejectStudent: '', rejectAmount: '' }">
     <header>
         <div>
             <p class="payment-review-kicker">PEMBAYARAN MASUK</p>
@@ -76,7 +76,7 @@
                                     @else
                                         <form method="POST" action="{{ route($routePrefix . 'pembayaran.verify', $trx) }}">@csrf @method('PATCH')<input type="hidden" name="status" value="verified"><button type="submit">Setujui</button></form>
                                     @endif
-                                    <form method="POST" action="{{ route($routePrefix . 'pembayaran.verify', $trx) }}" onsubmit="return confirm('Tolak pembayaran ini?')">@csrf @method('PATCH')<input type="hidden" name="status" value="rejected"><button type="submit" class="is-reject">Tolak</button></form>
+                                    <button type="button" class="is-reject" @click="rejectAction = @js(route($routePrefix . 'pembayaran.verify', $trx)); rejectStudent = @js($name); rejectAmount = @js('Rp '.number_format($trx->amount, 0, ',', '.')); rejectOpen = true">Tolak</button>
                                 </div>
                             @elseif($isPending)
                                 <span class="payment-manual-label">Menunggu approval panitia/kepsek</span>
@@ -93,4 +93,30 @@
     </div>
 
     @if($showPagination)<x-per-page-pagination :paginator="$transactions" />@endif
+
+    <template x-teleport="body">
+        <div x-cloak x-show="rejectOpen" x-transition.opacity class="fixed inset-0 z-[2147483647] flex items-center justify-center bg-slate-950/60 p-4" @keydown.escape.window="rejectOpen = false">
+            <section class="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="reject-payment-title" @click.outside="rejectOpen = false">
+                <div class="flex items-start gap-4">
+                    <span class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-rose-100 text-2xl font-black text-rose-700">!</span>
+                    <div>
+                        <p class="text-xs font-black uppercase tracking-[.16em] text-rose-700">Konfirmasi penolakan</p>
+                        <h2 id="reject-payment-title" class="mt-1 text-xl font-black text-slate-900">Tolak pembayaran?</h2>
+                        <p class="mt-2 text-sm leading-6 text-slate-600">Bukti pembayaran <strong x-text="rejectStudent"></strong> sebesar <strong x-text="rejectAmount"></strong> akan ditolak. Siswa menerima notifikasi WhatsApp untuk mengirim ulang bukti.</p>
+                    </div>
+                </div>
+                <form method="POST" :action="rejectAction" class="mt-5">
+                    @csrf
+                    @method('PATCH')
+                    <input type="hidden" name="status" value="rejected">
+                    <label class="text-sm font-black text-slate-700">Catatan penolakan <span class="font-semibold text-slate-400">(opsional)</span></label>
+                    <textarea name="notes" rows="3" maxlength="255" class="mt-2 w-full resize-none rounded-2xl border border-slate-200 px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-rose-400 focus:ring-4 focus:ring-rose-100" placeholder="Contoh: nominal atau foto bukti belum terbaca."></textarea>
+                    <div class="mt-5 grid grid-cols-2 gap-3">
+                        <button type="button" @click="rejectOpen = false" class="rounded-xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-700 hover:bg-slate-50">Batal</button>
+                        <button type="submit" class="rounded-xl bg-rose-600 px-4 py-3 text-sm font-black text-white shadow-lg shadow-rose-200 hover:bg-rose-700">Ya, tolak pembayaran</button>
+                    </div>
+                </form>
+            </section>
+        </div>
+    </template>
 </section>
