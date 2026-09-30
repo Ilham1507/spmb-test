@@ -243,27 +243,40 @@ class PembayaranController extends Controller
             }
         });
 
-        $transaksi->refresh()->load(['tagihan.jenisTagihan', 'tagihan.pendaftar.biodata', 'tagihan.pendaftar.user', 'verifier']);
+        $transactionId = $transaksi->id;
+        $status = $validated['status'];
+
+        // A provider call (especially a PDF upload) can take tens of seconds.
+        // Finish the approval response first so the panitia screen never stays
+        // behind its loading overlay while WhatsApp is being delivered.
+        app()->terminating(function () use ($transactionId, $status, $whatsapp, $invoiceEmail): void {
+            $transaction = TransaksiPembayaran::with([
+                'tagihan.jenisTagihan', 'tagihan.pendaftar.biodata', 'tagihan.pendaftar.user',
+                'tagihan.pendaftar.kunjungan.penerima', 'verifier',
+            ])->find($transactionId);
+            if (! $transaction) {
+                return;
+            }
+
+            if ($status === 'verified') {
+                $invoiceEmail->send($transaction);
+            }
+
+            try {
+                $this->sendDecisionNotification($whatsapp, $transaction);
+            } catch (Throwable $exception) {
+                Log::warning('Notifikasi hasil approval pembayaran ke siswa gagal dikirim melalui WhatsApp Business API.', [
+                    'transaction_id' => $transactionId,
+                    'error' => $exception->getMessage(),
+                ]);
+            }
+        });
+
         if ($validated['status'] === 'verified') {
-            $invoiceEmail->send($transaksi);
+            return back()->with('success', 'Pembayaran disetujui oleh '.Auth::user()->name.'. Notifikasi WhatsApp siswa dikirim otomatis. Pembayaran formulir langsung membuka formulir; pembayaran DU diteruskan ke bendahara untuk penerimaan.');
         }
 
-        try {
-            $this->sendDecisionNotification($whatsapp, $transaksi);
-        } catch (Throwable $exception) {
-            Log::warning('Notifikasi hasil approval pembayaran ke siswa gagal dikirim melalui WhatsApp Business API.', [
-                'transaction_id' => $transaksi->id,
-                'error' => $exception->getMessage(),
-            ]);
-
-            return back()->with('warning', 'Pembayaran sudah diproses, tetapi notifikasi WhatsApp ke siswa belum terkirim.');
-        }
-
-        if ($validated['status'] === 'verified') {
-            return back()->with('success', 'Pembayaran disetujui oleh '.Auth::user()->name.'. Pembayaran formulir langsung membuka formulir; pembayaran DU diteruskan ke bendahara untuk penerimaan.');
-        }
-
-        return back()->with('success', 'Pembayaran ditolak. Notifikasi WhatsApp sudah dikirim otomatis agar siswa dapat mengirim ulang bukti.');
+        return back()->with('success', 'Pembayaran ditolak. Notifikasi WhatsApp siswa dikirim otomatis agar dapat mengirim ulang bukti.');
     }
 
     public function viewProof(TransaksiPembayaran $transaksi)
@@ -324,18 +337,23 @@ class PembayaranController extends Controller
             // DU allocation is selected by the treasurer. Send its receipt
             // only after that handover so the student sees category totals,
             // not the global component list or an unfinished allocation.
-            $whatsapp->send((string) $phone, $message);
             if ($this->isRegistrationFee($transaction)) {
                 try {
                     $pdfUrl = URL::temporarySignedRoute('invoice.public.pdf', now()->addMinutes(30), ['transaksi' => $transaction->id]);
-                    $whatsapp->sendDocument((string) $phone, $pdfUrl, 'Bukti Pembayaran SPMB - '.($transaction->tagihan?->pendaftar?->registration_number ?: $transaction->id).'.pdf', 'Invoice pembayaran SPMB.');
+                    // Keep the approval text in the document caption so the
+                    // student receives one WhatsApp bubble, not a text plus
+                    // a second PDF bubble.
+                    $whatsapp->sendDocument((string) $phone, $pdfUrl, 'Bukti Pembayaran SPMB - '.($transaction->tagihan?->pendaftar?->registration_number ?: $transaction->id).'.pdf', $message);
                 } catch (Throwable $exception) {
-                    Log::warning('Invoice PDF WhatsApp gagal setelah notifikasi approval terkirim.', [
+                    Log::warning('Invoice PDF WhatsApp gagal; mengirim teks approval sebagai fallback.', [
                         'transaction_id' => $transaction->id,
                         'error' => $exception->getMessage(),
                     ]);
+                    $whatsapp->send((string) $phone, $message);
                 }
+                return;
             }
+            $whatsapp->send((string) $phone, $message);
             if (! $this->isRegistrationFee($transaction)) {
                 $this->notifyTreasurer($whatsapp, $transaction, $approver);
             }

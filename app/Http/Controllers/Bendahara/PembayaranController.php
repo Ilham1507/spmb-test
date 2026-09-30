@@ -527,18 +527,20 @@ Catatan: {$transaction->notes}" : '';
 Silakan unggah ulang bukti pembayaran yang benar melalui sistem.";
         }
 
-        $whatsapp->send((string) $phone, $message);
         if ($transaction->status === 'verified' && $isRegistrationFee) {
             try {
                 $pdfUrl = URL::temporarySignedRoute('invoice.public.pdf', now()->addMinutes(30), ['transaksi' => $transaction->id]);
-                $whatsapp->sendDocument((string) $phone, $pdfUrl, 'Bukti Pembayaran SPMB - '.($transaction->tagihan?->pendaftar?->registration_number ?: $transaction->id).'.pdf', 'Invoice pembayaran SPMB.');
+                $whatsapp->sendDocument((string) $phone, $pdfUrl, 'Bukti Pembayaran SPMB - '.($transaction->tagihan?->pendaftar?->registration_number ?: $transaction->id).'.pdf', $message);
             } catch (Throwable $exception) {
-                Log::warning('Invoice PDF WhatsApp gagal setelah notifikasi approval terkirim.', [
+                Log::warning('Invoice PDF WhatsApp gagal; mengirim teks approval sebagai fallback.', [
                     'transaction_id' => $transaction->id,
                     'error' => $exception->getMessage(),
                 ]);
+                $whatsapp->send((string) $phone, $message);
             }
+            return;
         }
+        $whatsapp->send((string) $phone, $message);
     }
 
     private function sendReceivedNotification(WhatsappCloudApiService $whatsapp, TransaksiPembayaran $transaction): void
