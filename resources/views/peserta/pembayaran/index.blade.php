@@ -98,7 +98,7 @@
                                 <div x-show="paying" x-cloak class="mt-4 rounded-xl bg-sky-50 p-4">
                                     @php($rekening = $rekeningAktif->first())
                                     <p class="text-sm font-semibold text-sky-900">{{ $rekening->nama_bank }} · {{ $rekening->nomor_rekening }} a.n. {{ $rekening->atas_nama }}</p>
-                                    <form method="POST" action="{{ route('peserta.pembayaran.store', $tagihan) }}" enctype="multipart/form-data" class="mt-3 space-y-3">@csrf @foreach($quote['items'] as $item)<input type="checkbox" class="hidden" name="selected_items[]" value="{{ $item['name'] }}" x-model="selected">@endforeach <input type="hidden" name="amount" x-bind:value="total"><input type="hidden" name="payment_method" value="transfer"><input type="file" name="proof_file" accept=".jpg,.jpeg,.png,.pdf" required class="w-full text-sm"><button class="btn-primary">Kirim bukti transfer</button></form>
+                                    <form method="POST" action="{{ route('peserta.pembayaran.store', $tagihan) }}" enctype="multipart/form-data" class="mt-3 space-y-3" data-loading-title="Mengirim bukti pembayaran" data-loading-message="Bukti sedang disimpan. Jangan tutup halaman." @submit="opening = true">@csrf @foreach($quote['items'] as $item)<input type="checkbox" class="hidden" name="selected_items[]" value="{{ $item['name'] }}" x-model="selected">@endforeach <input type="hidden" name="amount" x-bind:value="total"><input type="hidden" name="payment_method" value="transfer"><input type="file" name="proof_file" accept=".jpg,.jpeg,.png,.pdf" required class="w-full text-sm"><button class="btn-primary" :disabled="opening" x-text="opening ? 'Mengirim…' : 'Kirim bukti transfer'">Kirim bukti transfer</button></form>
                                 </div>
                             @endif
                         </div>
@@ -133,7 +133,7 @@
                     @php($rekening = $rekeningAktif->first())
                     <p class="text-sm font-semibold text-sky-900">{{ $rekening->nama_bank }} · {{ $rekening->nomor_rekening }} a.n. {{ $rekening->atas_nama }}</p>
                     <p class="mt-2 text-xs font-semibold text-sky-800">Transfer ke rekening ini, lalu unggah bukti pembayaran.</p>
-                    <form method="POST" action="{{ route('peserta.pembayaran.store', $tagihan) }}" enctype="multipart/form-data" class="mt-3 space-y-3">@csrf<input type="hidden" name="amount" value="{{ $quote['amount'] }}"><input type="hidden" name="payment_method" value="transfer"><input type="file" name="proof_file" accept=".jpg,.jpeg,.png,.pdf" required class="w-full text-sm"><button class="btn-primary">Kirim bukti transfer</button></form>
+                    <form method="POST" action="{{ route('peserta.pembayaran.store', $tagihan) }}" enctype="multipart/form-data" class="mt-3 space-y-3" data-loading-title="Mengirim bukti pembayaran" data-loading-message="Bukti sedang disimpan. Jangan tutup halaman." @submit="opening = true">@csrf<input type="hidden" name="amount" value="{{ $quote['amount'] }}"><input type="hidden" name="payment_method" value="transfer"><input type="file" name="proof_file" accept=".jpg,.jpeg,.png,.pdf" required class="w-full text-sm"><button class="btn-primary" :disabled="opening" x-text="opening ? 'Mengirim…' : 'Kirim bukti transfer'">Kirim bukti transfer</button></form>
                 </div>
             @else
                 <p class="mt-4 text-sm text-slate-600">Hubungi bendahara untuk pembayaran ini.</p>

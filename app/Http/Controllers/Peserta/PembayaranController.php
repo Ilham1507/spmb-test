@@ -10,12 +10,10 @@ use App\Models\RekeningSekolah;
 use App\Support\PendaftarSetup;
 use App\Support\RegistrationFee;
 use App\Support\ReRegistrationFee;
-use App\Support\RegistrationNumber;
-use App\Services\WhatsappCloudApiService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 use Throwable;
 
 class PembayaranController extends Controller
@@ -114,7 +112,7 @@ class PembayaranController extends Controller
         return view('payments.system-proof', ['transaction' => $transaksi]);
     }
 
-    public function store(Request $request, TagihanPendaftar $tagihan, WhatsappCloudApiService $whatsapp)
+    public function store(Request $request, TagihanPendaftar $tagihan)
     {
         // Pastikan tagihan ini milik pendaftar yang sedang login
         if (! Auth::user()?->pendaftar || (int) $tagihan->applicant_id !== (int) Auth::user()->pendaftar->id) {
@@ -167,29 +165,17 @@ class PembayaranController extends Controller
                     'proof_file' => $proofPath, 'status' => 'pending',
                 ]);
             }, 3);
-        } catch (Throwable $exception) {
+        } catch (ValidationException $exception) {
             Storage::disk('local')->delete($proofPath);
             throw $exception;
+        } catch (Throwable $exception) {
+            Storage::disk('local')->delete($proofPath);
+            report($exception);
+
+            return back()->withInput()->with('error', 'Bukti pembayaran belum dapat disimpan. Periksa file lalu coba lagi.');
         }
 
         $isReRegistrationFee = $this->isReRegistrationFee($tagihan);
-        try {
-            $pendaftar = Auth::user()->pendaftar;
-            RegistrationNumber::ensure($pendaftar);
-            $pendaftar->refresh()->loadMissing('biodata', 'kunjungan.penerima');
-            $name = $pendaftar->biodata?->full_name ?? Auth::user()->name;
-            $linkedVisit = $pendaftar->kunjunganPenerimaanUtama();
-            $notificationTarget = $linkedVisit?->penerima?->phone ?: (string) config('services.panitia.whatsapp_number');
-            $receiverName = $linkedVisit?->penerima?->name ?? 'Panitia SPMB';
-            $method = $transaction->payment_method === 'cash' ? 'tunai' : 'transfer';
-            $amount = number_format((float) $transaction->amount, 0, ',', '.');
-            $type = $isReRegistrationFee ? 'daftar ulang' : 'formulir';
-            $whatsapp->send($notificationTarget, \App\Support\WhatsappGreeting::opening()."\n\n"
-                ."Ada permintaan approval pembayaran {$type}.\n\nSiswa: {$name}\nNo. pendaftaran: {$pendaftar->registration_number}\nNominal: Rp {$amount}\nMetode: {$method}\nWA siswa: ".Auth::user()->phone."\n\nMohon periksa dan setujui melalui menu Approval Pembayaran.");
-        } catch (Throwable $exception) {
-            Log::warning('Notifikasi pembayaran ke panitia gagal dikirim melalui WhatsApp Business API.', ['transaction_id' => $transaction->id, 'error' => $exception->getMessage()]);
-            return redirect()->route('peserta.pembayaran')->with('warning', 'Bukti pembayaran sudah tersimpan. Status pembayaran akan diperbarui setelah pemeriksaan selesai.');
-        }
 
         if ($isReRegistrationFee) {
             return redirect()->route('peserta.pembayaran')
