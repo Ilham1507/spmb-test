@@ -189,7 +189,7 @@ class PembayaranController extends Controller
                 $transaction = TransaksiPembayaran::create([
                     'bill_id' => $bill->id,
                     'transaction_number' => 'TRX-'.strtoupper(uniqid()),
-                    'reference_number' => $validated['reference_number'] ?: 'PAN-'.now()->format('Ymd-His'),
+                    'reference_number' => ($validated['reference_number'] ?? null) ?: 'PAN-'.now()->format('Ymd-His'),
                     'payment_date' => now(),
                     'amount' => $quote['amount'],
                     'received_amount' => $quote['amount'],
@@ -203,7 +203,7 @@ class PembayaranController extends Controller
                     'status' => 'verified',
                     'verified_by' => Auth::id(),
                     'verified_at' => now(),
-                    'notes' => $validated['notes'] ?: 'Diinput dan disetujui panitia.',
+                    'notes' => ($validated['notes'] ?? null) ?: 'Diinput dan disetujui panitia.',
                 ]);
 
                 if ($isRegistration) {
