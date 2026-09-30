@@ -6,17 +6,6 @@
 
 @section('content')
 <div x-data="{ addOpen: {{ old('_modal') === 'add' || ($errors->any() && old('_modal') !== 'edit') ? 'true' : 'false' }}, editId: {{ old('_modal') === 'edit' ? (int) old('user_id') : 'null' }} }">
-    <section class="admin-card flex flex-col gap-3 bg-white md:flex-row md:items-center md:justify-between">
-        <form method="GET" action="{{ route('admin.users.index') }}" class="flex min-w-0 flex-1 flex-col gap-2 md:flex-row">
-            <x-list-search placeholder="Cari nama atau nomor WhatsApp staf" class="min-w-0 flex-1" />
-            <button type="submit" class="admin-primary-button bg-blue-700 hover:bg-blue-800">Cari</button>
-            @if(request('search'))
-                <a href="{{ route('admin.users.index') }}" class="inline-flex min-h-[42px] items-center justify-center rounded-xl bg-slate-100 px-4 text-sm font-black text-slate-600 hover:bg-slate-200">Reset</a>
-            @endif
-        </form>
-        <x-per-page-pagination :paginator="$users" toolbar />
-    </section>
-
     <section class="admin-card overflow-hidden bg-white p-0">
         <div class="admin-card-header border-b border-slate-100">
             <div>
@@ -28,6 +17,17 @@
                 <p class="mt-1 text-sm text-slate-500">Admin dapat mengelola akun panitia, bendahara, dan kepala sekolah.</p>
             </div>
             <button type="button" @click="addOpen=true" class="admin-primary-button bg-emerald-600 hover:bg-emerald-700">+ Tambah User</button>
+        </div>
+
+        <div class="flex flex-col gap-3 border-b border-slate-100 px-5 py-4 md:flex-row md:items-center md:justify-between">
+            <form method="GET" action="{{ route('admin.users.index') }}" class="flex min-w-0 flex-1 flex-col gap-2 md:flex-row">
+                <x-list-search placeholder="Cari nama atau nomor WhatsApp staf" class="min-w-0 flex-1" />
+                <button type="submit" class="admin-primary-button bg-blue-700 hover:bg-blue-800">Cari</button>
+                @if(request('search'))
+                    <a href="{{ route('admin.users.index') }}" class="inline-flex min-h-[42px] items-center justify-center rounded-xl bg-slate-100 px-4 text-sm font-black text-slate-600 hover:bg-slate-200">Reset</a>
+                @endif
+            </form>
+            <x-per-page-pagination :paginator="$users" toolbar />
         </div>
 
         <div class="admin-table-wrap">
