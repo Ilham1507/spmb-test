@@ -38,6 +38,9 @@
                 <span class="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-black text-slate-600">Total otomatis</span>
             </div>
         </div>
+        @if($loadError ?? false)
+            <p class="m-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800 sm:m-5">Data biaya belum dapat dimuat saat ini. Halaman tetap tersedia; silakan muat ulang beberapa saat lagi. Detail gangguan sudah dicatat di server.</p>
+        @endif
         @error('file')<p class="mx-4 mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700 sm:mx-5">{{ $message }}</p>@enderror
         <form id="biaya-form" method="POST" action="{{ route($saveRoute) }}" @submit="pruneEmpty()">@csrf
             <div class="space-y-4 p-4 sm:p-5">

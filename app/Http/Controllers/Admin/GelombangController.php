@@ -33,21 +33,26 @@ class GelombangController extends Controller
         // management page unavailable. Older Railway databases can have the
         // base registration tables while this optional fee-breakdown table is
         // still being repaired during startup.
-        $gelombangs = GelombangPendaftaran::with('tahunAjaran')->latest('start_date')->get();
-        $jurusans = Jurusan::where('status', 'aktif')->orderBy('name')->get();
-
         try {
+            $gelombangs = GelombangPendaftaran::with('tahunAjaran')->latest('start_date')->get();
+            $jurusans = Jurusan::where('status', 'aktif')->orderBy('name')->get();
+
             $feesByGelombang = GelombangJurusan::query()
                 ->whereIn('gelombang_id', $gelombangs->pluck('id'))
                 ->get()
                 ->groupBy('gelombang_id');
         } catch (\Throwable $exception) {
-            Log::error('Unable to load major fee breakdowns.', [
+            Log::error('Unable to load major fee management data.', [
                 'exception' => $exception,
             ]);
 
+            $gelombangs = collect();
+            $jurusans = collect();
             $feesByGelombang = collect();
+            $loadError = true;
         }
+
+        $loadError ??= false;
 
         $gelombangs->each(function (GelombangPendaftaran $gelombang) use ($feesByGelombang): void {
             $gelombang->setRelation('jurusanBiaya', $feesByGelombang->get($gelombang->id, collect()));
@@ -56,6 +61,7 @@ class GelombangController extends Controller
         return view('admin.biaya-jurusan.index', [
             'gelombangs' => $gelombangs,
             'jurusans' => $jurusans,
+            'loadError' => $loadError,
         ]);
     }
 
