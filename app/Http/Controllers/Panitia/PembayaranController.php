@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Throwable;
 use App\Support\Pagination;
@@ -228,7 +229,11 @@ class PembayaranController extends Controller
                 'error' => $exception->getMessage(),
             ]);
 
-            return back()->withInput()->with('error', 'Pembayaran belum dapat dicatat. Data tidak disimpan; periksa kembali bukti dan data pendaftar lalu coba lagi.');
+            $errorCode = trim((string) $exception->getCode());
+            $suffix = $errorCode !== '' ? " (kode {$errorCode})" : '';
+            $detail = Str::of($exception->getMessage())->squish()->limit(180);
+
+            return back()->withInput()->with('error', 'Pembayaran belum dapat dicatat'.$suffix.'. '.$detail);
         }
 
         $transaction = $result['transaction']->fresh(['tagihan.jenisTagihan', 'tagihan.pendaftar.biodata', 'tagihan.pendaftar.user', 'verifier']);
