@@ -13,7 +13,10 @@
 
     <div class="grid grid-cols-1 gap-5 xl:grid-cols-2">
         @forelse($feeOptions as $option)
-            @php($isSelected = (int) $pendaftar->major_choice_1 === (int) $option->jurusan->id)
+            @php
+                $isSelected = (int) $pendaftar->major_choice_1 === (int) $option->jurusan->id;
+                $groupedItems = $option->items->groupBy(fn ($item) => trim((string) ($item['category'] ?? '')) ?: 'Lainnya');
+            @endphp
             <section class="overflow-hidden rounded-3xl border {{ $isSelected ? 'border-teal-300 bg-teal-50/40' : 'border-slate-200 bg-white' }} shadow-sm">
                 <div class="border-b border-slate-100 p-5">
                     <div class="flex items-start justify-between gap-3"><div><p class="text-xs font-black uppercase tracking-wide text-teal-700">Jurusan</p><h3 class="mt-1 text-xl font-black text-slate-950">{{ $option->jurusan->name }}</h3></div>@if($isSelected)<span class="rounded-full bg-teal-100 px-3 py-1 text-xs font-black text-teal-800">Pilihanmu</span>@endif</div>
@@ -22,8 +25,15 @@
                 <div class="p-5">
                     <p class="text-sm font-black text-slate-900">Rincian biaya</p>
                     @if($option->items->isNotEmpty())
-                        <div class="mt-3 divide-y divide-slate-100 rounded-2xl border border-slate-100">
-                            @foreach($option->items as $item)<div class="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 px-3 py-3 text-sm"><span class="break-words font-medium leading-snug text-slate-600">{{ $item['name'] ?? 'Biaya' }}</span><b class="whitespace-nowrap text-right text-slate-900">Rp {{ number_format((float) ($item['amount'] ?? 0), 0, ',', '.') }}</b></div>@endforeach
+                        <div class="mt-3 space-y-3">
+                            @foreach($groupedItems as $category => $items)
+                                <section class="overflow-hidden rounded-2xl border border-slate-200">
+                                    <header class="flex items-center justify-between gap-3 bg-teal-50 px-3 py-2.5"><p class="text-xs font-black uppercase tracking-wide text-teal-800">{{ $category }}</p><b class="shrink-0 text-sm text-teal-900">Rp {{ number_format($items->sum(fn ($item) => (float) ($item['amount'] ?? 0)), 0, ',', '.') }}</b></header>
+                                    <div class="divide-y divide-slate-100">
+                                        @foreach($items as $item)<div class="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 px-3 py-3 text-sm"><span class="break-words font-medium leading-snug text-slate-600">{{ $item['name'] ?? 'Biaya' }}</span><b class="whitespace-nowrap text-right text-slate-900">Rp {{ number_format((float) ($item['amount'] ?? 0), 0, ',', '.') }}</b></div>@endforeach
+                                    </div>
+                                </section>
+                            @endforeach
                         </div>
                     @else
                         <p class="mt-3 rounded-2xl bg-slate-50 p-3 text-sm text-slate-500">Rincian komponen belum diatur. Nominal total tetap dapat digunakan sebagai informasi biaya.</p>

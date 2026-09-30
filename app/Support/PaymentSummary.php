@@ -26,7 +26,12 @@ class PaymentSummary
                 default => 'Belum dibayar',
             };
 
-            return ['name' => $name, 'amount' => $amount, 'status' => $status];
+            return [
+                'name' => $name,
+                'category' => trim((string) ($item['category'] ?? '')) ?: 'Lainnya',
+                'amount' => $amount,
+                'status' => $status,
+            ];
         });
 
         return ['items' => $items, 'last' => $verified->first(), 'pending' => $pending->sum('amount'), 'unallocated' => $unallocated];

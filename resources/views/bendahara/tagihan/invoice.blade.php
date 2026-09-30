@@ -20,8 +20,7 @@ body{font-size:7pt;line-height:1.15}.school-head p{color:#334155;font-size:6.2pt
     $promotionLabel = $promotionNames->isNotEmpty() ? $promotionNames->implode(', ') : 'Tidak ada potongan';
     $paymentSequence = max(1, $bill->transaksi->where('amount', '>', 0)->count());
     $paymentItems = collect($summary['items']);
-    $leftPaymentItems = $paymentItems->slice(0, (int) ceil($paymentItems->count() / 2));
-    $rightPaymentItems = $paymentItems->slice((int) ceil($paymentItems->count() / 2));
+    $paymentGroups = $paymentItems->groupBy(fn ($item) => trim((string) ($item['category'] ?? '')) ?: 'Lainnya');
 @endphp
 @if($letterheadSrc)
 <img class="letterhead" src="{{ $letterheadSrc }}" alt="Kop surat sekolah">
@@ -46,16 +45,15 @@ body{font-size:7pt;line-height:1.15}.school-head p{color:#334155;font-size:6.2pt
 @if($paymentItems->isEmpty())
 <table class="financial-table"><thead><tr><th>Rincian biaya</th><th class="right">Nominal</th><th class="right">Keterangan</th></tr></thead><tbody><tr><td>{{ $bill->jenisTagihan?->name ?? 'Tagihan SPMB' }}</td><td class="right">Rp {{ number_format($bill->total_amount,0,',','.') }}</td><td class="right">{{ $bill->remaining_amount <= 0 ? 'Lunas' : 'Belum lunas' }}</td></tr></tbody></table>
 @else
-<div class="financial-columns">
-    @foreach([$leftPaymentItems, $rightPaymentItems] as $columnItems)
-    <div class="financial-column"><table class="financial-table"><thead><tr><th>Rincian biaya</th><th class="right">Nominal</th><th class="right">Ket.</th></tr></thead><tbody>
-        @foreach($columnItems as $item)
+<table class="financial-table"><thead><tr><th>Rincian biaya</th><th class="right">Nominal</th><th class="right">Ket.</th></tr></thead><tbody>
+        @foreach($paymentGroups as $category => $groupItems)
+            <tr style="background:#eaf6f4;color:#075d55;font-weight:bold"><td colspan="3">{{ $category }} · Rp {{ number_format($groupItems->sum('amount'),0,',','.') }}</td></tr>
+            @foreach($groupItems as $item)
             @php($displayStatus = $item['status'] === 'Lunas' ? 'Lunas' : 'Belum lunas')
             <tr><td>{{ $item['name'] }}</td><td class="right">Rp {{ number_format($item['amount'],0,',','.') }}</td><td class="right">{{ $displayStatus }}</td></tr>
+            @endforeach
         @endforeach
-    </tbody></table></div>
-    @endforeach
-</div>
+</tbody></table>
 @endif
 <table class="financial-table summary-table"><tbody><tr class="total"><td>Total tagihan</td><td class="right">Rp {{ number_format($bill->total_amount,0,',','.') }}</td><td class="right">-</td></tr>
 <tr><td>Jenis dan besar potongan</td><td class="right">{{ $promotionDiscount > 0 ? '- Rp '.number_format($promotionDiscount,0,',','.') : 'Rp 0' }}</td><td class="right">{{ $promotionLabel }}</td></tr>
