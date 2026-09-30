@@ -51,6 +51,10 @@ Route::middleware(['web', 'peserta'])->group(function () {
         ->name('review');
 
     Route::middleware([
+        // Semua tombol Simpan & lanjut pada formulir siswa harus kembali ke
+        // form asal apabila konfigurasi/data backend sedang bermasalah,
+        // bukan memperlihatkan halaman 500.
+        \App\Http\Middleware\HandleParticipantFormFailure::class,
         \App\Http\Middleware\EnsureRegistrationFeePaid::class,
         \App\Http\Middleware\CheckIfNotSubmitted::class,
         \App\Http\Middleware\EnsurePesertaStepOrder::class,
