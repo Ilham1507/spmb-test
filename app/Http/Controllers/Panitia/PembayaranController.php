@@ -407,26 +407,18 @@ class PembayaranController extends Controller
         }
 
         if ($transaction->status === 'verified') {
-            // DU allocation is selected by the treasurer. Send its receipt
-            // only after that handover so the student sees category totals,
-            // not the global component list or an unfinished allocation.
-            if ($this->isRegistrationFee($transaction)) {
-                try {
-                    $pdfUrl = URL::temporarySignedRoute('invoice.public.pdf', now()->addMinutes(30), ['transaksi' => $transaction->id]);
-                    // Keep the approval text in the document caption so the
-                    // student receives one WhatsApp bubble, not a text plus
-                    // a second PDF bubble.
-                    $whatsapp->sendDocument((string) $phone, $pdfUrl, 'Bukti Pembayaran SPMB - '.($transaction->tagihan?->pendaftar?->registration_number ?: $transaction->id).'.pdf', $message);
-                } catch (Throwable $exception) {
-                    Log::warning('Invoice PDF WhatsApp gagal; mengirim teks approval sebagai fallback.', [
-                        'transaction_id' => $transaction->id,
-                        'error' => $exception->getMessage(),
-                    ]);
-                    $whatsapp->send((string) $phone, $message);
-                }
-                return;
+            try {
+                $pdfUrl = URL::temporarySignedRoute('invoice.public.pdf', now()->addMinutes(30), ['transaksi' => $transaction->id]);
+                // Approval text is the document caption, so the invoice and
+                // its notification arrive together in a single WhatsApp bubble.
+                $whatsapp->sendDocument((string) $phone, $pdfUrl, 'Bukti Pembayaran SPMB - '.($transaction->tagihan?->pendaftar?->registration_number ?: $transaction->id).'.pdf', $message);
+            } catch (Throwable $exception) {
+                Log::warning('Invoice PDF WhatsApp gagal; mengirim teks approval sebagai fallback.', [
+                    'transaction_id' => $transaction->id,
+                    'error' => $exception->getMessage(),
+                ]);
+                $whatsapp->send((string) $phone, $message);
             }
-            $whatsapp->send((string) $phone, $message);
             if (! $this->isRegistrationFee($transaction)) {
                 $this->notifyTreasurer($whatsapp, $transaction, $approver);
             }

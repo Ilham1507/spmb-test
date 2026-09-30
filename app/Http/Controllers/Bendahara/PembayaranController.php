@@ -552,7 +552,7 @@ Catatan: {$transaction->notes}" : '';
                 ."Setelah dikirim ulang, petugas akan menerima notifikasi WhatsApp untuk memeriksa bukti tersebut.";
         }
 
-        if ($transaction->status === 'verified' && $isRegistrationFee) {
+        if ($transaction->status === 'verified') {
             try {
                 $pdfUrl = URL::temporarySignedRoute('invoice.public.pdf', now()->addMinutes(30), ['transaksi' => $transaction->id]);
                 $whatsapp->sendDocument((string) $phone, $pdfUrl, 'Bukti Pembayaran SPMB - '.($transaction->tagihan?->pendaftar?->registration_number ?: $transaction->id).'.pdf', $message);
