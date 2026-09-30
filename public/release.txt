@@ -1,1 +1,1 @@
-participant-dashboard-next-step
+participant-dashboard-required-step
