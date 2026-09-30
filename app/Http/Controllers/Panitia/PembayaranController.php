@@ -368,15 +368,17 @@ class PembayaranController extends Controller
         if ($transaction->status === 'verified') {
             if ($this->isRegistrationFee($transaction)) {
                 $message = "Assalamu'alaikum wr. wb.\n\n"
-                    ."Pembayaran formulir SPMB atas nama {$name} sudah disetujui oleh {$approver}.\n\n"
-                    ."Silakan masuk dan lanjutkan pengisian formulir di:\n".route('login')."\n\n"
+                    ."🎉 Selamat, pembayaran Formulir SPMB atas nama {$name} telah disetujui oleh {$approver}. 🎉\n\n"
+                    ."Berikut terlampir bukti pembayaran.\n\n"
+                    ."Selanjutnya, silahkan kamu mengisi formulir pada link di bawah ini 👇🏻\n".route('login')."\n\n"
                     ."Jika ada kendala silahkan hubungi {$receiverContact}.\n\n"
-                    ."Terima kasih.";
+                    ."Terima kasih 🙏🏻\nSenang berkenalan denganmu 🌹";
             } else {
                 $message = \App\Support\WhatsappGreeting::opening()."\n\n"
-                    ."Pembayaran daftar ulang SPMB atas nama {$name} sudah disetujui oleh {$approver}.\n\n"
+                    ."🎉 Pembayaran daftar ulang SPMB atas nama {$name} telah disetujui oleh {$approver}. 🎉\n\n"
                     ."Pembayaran daftar ulang melalui SPMB hanya satu kali. Pembayaran berikutnya dilakukan langsung di sekolah setiap hari Jumat dan akan dicatat oleh panitia.\n\n"
-                    ."Status pembayaran dapat dipantau di: ".route('login');
+                    ."Status pembayaran dapat dipantau di: ".route('login')."\n\n"
+                    ."Terima kasih 🙏🏻";
             }
         } else {
             $reason = $transaction->notes ? "\nCatatan: {$transaction->notes}" : '';

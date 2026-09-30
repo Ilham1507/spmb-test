@@ -40,10 +40,13 @@
     <meta charset="utf-8">
     <title>{{ $invoiceNumber }} · {{ $student?->registration_number }}</title>
     <style>
-        @page { margin: 0; }
+        /* This document is sent as a compact receipt in WhatsApp.  Do not give
+           the invoice its own A4-sized minimum height: combined with the PDF
+           page margin it made an otherwise short receipt spill into extra pages. */
+        @page { size: A4 portrait; margin: 8mm; }
         * { box-sizing: border-box; }
         body { margin: 0; background: #edf1f6; color: #172033; font-family: Arial, sans-serif; font-size: 12px; line-height: 1.45; }
-        .invoice { position: relative; width: 210mm; min-height: 297mm; margin: 18px auto; padding-bottom: 13mm; background: #fff; box-shadow: 0 12px 38px rgba(21,42,78,.16); }
+        .invoice { position: relative; width: 100%; margin: 0; padding-bottom: 13mm; background: #fff; }
         .letterhead { display: block; width: 100%; height: auto; max-height: 38mm; object-fit: fill; }
         .content { padding: 17mm 17mm 14mm; }
         .head { display: table; width: 100%; padding-bottom: 13px; border-bottom: 2px solid #163f7d; }
