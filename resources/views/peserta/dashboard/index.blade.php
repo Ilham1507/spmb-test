@@ -18,42 +18,7 @@
     $mandatoryKeys = ['biodata', 'alamat', 'ayah', 'ibu', 'sekolah', 'jurusan', 'kontak', 'dokumen'];
     $completedSteps = collect($mandatoryKeys)->filter(fn ($key) => $sections[$key] ?? false)->count();
     $allMandatoryDone = $completedSteps === count($mandatoryKeys);
-    $labels = [
-        'biodata' => ['label' => 'Biodata diri', 'route' => 'peserta.biodata'],
-        'alamat' => ['label' => 'Alamat domisili', 'route' => 'peserta.alamat'],
-        'ayah' => ['label' => 'Data ayah', 'route' => 'peserta.ayah'],
-        'ibu' => ['label' => 'Data ibu', 'route' => 'peserta.ibu'],
-        'sekolah' => ['label' => 'Sekolah asal', 'route' => 'peserta.sekolah'],
-        'jurusan' => ['label' => 'Pilihan jurusan', 'route' => 'peserta.jurusan'],
-        'kontak' => ['label' => 'Data kontak', 'route' => 'peserta.kontak'],
-        'dokumen' => ['label' => 'Dokumen', 'route' => 'peserta.dokumen'],
-    ];
-    $nextRoute = 'peserta.review';
-    $nextTarget = 'Review & kirim pendaftaran';
-    foreach ($mandatoryKeys as $key) {
-        if (!($sections[$key] ?? false)) {
-            $nextRoute = $labels[$key]['route'];
-            $nextTarget = 'Isi ' . $labels[$key]['label'];
-            break;
-        }
-    }
-    if (!$registrationFeePaid) {
-        $nextRoute = 'peserta.pembayaran';
-        $nextTarget = $registrationFeePending ? 'Lihat status pembayaran' : 'Bayar formulir';
-    }
-    if ($status === 'submitted') {
-        $nextRoute = $pendaftar?->verification_notes ? 'peserta.biodata' : 'peserta.formulir';
-        $nextTarget = $pendaftar?->verification_notes ? 'Perbaiki formulir' : 'Lihat formulir pendaftaran';
-    } elseif ($status === 'verified') {
-        $nextRoute = 'peserta.hasil-tes.index';
-        $nextTarget = 'Lihat jadwal Tes SPMB';
-    } elseif ($status === 'accepted') {
-        $nextRoute = 'peserta.pembayaran';
-        $nextTarget = 'Lanjutkan daftar ulang';
-    } elseif ($status === 're_registered') {
-        $nextRoute = 'peserta.formulir';
-        $nextTarget = 'Lihat formulir pendaftaran';
-    }
+    $nextStep = $nextStep ?? ['route' => 'peserta.review', 'label' => 'Review & kirim pendaftaran'];
     $tutorialStage = !$registrationFeePaid
         ? 'pembayaran'
         : ($allMandatoryDone ? 'review' : collect($mandatoryKeys)->first(fn ($key) => !($sections[$key] ?? false), 'review'));
@@ -218,8 +183,8 @@
         </div>
         @if($status !== 'rejected')
             <div class="mt-5 flex flex-wrap items-center gap-3">
-                <a id="participant-primary-action" href="{{ route($nextRoute) }}{{ $nextRoute === 'peserta.pembayaran' ? '?tour=1' : '' }}" @click="tutorialOpen && finishTutorial()" class="participant-main-action inline-flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-3.5 text-sm font-black sm:w-auto">
-                    {{ $nextTarget }} <span aria-hidden="true">→</span>
+                <a id="participant-primary-action" href="{{ route($nextStep['route']) }}{{ $nextStep['route'] === 'peserta.pembayaran' ? '?tour=1' : '' }}" @click="tutorialOpen && finishTutorial()" class="participant-main-action inline-flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-3.5 text-sm font-black sm:w-auto">
+                    {{ $nextStep['label'] }} <span aria-hidden="true">→</span>
                 </a>
                 @if($status === 'draft')
                     <button type="button" @click="startTutorial()" class="text-sm font-black text-teal-700 underline decoration-teal-300 underline-offset-4">Butuh panduan? Lihat tutorial singkat</button>

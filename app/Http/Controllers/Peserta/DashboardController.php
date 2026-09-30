@@ -109,6 +109,46 @@ class DashboardController extends Controller
             'dokumen'  => $allDocsComplete,
         ];
 
+        // The dashboard action must resume the registration flow safely.  Do
+        // not use the last page the participant happened to open: that can
+        // skip a mandatory stage and immediately trigger the step-order
+        // middleware.  Resume from the first unfinished stage instead.
+        $stepOrder = [
+            'biodata' => ['label' => 'Biodata diri', 'route' => 'peserta.biodata'],
+            'alamat' => ['label' => 'Alamat domisili', 'route' => 'peserta.alamat'],
+            'ayah' => ['label' => 'Data ayah', 'route' => 'peserta.ayah'],
+            'ibu' => ['label' => 'Data ibu', 'route' => 'peserta.ibu'],
+            'sekolah' => ['label' => 'Sekolah asal', 'route' => 'peserta.sekolah'],
+            'jurusan' => ['label' => 'Pilihan jurusan', 'route' => 'peserta.jurusan'],
+            'kontak' => ['label' => 'Data kontak', 'route' => 'peserta.kontak'],
+            'dokumen' => ['label' => 'Dokumen', 'route' => 'peserta.dokumen'],
+        ];
+        $nextStep = ['route' => 'peserta.review', 'label' => 'Review & kirim pendaftaran'];
+        foreach ($stepOrder as $key => $step) {
+            if (! ($sections[$key] ?? false)) {
+                $nextStep = ['route' => $step['route'], 'label' => 'Isi '.$step['label']];
+                break;
+            }
+        }
+        if (! $registrationFeePaid) {
+            $nextStep = [
+                'route' => 'peserta.pembayaran',
+                'label' => $registrationFeePending ? 'Lihat status pembayaran' : 'Bayar formulir',
+            ];
+        }
+        if ($pendaftar->registration_status === 'submitted') {
+            $nextStep = [
+                'route' => $pendaftar->verification_notes ? 'peserta.biodata' : 'peserta.formulir',
+                'label' => $pendaftar->verification_notes ? 'Perbaiki formulir' : 'Lihat formulir pendaftaran',
+            ];
+        } elseif ($pendaftar->registration_status === 'verified') {
+            $nextStep = ['route' => 'peserta.hasil-tes.index', 'label' => 'Lihat jadwal Tes SPMB'];
+        } elseif ($pendaftar->registration_status === 'accepted') {
+            $nextStep = ['route' => 'peserta.pembayaran', 'label' => 'Lanjutkan daftar ulang'];
+        } elseif ($pendaftar->registration_status === 're_registered') {
+            $nextStep = ['route' => 'peserta.formulir', 'label' => 'Lihat formulir pendaftaran'];
+        }
+
         // Hitung progress dari 7 langkah wajib (wali opsional)
         $mandatory = collect($sections)->except('wali');
         $total     = $mandatory->count();
@@ -141,6 +181,7 @@ class DashboardController extends Controller
             ,'forceTutorial'
 
             ,'requiredStatuses'
+            ,'nextStep'
         ));
     }
 }
