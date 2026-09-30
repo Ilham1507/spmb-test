@@ -4,7 +4,7 @@
     $items = $transactions instanceof \Illuminate\Pagination\AbstractPaginator ? $transactions->getCollection() : $transactions;
     $waitingCount = $items->where('status', 'pending')->count();
     $total = $transactions instanceof \Illuminate\Pagination\AbstractPaginator ? $transactions->total() : $items->count();
-    $canApprove = auth()->user()?->hasRole('panitia') || auth()->user()?->hasRole('kepala_sekolah') || auth()->user()?->hasRole('admin');
+    $canApprove = auth()->user()?->hasRole('panitia') || auth()->user()?->hasRole('bendahara') || auth()->user()?->hasRole('kepala_sekolah') || auth()->user()?->hasRole('admin');
 @endphp
 
 <section class="payment-review-section payment-review-{{ $accent }}">
@@ -34,6 +34,9 @@
                             default => ['Menunggu', 'is-pending'],
                         };
                         $reference = $checkout?->provider_transaction_id ?: $checkout?->order_id ?: $trx->transaction_number;
+                        $billName = strtolower((string) $trx->tagihan?->jenisTagihan?->name);
+                        $isReRegistration = str_contains($billName, 'daftar ulang') || str_contains($billName, 'du');
+                        $feeItems = collect($trx->tagihan?->rincian_biaya ?? [])->filter(fn ($item) => filled($item['name'] ?? null) && (float) ($item['amount'] ?? 0) > 0);
                     @endphp
                     <tr>
                         <td><div class="payment-review-person"><span>{{ strtoupper(mb_substr($name, 0, 1)) }}</span><div><h4>{{ $name }}</h4><p>{{ $applicant?->registration_number ?? 'Belum memiliki nomor pendaftaran' }}</p></div></div></td>
@@ -60,7 +63,19 @@
                         <td class="payment-status-cell">
                             @if($isPending && $canApprove)
                                 <div class="payment-decision-actions">
-                                    <form method="POST" action="{{ route($routePrefix . 'pembayaran.verify', $trx) }}">@csrf @method('PATCH')<input type="hidden" name="status" value="verified"><button type="submit">Setujui</button></form>
+                                    @if($isReRegistration && $feeItems->isNotEmpty())
+                                        <details>
+                                            <summary class="cursor-pointer list-none rounded-lg bg-emerald-700 px-3 py-2 text-xs font-black text-white">Pilih rincian & setujui</summary>
+                                            <form method="POST" action="{{ route($routePrefix . 'pembayaran.verify', $trx) }}" class="mt-2 w-80 rounded-2xl border border-emerald-200 bg-white p-3 text-left shadow-xl">@csrf @method('PATCH')
+                                                <input type="hidden" name="status" value="verified">
+                                                <p class="mb-2 text-xs font-bold text-slate-700">Pilih rincian yang dibayar untuk Rp {{ number_format($trx->amount, 0, ',', '.') }}.</p>
+                                                <div class="max-h-48 space-y-2 overflow-y-auto">@foreach($feeItems as $item)<label class="flex items-center justify-between gap-2 rounded-lg border border-slate-100 px-2 py-1.5 text-xs"><span class="flex items-center gap-2"><input type="checkbox" name="selected_items[]" value="{{ $item['name'] }}"><span>{{ $item['name'] }}</span></span><b>Rp {{ number_format($item['amount'], 0, ',', '.') }}</b></label>@endforeach</div>
+                                                <button type="submit" class="mt-3 w-full rounded-lg bg-emerald-700 px-3 py-2 text-xs font-black text-white">Setujui pembayaran</button>
+                                            </form>
+                                        </details>
+                                    @else
+                                        <form method="POST" action="{{ route($routePrefix . 'pembayaran.verify', $trx) }}">@csrf @method('PATCH')<input type="hidden" name="status" value="verified"><button type="submit">Setujui</button></form>
+                                    @endif
                                     <form method="POST" action="{{ route($routePrefix . 'pembayaran.verify', $trx) }}" onsubmit="return confirm('Tolak pembayaran ini?')">@csrf @method('PATCH')<input type="hidden" name="status" value="rejected"><button type="submit" class="is-reject">Tolak</button></form>
                                 </div>
                             @elseif($isPending)

@@ -75,6 +75,10 @@ class PembayaranController extends Controller
                         'phone' => $phone,
                         'remaining' => (int) round((float) $duBill->remaining_amount),
                         'status' => (float) $duBill->paid_amount > 0 ? 'Cicilan daftar ulang' : 'Belum bayar daftar ulang',
+                        'items' => collect($duBill->rincian_biaya ?? [])
+                            ->filter(fn ($item) => filled($item['name'] ?? null) && (float) ($item['amount'] ?? 0) > 0)
+                            ->values()
+                            ->all(),
                     ]);
                 }
             }
@@ -157,13 +161,11 @@ class PembayaranController extends Controller
                         'valid_selection' => (float) $promotion['amount'] > 0,
                     ];
                 } else {
-                    $quote = [
-                        'amount' => (int) $validated['amount'],
-                        'discount' => 0,
-                        'promotion_name' => null,
-                        'selected_items' => null,
-                        'valid_selection' => true,
-                    ];
+                    $quote = \App\Support\PaymentQuote::forBill(
+                        $bill,
+                        $validated['selected_items'] ?? [],
+                        (int) $validated['amount'],
+                    );
                 }
                 if (! $quote['valid_selection']) {
                     throw \Illuminate\Validation\ValidationException::withMessages(['selected_items' => 'Pilih rincian biaya yang akan dibayar.']);
@@ -173,8 +175,8 @@ class PembayaranController extends Controller
                     throw \Illuminate\Validation\ValidationException::withMessages(['amount' => 'Masukkan nominal DU yang diterima.']);
                 }
 
-                // DU may be paid in installments. The treasurer allocates each
-                // installment to the selected cost details when receiving it.
+                // DU may be paid in installments, but every installment is
+                // allocated immediately by the staff member recording it.
                 if (! $isRegistration) {
                     $remaining = max(0, (int) round((float) $bill->remaining_amount));
                     if ((int) $validated['amount'] > $remaining) {
@@ -270,6 +272,8 @@ class PembayaranController extends Controller
         $validated = $request->validate([
             'status' => ['required', 'in:verified,rejected'],
             'notes' => ['nullable', 'string', 'max:255'],
+            'selected_items' => ['nullable', 'array'],
+            'selected_items.*' => ['string', 'max:255'],
         ]);
 
         if ($transaksi->status !== 'pending') {
@@ -290,8 +294,18 @@ class PembayaranController extends Controller
                 'notes' => $validated['notes'] ?? $transaction->notes,
             ]);
 
-            if ($validated['status'] === 'verified' && $this->isRegistrationBill($bill)) {
-                if ($bill) \App\Support\VerifiedPayment::apply($bill, $transaction);
+            if ($validated['status'] === 'verified' && $bill) {
+                if ($this->isReRegistrationBill($bill)) {
+                    $quote = \App\Support\PaymentQuote::forBill($bill, $validated['selected_items'] ?? [], (int) $transaction->amount);
+                    if (! $quote['valid_selection'] || (int) $quote['amount'] !== (int) $transaction->amount) {
+                        throw \Illuminate\Validation\ValidationException::withMessages([
+                            'selected_items' => 'Pilih rincian biaya daftar ulang yang totalnya sesuai dengan nominal pembayaran.',
+                        ]);
+                    }
+                    $transaction->update(['selected_items' => $quote['selected_items']]);
+                }
+
+                \App\Support\VerifiedPayment::apply($bill, $transaction);
             }
         });
 
@@ -325,7 +339,7 @@ class PembayaranController extends Controller
         });
 
         if ($validated['status'] === 'verified') {
-            return back()->with('success', 'Pembayaran disetujui oleh '.Auth::user()->name.'. Notifikasi WhatsApp siswa dikirim otomatis. Pembayaran formulir langsung membuka formulir; pembayaran DU diteruskan ke bendahara untuk penerimaan.');
+            return back()->with('success', 'Pembayaran disetujui oleh '.Auth::user()->name.'. Notifikasi WhatsApp siswa dikirim otomatis. Rincian daftar ulang telah dicatat; bendahara hanya melanjutkan penerimaan keuangan.');
         }
 
         return back()->with('success', 'Pembayaran ditolak. Notifikasi WhatsApp siswa dikirim otomatis agar dapat mengirim ulang bukti.');
@@ -424,7 +438,7 @@ class PembayaranController extends Controller
         $amount = number_format((float) $transaction->amount, 0, ',', '.');
         $url = route('bendahara.pembayaran.index');
         $message = \App\Support\WhatsappGreeting::opening()."\n\n"
-            ."Pembayaran DU menunggu penerimaan bendahara.\n\nSiswa: {$student}\nNominal diterima: Rp {$amount}\nDisetujui panitia: {$approver}\n\nSilakan buka pembayaran untuk memilih rincian biaya dan klik Terima bendahara:\n{$url}";
+            ."Pembayaran DU menunggu penerimaan bendahara.\n\nSiswa: {$student}\nNominal diterima: Rp {$amount}\nDisetujui petugas: {$approver}\n\nRincian biaya sudah dipilih saat approval. Silakan buka pembayaran dan klik Terima bendahara:\n{$url}";
 
         // DU is handled by the treasurer. Never direct this notice to a
         // generic admin number while a bendahara account is available.
@@ -468,6 +482,12 @@ class PembayaranController extends Controller
     {
         $name = strtolower((string) $bill?->jenisTagihan?->name);
         return str_contains($name, 'formulir') || str_contains($name, 'pendaftaran');
+    }
+
+    private function isReRegistrationBill(?TagihanPendaftar $bill): bool
+    {
+        $name = strtolower((string) $bill?->jenisTagihan?->name);
+        return str_contains($name, 'daftar ulang') || str_contains($name, 'du');
     }
 
 }

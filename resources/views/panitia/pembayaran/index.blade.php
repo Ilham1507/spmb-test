@@ -74,6 +74,20 @@
                                 </div>
                             </div>
 
+                            <div x-cloak x-show="feeType === 'daftar_ulang' && selected" class="rounded-2xl border border-violet-100 bg-white p-4">
+                                <p class="text-sm font-black text-slate-900">Rincian biaya yang dibayar</p>
+                                <p class="mt-1 text-xs font-semibold text-slate-500">Pilih rincian yang dicakup oleh nominal pembayaran ini.</p>
+                                <div class="mt-3 max-h-56 space-y-2 overflow-y-auto">
+                                    <template x-for="item in selected?.items || []" :key="item.name">
+                                        <label class="flex items-center justify-between gap-3 rounded-xl border border-slate-100 px-3 py-2.5 text-sm">
+                                            <span class="flex items-center gap-2"><input type="checkbox" x-model="selectedItems" :value="item.name"><span x-text="item.name"></span></span>
+                                            <strong x-text="'Rp ' + formatRupiah(item.amount)"></strong>
+                                        </label>
+                                    </template>
+                                </div>
+                                <template x-for="item in selectedItems" :key="item"><input type="hidden" name="selected_items[]" :value="item"></template>
+                            </div>
+
                             <div class="grid gap-4 md:grid-cols-2">
                                 <div>
                                     <label class="admin-label" x-text="feeType === 'formulir' ? 'Nominal formulir' : 'Nominal daftar ulang'"></label>
@@ -136,6 +150,7 @@
             selectedKey: config.oldCandidate || '',
             feeType: config.oldFeeType || 'formulir',
             paymentMethod: @js(old('payment_method', 'cash')),
+            selectedItems: @js(old('selected_items', [])),
             search: '',
             oldAmount: config.oldAmount || '',
             get selected() {
@@ -156,10 +171,12 @@
                 this.selectedKey = '';
                 this.search = '';
                 this.oldAmount = '';
+                this.selectedItems = [];
             },
             selectCandidate(candidate) {
                 this.selectedKey = candidate.key;
                 this.search = `${candidate.name} · ${candidate.phone}`;
+                this.selectedItems = [];
             },
             formatRupiah(value) {
                 return Number(value || 0).toLocaleString('id-ID');

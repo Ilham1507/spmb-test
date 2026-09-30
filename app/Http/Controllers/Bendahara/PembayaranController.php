@@ -242,6 +242,8 @@ class PembayaranController extends Controller
         $validated = $request->validate([
             'status' => ['required', 'in:verified,rejected'],
             'notes' => ['nullable', 'string', 'max:255'],
+            'selected_items' => ['nullable', 'array'],
+            'selected_items.*' => ['string', 'max:255'],
         ]);
 
         if ($transaksi->status !== 'pending') {
@@ -254,6 +256,15 @@ class PembayaranController extends Controller
             if ($transaction->status !== 'pending') return false;
             if ($validated['status'] === 'verified' && (float) $transaction->amount > (float) $bill->remaining_amount) {
                 throw \Illuminate\Validation\ValidationException::withMessages(['payment' => 'Nominal melebihi sisa tagihan. Cocokkan transaksi sebelum menyetujui.']);
+            }
+            if ($validated['status'] === 'verified' && $this->isReRegistrationFee($bill)) {
+                $quote = \App\Support\PaymentQuote::forBill($bill, $validated['selected_items'] ?? [], (int) $transaction->amount);
+                if (! $quote['valid_selection'] || (int) $quote['amount'] !== (int) $transaction->amount) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'selected_items' => 'Pilih rincian biaya daftar ulang yang totalnya sesuai dengan nominal pembayaran.',
+                    ]);
+                }
+                $transaction->update(['selected_items' => $quote['selected_items']]);
             }
             $transaction->update([
                 'status' => $validated['status'], 'verified_by' => Auth::id(), 'verified_at' => now(),
@@ -290,15 +301,13 @@ class PembayaranController extends Controller
             : 'Bukti pembayaran ditolak. Notifikasi WhatsApp terkirim agar siswa mengirim ulang bukti.');
     }
 
-    /** Final handover after panitia approval. Only this step records DU as received. */
+    /** Final handover after approval. Allocation has already been recorded by the approver. */
     public function receive(Request $request, TransaksiPembayaran $transaksi, WhatsappCloudApiService $whatsapp, \App\Services\PaymentReceiptNotifier $receiptNotifier, \App\Services\InvoiceEmailNotifier $invoiceEmail)
     {
         abort_unless(Auth::user()?->hasRole('bendahara') || Auth::user()?->hasRole('admin'), 403);
 
         $request->validate([
             'notes' => ['nullable', 'string', 'max:1000'],
-            'selected_items' => ['nullable', 'array'],
-            'selected_items.*' => ['string', 'max:255'],
         ]);
 
         $result = \Illuminate\Support\Facades\DB::transaction(function () use ($transaksi, $request) {
@@ -310,18 +319,6 @@ class PembayaranController extends Controller
             }
             if ($transaction->treasurer_received_at) {
                 throw \Illuminate\Validation\ValidationException::withMessages(['payment' => 'Pembayaran ini sudah diterima bendahara.']);
-            }
-
-            // Formulir telah membuka akses setelah persetujuan panitia. DU baru
-            // diterapkan saat bendahara menerima rincian yang dipilih.
-            if ($this->isReRegistrationFee($bill)) {
-                $selectedItems = $request->input('selected_items', collect($bill->rincian_biaya ?? [])->pluck('name')->filter()->all());
-                $quote = \App\Support\PaymentQuote::forBill($bill, $selectedItems, (int) $transaction->amount);
-                if (! $quote['valid_selection'] || (float) $quote['amount'] !== (float) $transaction->amount) {
-                    throw \Illuminate\Validation\ValidationException::withMessages(['payment' => 'Rincian biaya DU tidak cocok dengan bukti pembayaran.']);
-                }
-                $transaction->update(['selected_items' => $quote['selected_items']]);
-                \App\Support\VerifiedPayment::apply($bill, $transaction);
             }
 
             $transaction->update([
