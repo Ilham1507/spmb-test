@@ -47,7 +47,6 @@ class FormFieldCatalog
             ],
             'Kontak' => [
                 'no_handphone' => 'No Handphone',
-                'email' => 'Email',
             ],
             'Dokumen Pendukung' => [
                 'foto_3x4' => 'Foto berwarna 3x4', 'foto_seluruh_badan' => 'Foto Seluruh Badan',
@@ -110,7 +109,7 @@ class FormFieldCatalog
     {
         $saved = json_decode(SystemSetting::values()['form_fields'] ?? '', true);
         return is_array($saved)
-            ? array_values(array_unique([...array_intersect($saved, self::keys()), 'email']))
+            ? array_values(array_unique(array_intersect($saved, self::keys())))
             : self::keys();
     }
 
@@ -124,7 +123,7 @@ class FormFieldCatalog
         return [
             'asal_sekolah', 'jurusan', 'nama_peserta', 'nisn', 'jenis_kelamin',
             'tempat_lahir', 'tanggal_lahir', 'agama', 'nik', 'no_kartu_keluarga',
-            'alamat', 'jarak_ke_sekolah', 'nama_ayah', 'nama_ibu', 'no_handphone', 'email',
+            'alamat', 'jarak_ke_sekolah', 'nama_ayah', 'nama_ibu', 'no_handphone',
         ];
     }
 
@@ -132,7 +131,7 @@ class FormFieldCatalog
     {
         $saved = json_decode(SystemSetting::values()['form_required_fields'] ?? '', true);
         return is_array($saved)
-            ? array_values(array_unique([...array_intersect($saved, self::keys()), 'email']))
+            ? array_values(array_unique(array_intersect($saved, self::keys())))
             : array_values(array_intersect(self::defaultRequired(), self::keys()));
     }
 

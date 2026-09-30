@@ -1,14 +1,14 @@
 <x-guest-layout>
     @php($hasActiveEvent = \App\Support\PromotionEvent::activeAnnouncements() !== [])
     @slot('auth_title', 'Login')
-    @slot('auth_subtitle', 'Gunakan nomor WhatsApp atau email yang terdaftar.')
+    @slot('auth_subtitle', 'Gunakan nomor WhatsApp yang terdaftar.')
 
     <x-auth-session-status class="mb-4" :status="session('status')" />
 
     <form method="POST" action="{{ route('login') }}" class="auth-form" data-loading-title="Sedang menghubungkan" data-loading-message="Memeriksa akun, tunggu sebentar." x-data="{ showPassword:false, submitting:false }" @submit="submitting=true">
         @csrf
         <div>
-            <label for="login" class="mb-1.5 block">Nomor WhatsApp atau Email</label>
+            <label for="login" class="mb-1.5 block">Nomor WhatsApp</label>
             <input id="login" type="text" name="login" value="{{ old('login') }}" required @unless($hasActiveEvent) autofocus @endunless autocomplete="username" placeholder="08xxxxxxxxxx">
             <x-input-error :messages="$errors->get('login')" class="mt-1" />
         </div>

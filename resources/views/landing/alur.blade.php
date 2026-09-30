@@ -11,7 +11,7 @@
         ['title' => 'Isi data keluarga', 'body' => 'Lengkapi data ayah, ibu, dan wali apabila ada.'],
         ['title' => 'Data sekolah asal', 'body' => 'Masukkan informasi sekolah asal dan riwayat pendidikan calon siswa.'],
         ['title' => 'Pilih konsentrasi', 'body' => 'Tentukan pilihan utama serta pilihan cadangan dari empat konsentrasi keahlian.'],
-        ['title' => 'Lengkapi kontak', 'body' => 'Pastikan nomor WhatsApp dan email dapat dihubungi oleh panitia SPMB.'],
+        ['title' => 'Lengkapi kontak', 'body' => 'Pastikan nomor WhatsApp aktif agar panitia SPMB dapat menghubungi Anda.'],
         ['title' => 'Unggah berkas', 'body' => 'Unggah KK, akta kelahiran, ijazah atau SKL, dan pas foto sesuai ketentuan.'],
     ]);
     $today = now()->startOfDay();
