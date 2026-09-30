@@ -138,15 +138,32 @@ class PembayaranController extends Controller
                     throw \Illuminate\Validation\ValidationException::withMessages(['payment' => 'Masih ada bukti pembayaran yang menunggu approval panitia.']);
                 }
 
-                $quote = $isRegistration
-                    ? \App\Support\PaymentQuote::forBill($bill, $validated['selected_items'] ?? [])
-                    : [
+                // Formulir is always settled as one mandatory bill. Do not
+                // route this manual cash/transfer entry through DU item
+                // allocation, which is only needed for daftar ulang.
+                if ($isRegistration) {
+                    $remaining = max(0, (int) round((float) $bill->remaining_amount));
+                    $promotion = \App\Support\PromotionEvent::apply(
+                        $remaining,
+                        (string) $bill->jenisTagihan?->name,
+                        (int) $applicant->id,
+                    );
+                    $quote = [
+                        'amount' => (int) round((float) $promotion['amount']),
+                        'discount' => (int) round((float) $promotion['discount']),
+                        'promotion_name' => $promotion['event']['name'] ?? null,
+                        'selected_items' => null,
+                        'valid_selection' => (float) $promotion['amount'] > 0,
+                    ];
+                } else {
+                    $quote = [
                         'amount' => (int) $validated['amount'],
                         'discount' => 0,
                         'promotion_name' => null,
                         'selected_items' => null,
                         'valid_selection' => true,
                     ];
+                }
                 if (! $quote['valid_selection']) {
                     throw \Illuminate\Validation\ValidationException::withMessages(['selected_items' => 'Pilih rincian biaya yang akan dibayar.']);
                 }
