@@ -29,8 +29,7 @@ class PaymentReceiptNotifier
             if ($target === '') return false;
 
             $student = $applicant?->biodata?->full_name ?? $applicant?->user?->name ?? 'Calon siswa';
-            $feeNames = collect($transaction->selected_items ?? [])->pluck('name')->filter()->join(', ')
-                ?: ($bill?->jenisTagihan?->name ?? 'Tagihan sekolah');
+            $feeNames = $this->feeSummary($transaction);
             $receivedBy = $transaction->verifier?->name ?? 'Panitia SPMB';
             $visitReceiver = $visit?->penerima?->name ?? 'Panitia SPMB';
             $channel = ['cash' => 'Tunai di sekolah', 'transfer' => 'Transfer bank'][$transaction->payment_method] ?? 'Pembayaran manual';
@@ -75,8 +74,7 @@ class PaymentReceiptNotifier
             }
 
             $student = $applicant?->biodata?->full_name ?? $applicant?->user?->name ?? 'Calon siswa';
-            $feeNames = collect($transaction->selected_items ?? [])->pluck('name')->filter()->join(', ')
-                ?: ($bill?->jenisTagihan?->name ?? 'Tagihan sekolah');
+            $feeNames = $this->feeSummary($transaction);
             $registrationNumber = $applicant?->registration_number ?: '-';
             $amount = number_format((float) $transaction->amount, 0, ',', '.');
             $receiver = $visit?->penerima?->name ?? 'Panitia SPMB';
@@ -96,5 +94,30 @@ class PaymentReceiptNotifier
 
             return false;
         }
+    }
+
+    /**
+     * Keep WhatsApp concise when a student pays many re-registration items.
+     * The complete item list remains available in the payment detail.
+     */
+    private function feeSummary(TransaksiPembayaran $transaction): string
+    {
+        $items = collect($transaction->selected_items ?? [])
+            ->pluck('name')
+            ->filter(fn ($name) => filled($name))
+            ->unique()
+            ->values();
+
+        if ($items->isEmpty()) {
+            return $transaction->tagihan?->jenisTagihan?->name ?? 'Tagihan sekolah';
+        }
+
+        if ($items->count() === 1) {
+            return (string) $items->first();
+        }
+
+        $paymentType = $transaction->tagihan?->jenisTagihan?->name ?? 'Tagihan sekolah';
+
+        return $paymentType.' — '.$items->count().' rincian biaya terpilih';
     }
 }
