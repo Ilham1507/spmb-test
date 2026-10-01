@@ -100,8 +100,9 @@ class PengaturanController extends Controller
                 'items' => 'required|array|min:1|max:12',
                 'items.*.title' => 'required|string|max:150',
                 'items.*.body' => 'required|string|max:600',
+                'items.*.icon' => ['nullable', \Illuminate\Validation\Rule::in(array_keys(\App\Support\TestPreparationIcons::OPTIONS))],
             ], ['items.*.title.required' => 'Isi judul pada setiap persiapan.', 'items.*.body.required' => 'Isi penjelasan pada setiap persiapan.']);
-            $items = collect($data['items'])->map(fn ($item) => ['title' => trim($item['title']), 'body' => trim($item['body'])])->values()->all();
+            $items = collect($data['items'])->values()->map(fn ($item, $index) => ['title' => trim($item['title']), 'body' => trim($item['body']), 'icon' => \App\Support\TestPreparationIcons::resolve($item['icon'] ?? null, $index)])->all();
             SystemSetting::putMany(['test_preparation_items' => json_encode($items, JSON_UNESCAPED_UNICODE)], 'test');
             return back()->with('success', 'Persiapan Tes SPMB untuk siswa berhasil diperbarui.');
         }

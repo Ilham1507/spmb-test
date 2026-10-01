@@ -48,14 +48,10 @@
                 <p class="text-xs font-black uppercase tracking-[.14em] text-teal-700">Sebelum Tes SPMB</p><h3 class="mt-2 text-xl font-black text-slate-950">Siapkan diri untuk tes</h3>
                 <div class="mt-5 grid gap-3 sm:grid-cols-2">
                     @foreach($testPreparation as $item)
-                        @php $iconKey = match($loop->index) { 0 => 'phone', 1 => 'shirt', 2 => 'family', default => 'document' }; @endphp
+                        @php $iconKey = \App\Support\TestPreparationIcons::resolve($item['icon'] ?? null, $loop->index); @endphp
                         <article class="group rounded-2xl border border-slate-100 bg-gradient-to-br from-white to-teal-50/60 p-4 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-teal-200 hover:shadow-md">
                             <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-teal-700 text-white shadow-lg shadow-teal-700/20">
-                                @if($iconKey === 'phone')<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="7" y="2.5" width="10" height="19" rx="2"/><path d="M10 5h4M11 18h2"/></svg>
-                                @elseif($iconKey === 'shirt')<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m8 4 4 3 4-3 4 3-3 5v8H7v-8L4 7l4-3Z"/></svg>
-                                @elseif($iconKey === 'family')<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="8" r="2.5"/><circle cx="16" cy="8" r="2.5"/><path d="M3.5 20a4.5 4.5 0 0 1 9 0M11.5 20a4.5 4.5 0 0 1 9 0"/></svg>
-                                @else<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h9l3 3v15H6zM14 3v4h4M9 12h6M9 16h6"/></svg>
-                                @endif
+                                <x-test-preparation-icon :icon="$iconKey" />
                             </span>
                             <h4 class="mt-4 text-sm font-black text-slate-900">{{ $item['title'] ?? '' }}</h4><p class="mt-1 text-xs font-semibold leading-relaxed text-slate-500">{{ $item['body'] ?? '' }}</p>
                         </article>

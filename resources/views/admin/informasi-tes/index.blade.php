@@ -21,11 +21,28 @@
         @if($errors->has('items') || $errors->has('items.*'))
             <p class="mt-3 text-sm font-bold text-rose-600">{{ $errors->first() }}</p>
         @endif
-        <form method="POST" action="{{ route('admin.informasi-tes.preparation.save') }}" class="mt-4" x-data="{ items: @js(old('items', $testPreparation)) }">@csrf
+        @php
+            $preparationEditorItems = collect(old('items', $testPreparation))->values()->map(fn ($item, $index) => array_merge($item, ['icon' => \App\Support\TestPreparationIcons::resolve($item['icon'] ?? null, $index)]))->all();
+        @endphp
+        <form method="POST" action="{{ route('admin.informasi-tes.preparation.save') }}" class="mt-4" x-data="{ items: @js($preparationEditorItems) }">@csrf
             <div class="grid gap-4 md:grid-cols-2">
                 <template x-for="(item, index) in items" :key="index">
                     <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                         <div class="mb-3 flex items-center justify-between"><span class="text-xs font-bold text-teal-700" x-text="'Persiapan ' + (index + 1)"></span><button type="button" :disabled="items.length === 1" @click="items.splice(index, 1)" class="text-xs font-bold text-rose-600 disabled:opacity-30">Hapus</button></div>
+                        <div class="mb-3 flex items-end gap-3">
+                            <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-teal-700 text-white">
+                                @foreach(\App\Support\TestPreparationIcons::OPTIONS as $iconKey => $iconLabel)
+                                    <x-test-preparation-icon :icon="$iconKey" x-show="item.icon === '{{ $iconKey }}'" />
+                                @endforeach
+                            </span>
+                            <label class="block min-w-0 flex-1 text-sm font-bold text-slate-700">Ikon
+                                <select :name="'items[' + index + '][icon]'" x-model="item.icon" required class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5">
+                                    @foreach(\App\Support\TestPreparationIcons::OPTIONS as $iconKey => $iconLabel)
+                                        <option value="{{ $iconKey }}">{{ $iconLabel }}</option>
+                                    @endforeach
+                                </select>
+                            </label>
+                        </div>
                         <label class="block text-sm font-bold text-slate-700">Judul
                             <input :name="'items[' + index + '][title]'" x-model="item.title" required maxlength="150" placeholder="Contoh: Bawa HP dan internet" class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5">
                         </label>
@@ -35,7 +52,7 @@
                     </div>
                 </template>
             </div>
-            <div class="mt-4 flex flex-wrap gap-3"><button type="button" :disabled="items.length >= 12" @click="items.push({title:'', body:''})" class="rounded-xl border border-teal-200 px-4 py-2.5 text-sm font-bold text-teal-700">+ Tambah persiapan</button><button class="rounded-xl bg-teal-700 px-4 py-2.5 text-sm font-black text-white">Simpan persiapan</button></div>
+            <div class="mt-4 flex flex-wrap gap-3"><button type="button" :disabled="items.length >= 12" @click="items.push({title:'', body:'', icon:'document'})" class="rounded-xl border border-teal-200 px-4 py-2.5 text-sm font-bold text-teal-700">+ Tambah persiapan</button><button class="rounded-xl bg-teal-700 px-4 py-2.5 text-sm font-black text-white">Simpan persiapan</button></div>
         </form>
     </details>
     <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
