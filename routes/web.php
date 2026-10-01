@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Route;
 
 // Public Landing Pages
 Route::get('/', [HomeController::class, 'index'])->name('home');
+Route::view('/privasi-email', 'landing.privasi-email')->name('privasi.email');
 Route::get('/invoice/{transaksi}/pdf', [BendaharaPembayaranController::class, 'publicInvoicePdf'])
     ->middleware('signed')
     ->name('invoice.public.pdf');
