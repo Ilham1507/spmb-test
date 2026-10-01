@@ -148,6 +148,7 @@ Route::middleware(['web', 'admin'])->group(function () {
     Route::post('/informasi-tes/persiapan', [PengaturanController::class, 'saveTestPreparation'])->name('informasi-tes.preparation.save');
     Route::post('/informasi-tes', [PengaturanController::class, 'storeInformasiTes'])->name('informasi-tes.store');
     Route::put('/informasi-tes/{jadwalSpmb}', [PengaturanController::class, 'updateInformasiTes'])->name('informasi-tes.update');
+    Route::post('/informasi-tes/{jadwalSpmb}/pindah', [PengaturanController::class, 'moveInformasiTes'])->name('informasi-tes.move');
     Route::delete('/informasi-tes/{jadwalSpmb}', [PengaturanController::class, 'destroyInformasiTes'])->name('informasi-tes.destroy');
     Route::get('/konfigurasi-spmb', [PengaturanController::class, 'konfigurasi'])->name('konfigurasi.index');
     Route::post('/konfigurasi-spmb', [PengaturanController::class, 'saveKonfigurasi'])->name('konfigurasi.save');

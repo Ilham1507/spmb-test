@@ -324,7 +324,7 @@ class PendaftarController extends Controller
         if ($validated['status'] === 'verified') {
             $testSchedule = $pendaftar->preferredTestSchedule;
             $scheduleInfo = $testSchedule
-                ? "Jadwal Tes SPMB: " . \Illuminate\Support\Carbon::parse($testSchedule->tanggal_mulai)->translatedFormat('l, d F Y · H:i') . " WIB\n"
+                ? "Jadwal Tes SPMB: " . \App\Services\TestScheduleService::date($testSchedule->tanggal_mulai) . "\n"
                     . "Lokasi: Kampus E SMK Muhammadiyah 4 Cileungsi\n"
                     . "Mohon hadir 30 menit sebelum tes dimulai.\n\n"
                 : "Jadwal Tes SPMB akan muncul di dashboard setelah ditetapkan sekolah.\n\n";

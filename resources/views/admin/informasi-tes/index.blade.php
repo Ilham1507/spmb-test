@@ -23,7 +23,7 @@
                     <h2 class="font-black text-slate-950">Daftar Jadwal Tes</h2>
                     <span class="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-black text-slate-600">{{ $jadwalTes->count() }} data</span>
                 </div>
-                <p class="mt-0.5 text-xs text-slate-500">Jadwal, jam, dan keterangan diisi manual oleh admin.</p>
+                <p class="mt-0.5 text-xs text-slate-500">Edit tanggal/jam untuk mengundur tes. Siswa yang memilih jadwal tersebut mendapat WhatsApp otomatis. Untuk tanggal baru, tambahkan jadwal lalu pindahkan siswa.</p>
             </div>
             <button type="button" @click="addOpen=true" class="rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-black text-white shadow-sm hover:bg-emerald-700">+ Tambah Jadwal Tes</button>
         </div>
@@ -62,6 +62,24 @@
                             </form>
                         </div>
                     </div>
+                    @php
+                        $replacements = $jadwalTes->filter(fn ($item) => $item->id !== $jadwal->id && $item->tahun_ajaran_id == $jadwal->tahun_ajaran_id && $item->available_for_student_selection && \Carbon\Carbon::parse($item->tanggal_mulai)->gte(now()->startOfDay()));
+                    @endphp
+                    @if($replacements->isNotEmpty())
+                        <details class="mt-4 border-t border-slate-200 pt-3">
+                            <summary class="cursor-pointer text-sm font-bold text-teal-700">Pindahkan siswa ke jadwal lain</summary>
+                            <form method="POST" action="{{ route('admin.informasi-tes.move', $jadwal) }}" class="mt-3 flex flex-col gap-3 sm:flex-row" onsubmit="return confirm('Pindahkan semua siswa yang memilih jadwal ini dan kirim pemberitahuan WhatsApp? Jadwal lama akan ditutup untuk pilihan baru.')">
+                                @csrf
+                                <select name="replacement_schedule_id" required aria-label="Jadwal pengganti" class="min-w-0 flex-1 rounded-xl border border-teal-200 px-3 py-2 text-sm">
+                                    <option value="">Pilih jadwal pengganti</option>
+                                    @foreach($replacements as $replacement)
+                                        <option value="{{ $replacement->id }}">{{ \App\Services\TestScheduleService::date($replacement->tanggal_mulai) }} — {{ $replacement->kegiatan }}</option>
+                                    @endforeach
+                                </select>
+                                <button class="rounded-xl bg-teal-700 px-4 py-2 text-sm font-bold text-white">Pindahkan &amp; beri tahu siswa</button>
+                            </form>
+                        </details>
+                    @endif
                 </article>
             @empty
                 <div class="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-10 text-center">

@@ -115,7 +115,7 @@ class ReviewController extends Controller
             ?: (string) config('services.panitia.whatsapp_number');
 
         $receiverName = $receivingVisit?->penerima?->name ?? 'Panitia SPMB';
-        $scheduleDate = \Illuminate\Support\Carbon::parse($selectedSchedule->tanggal_mulai)->translatedFormat('l, d F Y · H:i') . ' WIB';
+        $scheduleDate = \App\Services\TestScheduleService::date($selectedSchedule->tanggal_mulai);
         $message = \App\Support\WhatsappGreeting::opening()."\n\n"
             ."Formulir pendaftaran baru perlu diperiksa.
 

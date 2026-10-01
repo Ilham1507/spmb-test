@@ -112,14 +112,24 @@ class PengaturanController extends Controller
         return back()->with('success', 'Informasi tes berhasil ditambahkan.');
     }
 
-    public function updateInformasiTes(Request $request, JadwalSpmb $jadwalSpmb): RedirectResponse
+    public function updateInformasiTes(Request $request, JadwalSpmb $jadwalSpmb, \App\Services\TestScheduleService $schedules): RedirectResponse
     {
-        $jadwalSpmb->update($this->validateJadwal($request));
-        return back()->with('success', 'Informasi tes berhasil diperbarui.');
+        $schedules->update($jadwalSpmb, $this->validateJadwal($request));
+        return back()->with('success', 'Jadwal diperbarui. Notifikasi WhatsApp dikirim kepada siswa yang memilih jadwal tersebut.');
+    }
+
+    public function moveInformasiTes(Request $request, JadwalSpmb $jadwalSpmb, \App\Services\TestScheduleService $schedules): RedirectResponse
+    {
+        $data = $request->validate(['replacement_schedule_id' => 'required|integer|exists:jadwal_spmb,id']);
+        $count = $schedules->move($jadwalSpmb, JadwalSpmb::findOrFail($data['replacement_schedule_id']));
+        return back()->with('success', "{$count} siswa dipindahkan ke jadwal pengganti. Jadwal lama ditutup untuk pilihan baru dan notifikasi WhatsApp dikirim.");
     }
 
     public function destroyInformasiTes(JadwalSpmb $jadwalSpmb): RedirectResponse
     {
+        if (\App\Models\Pendaftar::where('preferred_test_schedule_id', $jadwalSpmb->id)->exists()) {
+            return back()->with('warning', 'Jadwal masih dipilih siswa. Ubah tanggal atau pindahkan siswa ke jadwal pengganti terlebih dahulu.');
+        }
         $jadwalSpmb->delete();
         return back()->with('success', 'Informasi tes berhasil dihapus.');
     }
