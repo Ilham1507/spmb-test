@@ -69,7 +69,7 @@
 
     @if($isSubmitted)<div class="participant-review-finished"><span>✓</span><div><b>Pendaftaran terkirim</b><p>Panitia akan memeriksa data Anda.</p></div></div>
     @else
-        <form method="POST" action="{{ route('peserta.submit') }}" x-data="{ confirmSubmit: false, scheduleRequired: false }" @submit.prevent="if (!$el.querySelector('input[name=preferred_test_schedule_id]:checked')) { scheduleRequired = true; $nextTick(() => document.getElementById('pilihan-tanggal-tes')?.scrollIntoView({ behavior: 'smooth', block: 'center' })); } else { confirmSubmit = true }">
+        <form method="POST" action="{{ route('peserta.submit') }}" x-data="{ confirmSubmit: false, scheduleRequired: false, submitting: false }" @submit.prevent="if (!$el.querySelector('input[name=preferred_test_schedule_id]:checked')) { scheduleRequired = true; $nextTick(() => document.getElementById('pilihan-tanggal-tes')?.scrollIntoView({ behavior: 'smooth', block: 'center' })); } else { confirmSubmit = true }">
             @csrf
             <section id="pilihan-tanggal-tes" class="rounded-3xl border border-teal-200 bg-white p-5 shadow-sm">
                 <p class="text-xs font-black uppercase tracking-[.14em] text-teal-700">Kehadiran tes SPMB</p>
@@ -102,7 +102,7 @@
                     <button type="button" class="participant-review-modal-submit mt-6 w-full py-3" @click="scheduleRequired = false">Mengerti</button>
                 </div>
             </div>
-            <div x-cloak x-show="confirmSubmit" x-transition.opacity class="fixed inset-0 z-[90] flex items-end bg-slate-950/60 p-4 backdrop-blur-sm sm:items-center sm:justify-center"><div x-show="confirmSubmit" x-transition.scale.origin.bottom class="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl"><span class="participant-review-modal-icon">✓</span><h3>Siap kirim pendaftaran?</h3><p>Pastikan data, dokumen, dan pilihan tanggal tes sudah benar. Setelah dikirim, formulir akan diperiksa panitia.</p><div class="mt-6 flex gap-3"><button type="button" class="btn-secondary flex-1" @click="confirmSubmit = false">Cek lagi</button><button type="button" class="participant-review-modal-submit flex-1" @click="$el.closest('form').submit()">Kirim</button></div></div></div>
+            <div x-cloak x-show="confirmSubmit" x-transition.opacity class="fixed inset-0 z-[90] flex items-end bg-slate-950/60 p-4 backdrop-blur-sm sm:items-center sm:justify-center"><div x-show="confirmSubmit" x-transition.scale.origin.bottom class="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl"><span class="participant-review-modal-icon">✓</span><h3>Siap kirim pendaftaran?</h3><p>Pastikan data, dokumen, dan pilihan tanggal tes sudah benar. Setelah dikirim, formulir akan diperiksa panitia.</p><div class="mt-6 flex gap-3"><button type="button" class="btn-secondary flex-1" :disabled="submitting" @click="confirmSubmit = false">Cek lagi</button><button type="button" class="participant-review-modal-submit flex-1 disabled:opacity-60" :disabled="submitting" @click="if (!submitting) { submitting = true; $el.closest('form').submit() }" x-text="submitting ? 'Mengirim…' : 'Kirim'">Kirim</button></div></div></div>
         </form>
     @endif
 </div>

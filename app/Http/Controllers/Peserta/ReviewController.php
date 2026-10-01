@@ -51,6 +51,11 @@ class ReviewController extends Controller
                              ->with('warning', 'Silakan lengkapi biodata terlebih dahulu.');
         }
 
+        if ($pendaftar->registration_status === 'submitted' && $pendaftar->correction_status !== 'requested') {
+            return redirect()->route('peserta.dashboard')
+                ->with('success', 'Pendaftaran sudah terkirim dan menunggu pemeriksaan panitia.');
+        }
+
         // Validate only fields currently enabled and required by the administrator.
         $errors = collect(FormFieldCatalog::requiredStatuses($pendaftar))
             ->filter(fn ($complete) => ! $complete)
@@ -128,20 +133,30 @@ class ReviewController extends Controller
             ."
 Silakan buka menu Pendaftar untuk memeriksa dan menyetujui formulir.";
 
-        try {
-            if (filled($notificationTarget)) {
-                $whatsapp->send($notificationTarget, $message);
-            }
-        } catch (Throwable $exception) {
-            Log::warning('Notifikasi persetujuan formulir ke petugas gagal dikirim melalui WhatsApp Business API.', [
-                'applicant_id' => $pendaftar->id,
-                'error' => $exception->getMessage(),
-            ]);
-        }
+        $this->notifyAfterResponse($whatsapp, $notificationTarget, $message, $pendaftar->id);
 
         return redirect()->route('peserta.dashboard')->with('success', $isCorrection
             ? 'Perbaikan formulir berhasil dikirim ulang. Kami akan memberi kabar setelah pemeriksaan selesai.'
             : 'Pendaftaran berhasil dikirim. Kami akan memberi kabar setelah pemeriksaan formulir selesai.');
+    }
+
+    protected function notifyAfterResponse(WhatsappCloudApiService $whatsapp, ?string $target, string $message, int $applicantId): void
+    {
+        if (! filled($target)) {
+            return;
+        }
+
+        // PHP-FPM finishes the redirect response before running termination callbacks.
+        app()->terminating(function () use ($whatsapp, $target, $message, $applicantId): void {
+            try {
+                $whatsapp->send($target, $message);
+            } catch (Throwable $exception) {
+                Log::warning('Notifikasi persetujuan formulir ke petugas gagal dikirim melalui WhatsApp Business API.', [
+                    'applicant_id' => $applicantId,
+                    'error' => $exception->getMessage(),
+                ]);
+            }
+        });
     }
 
     private function getPendaftar(): ?Pendaftar
