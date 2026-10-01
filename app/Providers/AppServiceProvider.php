@@ -21,6 +21,8 @@ use App\Models\TahunAjaran;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\Transport\GmailApiTransport;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -38,6 +40,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Mail::extend('gmail_api', fn () => new GmailApiTransport(config('services.gmail', [])));
+
         // Railway terminates HTTPS at its proxy and forwards requests to PHP
         // over HTTP. Force public links, assets, and form actions to retain
         // HTTPS so browsers never submit credentials over an insecure URL.
