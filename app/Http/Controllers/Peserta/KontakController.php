@@ -104,7 +104,16 @@ class KontakController extends Controller
             'email_verification_expires_at' => null,
         ]);
 
+        // Finish the verification response before rendering/sending any PDFs.
+        $contactId = $contact->id;
+        app()->terminating(function () use ($contactId): void {
+            $verifiedContact = KontakPendaftar::find($contactId);
+            if ($verifiedContact) {
+                app(\App\Services\InvoiceEmailNotifier::class)->sendVerifiedForContact($verifiedContact);
+            }
+        });
+
         return redirect()->route('peserta.kontak')
-            ->with('success', 'Email berhasil diverifikasi. Invoice pembayaran yang telah disetujui juga akan dikirim ke email ini.');
+            ->with('success', 'Email berhasil diverifikasi. Anda dapat melanjutkan pendaftaran.');
     }
 }
