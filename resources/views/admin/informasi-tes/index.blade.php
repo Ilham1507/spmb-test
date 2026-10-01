@@ -4,18 +4,39 @@
 @section('page_title', 'Kelola Informasi Tes')
 
 @section('content')
-<div x-data="{ addOpen: {{ $errors->any() ? 'true' : 'false' }}, editId: null }">
-    @php $preparationText = collect($testPreparation)->map(fn ($item) => ($item['title'] ?? '').'|'.($item['body'] ?? ''))->implode("\n"); @endphp
-    <section class="mb-5 rounded-2xl border border-teal-200 bg-teal-50/60 p-5 shadow-sm">
-        <p class="text-xs font-black uppercase tracking-[.14em] text-teal-700">Tampilan siswa</p>
-        <h2 class="mt-1 text-lg font-black text-slate-950">Persiapan Tes SPMB</h2>
-        <p class="mt-1 text-sm font-medium text-slate-600">Isi ini tampil pada halaman Tes SPMB siswa sebelum panitia membuka CBT.</p>
-        <form method="POST" action="{{ route('admin.informasi-tes.preparation.save') }}" class="mt-4">@csrf
-            <label class="text-xs font-black text-slate-700">Persiapan <span class="font-medium text-slate-500">satu baris: Judul|Penjelasan</span></label>
-            <textarea name="items_text" rows="5" required class="mt-2 w-full rounded-2xl border-2 border-teal-100 bg-white px-4 py-3 text-sm font-semibold text-slate-700 focus:border-teal-500 focus:outline-none focus:ring-4 focus:ring-teal-100">{{ old('items_text', $preparationText) }}</textarea>
-            <button class="mt-3 rounded-xl bg-teal-700 px-4 py-2.5 text-xs font-black text-white shadow-sm hover:bg-teal-800">Simpan persiapan tes</button>
+<style>
+    .test-schedule-overlay { position:fixed!important; inset:0!important; z-index:100000!important; display:flex; align-items:center; justify-content:center; padding:20px; background:rgba(15,23,42,.55); backdrop-filter:blur(4px); }
+    .test-schedule-dialog { display:flex; flex-direction:column; width:100%; max-width:720px; max-height:calc(100dvh - 40px); overflow:hidden; border-radius:24px; background:#fff; box-shadow:0 24px 80px #0f172a55; }
+    .test-schedule-dialog > div { flex-shrink:0; }
+    .test-schedule-dialog > form { display:flex; flex-direction:column; min-height:0; overflow:hidden; padding:0!important; gap:0!important; }
+    .test-schedule-fields { padding:24px; overflow-y:auto; min-height:0; }
+    .test-schedule-footer { flex-shrink:0; margin:0!important; padding:16px 24px; border-top:1px solid #e2e8f0; background:#fff; }
+    @media(max-width:640px) { .test-schedule-overlay{padding:12px} .test-schedule-dialog{max-height:calc(100dvh - 24px);border-radius:20px} .test-schedule-fields{padding:18px} .test-schedule-footer{padding:14px 18px} }
+</style>
+<div x-data="{ addOpen: {{ $errors->any() && !$errors->has('items') && !$errors->has('items.*') ? 'true' : 'false' }}, editId: null }">
+    <details class="mb-5 rounded-2xl border border-teal-200 bg-white p-5 shadow-sm" {{ $errors->has('items') || $errors->has('items.*') ? 'open' : '' }}>
+        <summary class="cursor-pointer font-black text-teal-800">Persiapan yang ditampilkan kepada siswa <span class="ml-2 text-xs font-medium text-slate-500">Klik untuk mengatur</span></summary>
+        <p class="mt-3 text-sm text-slate-600">Tulis satu persiapan per kartu. Judul dan penjelasan tampil otomatis di halaman Tes SPMB siswa.</p>
+        @if($errors->has('items') || $errors->has('items.*'))
+            <p class="mt-3 text-sm font-bold text-rose-600">{{ $errors->first() }}</p>
+        @endif
+        <form method="POST" action="{{ route('admin.informasi-tes.preparation.save') }}" class="mt-4" x-data="{ items: @js(old('items', $testPreparation)) }">@csrf
+            <div class="grid gap-4 md:grid-cols-2">
+                <template x-for="(item, index) in items" :key="index">
+                    <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                        <div class="mb-3 flex items-center justify-between"><span class="text-xs font-bold text-teal-700" x-text="'Persiapan ' + (index + 1)"></span><button type="button" :disabled="items.length === 1" @click="items.splice(index, 1)" class="text-xs font-bold text-rose-600 disabled:opacity-30">Hapus</button></div>
+                        <label class="block text-sm font-bold text-slate-700">Judul
+                            <input :name="'items[' + index + '][title]'" x-model="item.title" required maxlength="150" placeholder="Contoh: Bawa HP dan internet" class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5">
+                        </label>
+                        <label class="mt-3 block text-sm font-bold text-slate-700">Penjelasan
+                            <textarea :name="'items[' + index + '][body]'" x-model="item.body" required maxlength="600" rows="3" placeholder="Jelaskan apa yang perlu disiapkan siswa." class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5"></textarea>
+                        </label>
+                    </div>
+                </template>
+            </div>
+            <div class="mt-4 flex flex-wrap gap-3"><button type="button" :disabled="items.length >= 12" @click="items.push({title:'', body:''})" class="rounded-xl border border-teal-200 px-4 py-2.5 text-sm font-bold text-teal-700">+ Tambah persiapan</button><button class="rounded-xl bg-teal-700 px-4 py-2.5 text-sm font-black text-white">Simpan persiapan</button></div>
         </form>
-    </section>
+    </details>
     <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-4 py-3.5">
             <div>
@@ -90,30 +111,35 @@
         </div>
     </section>
 
-    <div x-cloak x-show="addOpen" x-transition.opacity class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm" @keydown.escape.window="addOpen=false">
-        <div @click.outside="addOpen=false" class="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white shadow-2xl">
+    <template x-teleport="body">
+    <div x-cloak x-show="addOpen" x-transition.opacity class="test-schedule-overlay" @keydown.escape.window="addOpen=false">
+        <div role="dialog" aria-modal="true" aria-labelledby="add-test-title" @click.outside="addOpen=false" class="test-schedule-dialog">
             <div class="flex items-start justify-between border-b border-slate-100 p-5">
                 <div>
-                    <h3 class="text-lg font-black text-slate-950">Tambah Jadwal Tes</h3>
+                    <h3 id="add-test-title" class="text-lg font-black text-slate-950">Tambah Jadwal Tes</h3>
                     <p class="mt-1 text-xs text-slate-500">Isi jadwal sesuai keputusan sekolah.</p>
                 </div>
                 <button type="button" @click="addOpen=false" class="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-xl text-slate-500">&times;</button>
             </div>
             <form method="POST" action="{{ route('admin.informasi-tes.store') }}" class="space-y-4 p-5">
                 @csrf
+                <div class="test-schedule-fields">
                 @include('admin.informasi-tes.partials.form', ['jadwal' => null])
                 @if($errors->any())<p class="rounded-xl bg-rose-50 p-3 text-xs font-bold text-rose-600">{{ $errors->first() }}</p>@endif
-                <div class="grid grid-cols-2 gap-2">
+                </div>
+                <div class="test-schedule-footer grid grid-cols-2 gap-2">
                     <button type="button" @click="addOpen=false" class="rounded-xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-600">Batal</button>
                     <button class="rounded-xl bg-emerald-600 px-4 py-3 text-sm font-black text-white">Simpan</button>
                 </div>
             </form>
         </div>
     </div>
+    </template>
 
     @foreach($jadwalTes as $jadwal)
-        <div x-cloak x-show="editId==={{ $jadwal->id }}" x-transition.opacity class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm" @keydown.escape.window="editId=null">
-            <div @click.outside="editId=null" class="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white shadow-2xl">
+        <template x-teleport="body">
+        <div x-cloak x-show="editId==={{ $jadwal->id }}" x-transition.opacity class="test-schedule-overlay" @keydown.escape.window="editId=null">
+            <div role="dialog" aria-modal="true" aria-label="Edit Jadwal Tes" @click.outside="editId=null" class="test-schedule-dialog">
                 <div class="flex items-start justify-between border-b border-slate-100 p-5">
                     <div>
                         <h3 class="text-lg font-black text-slate-950">Edit Jadwal Tes</h3>
@@ -124,14 +150,17 @@
                 <form method="POST" action="{{ route('admin.informasi-tes.update', $jadwal) }}" class="space-y-4 p-5">
                     @csrf
                     @method('PUT')
+                    <div class="test-schedule-fields">
                     @include('admin.informasi-tes.partials.form', ['jadwal' => $jadwal])
-                    <div class="grid grid-cols-2 gap-2">
+                    </div>
+                    <div class="test-schedule-footer grid grid-cols-2 gap-2">
                         <button type="button" @click="editId=null" class="rounded-xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-600">Batal</button>
                         <button class="rounded-xl bg-sky-600 px-4 py-3 text-sm font-black text-white">Simpan Perubahan</button>
                     </div>
                 </form>
             </div>
         </div>
+        </template>
     @endforeach
 </div>
 @endsection

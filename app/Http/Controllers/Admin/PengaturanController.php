@@ -95,6 +95,16 @@ class PengaturanController extends Controller
 
     public function saveTestPreparation(Request $request): RedirectResponse
     {
+        if ($request->has('items')) {
+            $data = $request->validate([
+                'items' => 'required|array|min:1|max:12',
+                'items.*.title' => 'required|string|max:150',
+                'items.*.body' => 'required|string|max:600',
+            ], ['items.*.title.required' => 'Isi judul pada setiap persiapan.', 'items.*.body.required' => 'Isi penjelasan pada setiap persiapan.']);
+            $items = collect($data['items'])->map(fn ($item) => ['title' => trim($item['title']), 'body' => trim($item['body'])])->values()->all();
+            SystemSetting::putMany(['test_preparation_items' => json_encode($items, JSON_UNESCAPED_UNICODE)], 'test');
+            return back()->with('success', 'Persiapan Tes SPMB untuk siswa berhasil diperbarui.');
+        }
         $data = $request->validate(['items_text' => 'required|string|max:3000']);
         $items = collect(preg_split('/\r\n|\r|\n/', $data['items_text']))
             ->map(fn ($line) => array_map('trim', explode('|', $line, 2)))
