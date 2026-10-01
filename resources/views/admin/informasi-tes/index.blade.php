@@ -6,12 +6,13 @@
 @section('content')
 <style>
     .test-schedule-overlay { position:fixed!important; inset:0!important; z-index:100000!important; display:flex; align-items:center; justify-content:center; padding:20px; background:rgba(15,23,42,.55); backdrop-filter:blur(4px); }
-    .test-schedule-dialog { display:flex; flex-direction:column; width:100%; max-width:720px; max-height:calc(100dvh - 40px); overflow:hidden; border-radius:24px; background:#fff; box-shadow:0 24px 80px #0f172a55; }
+    .test-schedule-dialog { display:flex; flex-direction:column; width:100%; max-width:min(720px,calc(100vw - 40px)); max-height:calc(100dvh - 40px); overflow:hidden; border-radius:24px; background:#fff; box-shadow:0 24px 80px #0f172a55; }
     .test-schedule-dialog > div { flex-shrink:0; }
     .test-schedule-dialog > form { display:flex; flex-direction:column; min-height:0; overflow:hidden; padding:0!important; gap:0!important; }
     .test-schedule-fields { padding:24px; overflow-y:auto; min-height:0; }
     .test-schedule-footer { flex-shrink:0; margin:0!important; padding:16px 24px; border-top:1px solid #e2e8f0; background:#fff; }
-    @media(max-width:640px) { .test-schedule-overlay{padding:12px} .test-schedule-dialog{max-height:calc(100dvh - 24px);border-radius:20px} .test-schedule-fields{padding:18px} .test-schedule-footer{padding:14px 18px} }
+    .test-schedule-fields input, .test-schedule-fields textarea { min-width:0; max-width:100%; }
+    @media(max-width:640px) { .test-schedule-overlay{padding:12px;width:100vw!important;right:auto!important} .test-schedule-dialog{max-width:calc(100vw - 24px);max-height:calc(100dvh - 24px);border-radius:20px} .test-schedule-fields{padding:18px} .test-schedule-footer{padding:14px 18px} }
 </style>
 <div x-data="{ addOpen: {{ $errors->any() && !$errors->has('items') && !$errors->has('items.*') ? 'true' : 'false' }}, editId: null }">
     <details class="mb-5 rounded-2xl border border-teal-200 bg-white p-5 shadow-sm" {{ $errors->has('items') || $errors->has('items.*') ? 'open' : '' }}>
