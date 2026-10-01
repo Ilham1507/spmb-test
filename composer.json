@@ -10,7 +10,8 @@
         "barryvdh/laravel-dompdf": "*",
         "laravel/framework": "^13.8",
         "laravel/tinker": "^3.0",
-        "phpoffice/phpspreadsheet": "^5.10"
+        "phpoffice/phpspreadsheet": "^5.10",
+        "resend/resend-php": "^1.16"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
