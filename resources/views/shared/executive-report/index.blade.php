@@ -22,8 +22,8 @@
                 <p class="mt-2 text-sm font-semibold leading-6 text-white/85">{{ $yearLabel }}. Lihat jumlah, daftar nama, sekolah asal dan minat promosi. Unduh laporan Excel dengan sheet terpisah.</p>
             </div>
             <div class="flex flex-wrap gap-2 print:hidden">
-                <a href="{{ route($routePrefix.'laporan-eksekutif.pdf', $filters) }}" class="rounded-xl bg-white px-4 py-3 text-sm font-black {{ $isHeadmaster ? 'text-teal-800' : 'text-blue-800' }}">Unduh PDF</a>
-                <a href="{{ route($routePrefix.'laporan-eksekutif.excel', $filters) }}" class="rounded-xl px-4 py-3 text-sm font-black" style="background-color:#0f766e;color:#fff">Unduh Excel (15 sheet)</a>
+                <a href="{{ route($routePrefix.'laporan-eksekutif.pdf', $filters) }}" data-no-loading download class="rounded-xl bg-white px-4 py-3 text-sm font-black {{ $isHeadmaster ? 'text-teal-800' : 'text-blue-800' }}">Unduh PDF</a>
+                <a href="{{ route($routePrefix.'laporan-eksekutif.excel', $filters) }}" data-no-loading download class="rounded-xl px-4 py-3 text-sm font-black" style="background-color:#0f766e;color:#fff">Unduh Excel</a>
             </div>
         </div>
     </section>

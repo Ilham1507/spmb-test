@@ -127,7 +127,15 @@ class ExecutiveReportTest extends TestCase
             \Illuminate\Support\Facades\URL::forceRootUrl('http://127.0.0.1:8766');
         }
         $response = $this->actingAs($head)->get('/kepala-sekolah/laporan-eksekutif?month=2026-10');
-        $response->assertOk()->assertSee('Sekolah asal terbanyak')->assertSee('Minat jurusan saat promosi')->assertSee('Unduh Excel (15 sheet)');
+        $response->assertOk()->assertSee('Sekolah asal terbanyak')->assertSee('Minat jurusan saat promosi')->assertSee('Unduh Excel')->assertDontSee('(15 sheet)');
+        // Attachment responses do not navigate or fire pageshow. Never leave
+        // the global navigation overlay blocking the report after a download.
+        foreach (['pdf', 'excel'] as $format) {
+            $this->assertMatchesRegularExpression(
+                '~<a href="[^"]*laporan-eksekutif/'.$format.'[^"]*" data-no-loading download~',
+                $response->getContent()
+            );
+        }
         if (getenv('SPMB_REPORT_PREVIEW')) {
             file_put_contents(base_path('output/executive-report-preview.html'), $response->getContent());
         }
