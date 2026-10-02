@@ -95,7 +95,7 @@ class InvoiceEmailNotifier
         $registrationNumber = $applicant?->registration_number ?: '-';
         $feeName = $transaction->tagihan?->jenisTagihan?->name ?? 'Pembayaran SPMB';
         $amount = number_format((float) $transaction->amount, 0, ',', '.');
-        $filename = 'Bukti Pembayaran SPMB - '.($applicant?->registration_number ?: $transaction->id).'.pdf';
+        $filename = \App\Support\PaymentProof::filename($transaction);
         $pdf = Pdf::loadView('payments.system-proof', ['transaction' => $transaction])
             ->setPaper('a4')
             ->output();

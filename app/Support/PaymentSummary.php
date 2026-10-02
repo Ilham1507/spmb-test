@@ -30,6 +30,8 @@ class PaymentSummary
                 'name' => $name,
                 'category' => trim((string) ($item['category'] ?? '')) ?: FeeCategory::for($name),
                 'amount' => $amount,
+                'settled' => $bill->status === 'paid' ? $amount : min($amount, max(0, $paid)),
+                'remaining' => $bill->status === 'paid' ? 0 : max(0, $amount - $paid),
                 'status' => $status,
             ];
         });
