@@ -44,8 +44,8 @@
         body { margin: 0; background: #fff; color: #172033; font-family: DejaVu Sans, Arial, sans-serif; font-size: 10px; line-height: 1.4; }
         .invoice { width: 100%; margin: 0; background: #fff; }
         .letterhead { display: block; width: 100%; height: auto; max-height: 38mm; object-fit: fill; }
-        .content { padding: 6mm 5mm; }
-        .head { display: table; width: 100%; padding-bottom: 13px; border-bottom: 2px solid #163f7d; }
+        .content { padding: 3mm 5mm; }
+        .head { display: table; width: 100%; padding-bottom: 8px; border-bottom: 2px solid #163f7d; }
         .head > div { display: table-cell; vertical-align: top; }
         .head > div:last-child { text-align: right; }
         .kicker { margin: 0 0 5px; color: #8a6500; font-size: 10px; font-weight: 700; letter-spacing: 1px; }
@@ -55,11 +55,11 @@
         .status { display: inline-block; margin-top: 7px; padding: 6px 10px; background: #e9f7ee; color: #147044; font-size: 10px; font-weight: 700; }
         .section { margin: 14px 0 7px; color: #64748b; font-size: 10px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; }
         table { width: 100%; border-collapse: collapse; }
-        .identity td { width: 50%; padding: 12px 13px; border: 1px solid #d8e1ee; background: #f8fafd; }
+        .identity td { width: 50%; padding: 8px 10px; border: 1px solid #d8e1ee; background: #f8fafd; }
         .label { display: block; margin-bottom: 3px; color: #748299; font-size: 9px; font-weight: 700; text-transform: uppercase; }
         .value { font-size: 13px; font-weight: 700; }
         .payment th { padding: 7px 5px; background: #102d61; color: #fff; font-size: 9px; text-align: left; }
-        .payment td { padding: 6px 5px; border: 1px solid #d8e1ee; vertical-align: top; }
+        .payment td { padding: 4px 5px; border: 1px solid #d8e1ee; vertical-align: top; }
         .payment thead { display: table-header-group; }
         .payment tr, .total, .verification, .next { page-break-inside: avoid; }
         .payment .group td { background: #edf3fa; font-weight: bold; }
