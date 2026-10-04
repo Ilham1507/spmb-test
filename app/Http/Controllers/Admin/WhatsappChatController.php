@@ -41,10 +41,17 @@ class WhatsappChatController extends Controller
     {
         $phone = (string) $request->query('phone', '');
         abort_if($phone !== '' && ! preg_match('/^\d{8,20}$/D', $phone), 422);
-        $conversationRows = DB::table('whatsapp_messages')->selectRaw('sender_phone, received_at as at')
-            ->unionAll(DB::table('whatsapp_chat_replies')->selectRaw('recipient_phone as sender_phone, created_at as at'));
-        $conversations = DB::query()->fromSub($conversationRows, 'chat_rows')->select('sender_phone')
-            ->selectRaw('MAX(at) as last_at')->groupBy('sender_phone')->orderByDesc('last_at')->limit(100)->get();
+        $conversationRows = DB::table('whatsapp_messages')->selectRaw("sender_phone, received_at as at, body, message_type, 'in' as direction, id")
+            ->unionAll(DB::table('whatsapp_chat_replies')->selectRaw("recipient_phone as sender_phone, created_at as at, body, 'text' as message_type, 'out' as direction, id"));
+        $ranked = DB::query()->fromSub($conversationRows, 'chat_rows')->select('*')
+            ->selectRaw('ROW_NUMBER() OVER (PARTITION BY sender_phone ORDER BY at DESC, direction DESC, id DESC) as position');
+        $conversations = DB::query()->fromSub($ranked, 'ranked')->where('position', 1)
+            ->orderByDesc('at')->limit(100)->get()->map(function ($contact) {
+                $contact->last_at = $contact->at;
+                $contact->preview = \Illuminate\Support\Str::limit(preg_replace('/\s+/u', ' ', $contact->body ?? '['.$contact->message_type.']'), 140);
+                $contact->last_direction = $contact->direction;
+                return $contact;
+            });
         $phones = $conversations->pluck('sender_phone')->push($phone)->filter()->unique();
         $variants = $phones->flatMap(fn ($number) => [$number, str_starts_with($number, '62') ? '0'.substr($number, 2) : $number])->unique()->values()->all();
         $names = collect();

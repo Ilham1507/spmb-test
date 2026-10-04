@@ -233,6 +233,12 @@
             </main>
         </div>
     </div>
+    @if(!$isPrintPage && !request()->routeIs('admin.whatsapp-chat.*'))
+    <a href="{{ route('admin.whatsapp-chat.index') }}" x-data="whatsappUnreadBadge()" @whatsapp-unread.window="count = $event.detail.unread" class="wa-chat-shortcut" aria-label="Buka Chat WhatsApp" title="Chat WhatsApp">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l-2 2V11.5a9.5 9.5 0 0 1 19 0Z"/><path d="M8 7c0 5 4 9 9 9l1-3-3-1-1 1c-2-1-3-2-4-4l1-1-1-2Z"/></svg>
+        <span class="sr-only">WhatsApp</span><span x-cloak x-show="count > 0" x-text="count > 99 ? '99+' : count" class="wa-chat-shortcut-count" aria-label="Pesan belum dibaca"></span>
+    </a>
+    @endif
     @unless($isPrintPage)<x-global-loading />@endunless
     <x-delete-confirmation-modal />
     <x-auto-list-tools />
@@ -244,7 +250,6 @@
         });
     </script>
     @stack('scripts')
-</body>
 <script>
 function whatsappUnreadBadge() {
     return { count: 0, timer: null,
@@ -254,4 +259,5 @@ function whatsappUnreadBadge() {
     };
 }
 </script>
+</body>
 </html>

@@ -2857,3 +2857,17 @@ body.admin-clean .fixed.inset-0 > .visit-create-dialog{
         padding:8px!important;
     }
 }
+.wa-chat-shortcut{position:fixed;right:20px;bottom:max(20px,env(safe-area-inset-bottom));z-index:55;display:flex;align-items:center;justify-content:center;width:54px;height:54px;border-radius:50%;background:#047857!important;color:#fff!important;box-shadow:0 4px 16px #0f172a40}
+.wa-chat-shortcut svg{width:28px;height:28px}
+.wa-chat-shortcut-count{position:absolute;right:-4px;top:-5px;min-width:23px;height:23px;border:2px solid #fff;border-radius:999px;background:#dc2626;color:#fff;font-size:11px;font-weight:800;text-align:center;line-height:19px;padding:0 4px}
+body.admin-clean .wa-chat-back{background:#dc2626!important;color:#fff!important;white-space:nowrap;flex-shrink:0}
+body.admin-clean .wa-chat-input{height:44px!important;min-height:44px!important;max-height:96px;resize:vertical;padding:10px 12px!important;font-size:16px!important}
+@media(max-width:1023px){
+ body.admin-clean .wa-chat-panel{position:fixed;inset:0;z-index:65;display:flex;flex-direction:column;border:0;border-radius:0!important;padding:12px!important;padding-bottom:max(12px,env(safe-area-inset-bottom))!important;height:100dvh;overflow:hidden}
+ body.admin-clean .wa-chat-header{background:#fff;min-height:58px}
+ body.admin-clean .wa-chat-header h2{font-size:15px!important}
+ body.admin-clean .wa-chat-header button{font-size:12px!important;padding:8px!important}
+ body.admin-clean .wa-chat-history{height:auto!important;min-height:0;flex:1;overscroll-behavior:contain}
+ body.admin-clean .wa-chat-session{font-size:11px!important}
+}
+@media print{.wa-chat-shortcut{display:none!important}}

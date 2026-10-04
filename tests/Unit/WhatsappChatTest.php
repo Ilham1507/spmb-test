@@ -158,4 +158,15 @@ class WhatsappChatTest extends TestCase
         $this->postJson('/admin/chat-whatsapp/read', ['phone' => '628123456789', 'last_id' => 999999])->assertStatus(422);
         Http::assertNothingSent();
     }
+
+    public function test_conversation_preview_uses_latest_incoming_or_outgoing_without_sending(): void
+    {
+        $this->incoming();
+        DB::table('whatsapp_chat_replies')->insert(['recipient_phone' => '628123456789', 'admin_id' => 0, 'body' => "Pembayaran\n\nsudah diterima", 'status' => 'read', 'created_at' => now()->addSecond(), 'updated_at' => now()]);
+        $this->actingAs($this->user('admin'))->getJson('/admin/chat-whatsapp')
+            ->assertOk()->assertJsonPath('conversations.0.preview', 'Pembayaran sudah diterima')->assertJsonPath('conversations.0.last_direction', 'out');
+        DB::table('whatsapp_messages')->insert(['wa_message_id' => 'new-preview', 'sender_phone' => '628123456789', 'message_type' => 'image', 'body' => null, 'payload' => '{}', 'received_at' => now()->addSeconds(2), 'created_at' => now(), 'updated_at' => now()]);
+        $this->getJson('/admin/chat-whatsapp')->assertJsonPath('conversations.0.preview', '[image]')->assertJsonPath('conversations.0.last_direction', 'in');
+        Http::assertNothingSent();
+    }
 }

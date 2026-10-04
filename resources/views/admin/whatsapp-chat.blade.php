@@ -3,7 +3,7 @@
 @section('page_title', 'Chat WhatsApp')
 @section('content')
 <div x-data="whatsappInbox(@js(['messages' => $messages, 'open' => $open, 'expires' => $expires, 'phone' => $phone, 'contactName' => $contactName, 'unread' => $unread, 'lastIncomingId' => $lastIncomingId, 'readUrl' => route('admin.whatsapp-chat.read'), 'indexUrl' => route('admin.whatsapp-chat.index'), 'sendUrl' => route('admin.whatsapp-chat.send')]))" @resize.window="mobile = window.innerWidth < 1024" class="space-y-4">
-    <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+    <div x-show="!mobile || !showConversation" class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
         <strong>{{ $siteSettings['school_name'] ?? 'SMK Muhammadiyah 4 Cileungsi' }}</strong>
         <p>{{ config('services.whatsapp.sender_number') ?: '+62 812-4707-5160' }}</p>
     </div>
@@ -15,21 +15,23 @@
             <div class="max-h-[520px] space-y-2 overflow-y-auto">
                 <template x-for="contact in contacts" :key="contact.sender_phone">
                     <a @click.prevent="select(contact)" x-show="contact.sender_phone.includes(search) || contact.name.toLowerCase().includes(search.toLowerCase())" :href="indexUrl + '?phone=' + contact.sender_phone" class="block rounded-xl border p-3 text-sm" :class="contact.sender_phone === phone ? 'border-emerald-500 bg-emerald-50' : 'border-slate-100'">
-                        <div class="flex items-center justify-between gap-2"><strong x-text="contact.name"></strong><span x-show="contact.unread > 0" class="rounded-full bg-emerald-600 px-2 py-1 text-xs font-bold text-white" x-text="contact.unread" aria-label="Pesan belum dibaca"></span></div><p x-text="'+' + contact.sender_phone"></p><p class="text-xs text-slate-500" x-text="time(contact.last_at)"></p>
+                        <div class="flex items-center justify-between gap-2"><strong class="truncate" x-text="contact.name"></strong><span class="shrink-0 text-[11px] text-slate-500" x-text="time(contact.last_at)"></span></div>
+                        <p class="text-xs text-slate-500" x-text="'+' + contact.sender_phone"></p>
+                        <div class="mt-1 flex items-center gap-2"><p class="min-w-0 flex-1 truncate text-sm text-slate-600" x-text="(contact.last_direction === 'out' ? 'Anda: ' : '') + contact.preview"></p><span x-show="contact.unread > 0" class="shrink-0 rounded-full bg-emerald-600 px-2 py-1 text-xs font-bold text-white" x-text="contact.unread" aria-label="Pesan belum dibaca"></span></div>
                     </a>
                 </template>
                 <p x-show="contacts.length === 0" class="text-sm text-slate-500">Belum ada pesan masuk.</p>
             </div>
         </aside>
-        <section x-cloak x-show="!mobile || showConversation" class="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
-            <div class="flex items-center justify-between gap-3 border-b pb-3">
-                <button type="button" x-show="mobile" @click="showConversation = false" class="rounded-xl bg-slate-100 px-3 py-2" aria-label="Kembali ke daftar chat">←</button>
-                <div><h2 class="font-bold" x-text="phone ? contactName : 'Pilih percakapan'"></h2><p x-show="phone" class="text-sm text-slate-500" x-text="'+' + phone"></p></div>
+        <section x-cloak x-show="!mobile || showConversation" class="wa-chat-panel min-w-0 rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
+            <div class="wa-chat-header flex shrink-0 items-center justify-between gap-3 border-b pb-3">
+                <button type="button" x-show="mobile" @click="showConversation = false" class="wa-chat-back rounded-xl px-3 py-2 font-bold" aria-label="Kembali ke daftar chat">← Kembali</button>
+                <div class="min-w-0 flex-1"><h2 class="truncate font-bold" x-text="phone ? contactName : 'Pilih percakapan'"></h2><p x-show="phone" class="text-sm text-slate-500" x-text="'+' + phone"></p></div>
                 <button type="button" @click="refresh()" class="rounded-xl bg-slate-100 px-3 py-2 text-sm">Perbarui</button>
             </div>
-            <p class="mt-2 text-xs text-slate-500">Riwayat pesan otomatis mulai tercatat sejak pembaruan ini. Pesan lama yang belum tersimpan tidak ditampilkan. Dokumen ditampilkan sebagai nama file.</p>
-            <p x-show="phone" class="my-3 rounded-xl p-3 text-sm" :class="open ? 'bg-emerald-50 text-emerald-800' : 'bg-amber-50 text-amber-900'" x-text="open ? 'Balasan aktif sampai ' + expires + ' (batas aman sistem).' : 'Sesi berakhir. Penerima perlu mengirim pesan baru agar bisa dibalas.'"></p>
-            <div x-ref="history" @scroll.debounce.200ms="markRead()" class="flex h-[clamp(200px,42dvh,480px)] flex-col gap-3 overflow-y-auto rounded-xl bg-slate-50 p-3">
+            <p x-show="!mobile" class="mt-2 text-xs text-slate-500">Riwayat pesan otomatis mulai tercatat sejak pembaruan ini. Pesan lama yang belum tersimpan tidak ditampilkan. Dokumen ditampilkan sebagai nama file.</p>
+            <p x-show="phone" class="wa-chat-session my-2 shrink-0 rounded-xl p-2 text-xs" :class="open ? 'bg-emerald-50 text-emerald-800' : 'bg-amber-50 text-amber-900'" x-text="open ? 'Balasan aktif sampai ' + expires : 'Sesi berakhir. Penerima perlu mengirim pesan baru agar bisa dibalas.'"></p>
+            <div x-ref="history" @scroll.debounce.200ms="markRead()" class="wa-chat-history flex h-[clamp(200px,42dvh,480px)] flex-col gap-3 overflow-y-auto rounded-xl bg-slate-50 p-3">
                 <template x-for="message in messages" :key="message.id">
                     <div class="max-w-[90%] rounded-2xl border p-3 text-sm" :class="message.direction === 'out' ? 'self-end border-emerald-100 bg-emerald-50' : 'self-start border-slate-200 bg-white'">
                         <p class="whitespace-pre-wrap break-words" x-text="message.body"></p>
@@ -38,9 +40,9 @@
                 </template>
                 <p x-show="!phone" class="m-auto text-center text-sm text-slate-500">Pilih nomor di daftar untuk membaca dan membalas.</p>
             </div>
-            <form @submit.prevent="send()" class="mt-3 space-y-2" x-show="phone">
-                <textarea x-model="draft" :disabled="!open || sending" maxlength="4000" rows="3" placeholder="Tulis balasan…" aria-label="Isi balasan WhatsApp" class="w-full rounded-xl border-slate-200 disabled:bg-slate-100"></textarea>
-                <div class="flex items-center justify-between gap-3"><span class="text-xs text-slate-500" x-text="draft.length + '/4000'"></span><button :disabled="!open || sending || !draft.trim()" class="rounded-xl bg-emerald-700 px-5 py-3 font-bold text-white disabled:opacity-40" x-text="sending ? 'Mengirim…' : 'Kirim balasan'"></button></div>
+            <form @submit.prevent="send()" class="wa-chat-composer mt-2 shrink-0" x-show="phone">
+                <div class="flex items-end gap-2"><textarea x-model="draft" :disabled="!open || sending" maxlength="4000" rows="1" placeholder="Tulis balasan…" aria-label="Isi balasan WhatsApp" class="wa-chat-input min-w-0 flex-1 rounded-xl border-slate-200 disabled:bg-slate-100"></textarea><button :disabled="!open || sending || !draft.trim()" class="shrink-0 rounded-xl bg-emerald-700 px-4 py-3 font-bold text-white disabled:opacity-40" aria-label="Kirim balasan" x-text="sending ? '…' : 'Kirim'"></button></div>
+                <p x-show="draft.length" class="mt-1 text-right text-[11px] text-slate-500" x-text="draft.length + '/4000'"></p>
             </form>
             <p x-cloak x-show="notice" role="status" class="mt-3 text-sm" :class="error ? 'text-red-700' : 'text-emerald-700'" x-text="notice"></p>
         </section>
