@@ -80,11 +80,19 @@
         @media (max-width: 760px) { .auth-card { background: #fff; display: block; min-height: 0; padding-top: 0; } .auth-visual { display: none; } .auth-form-panel { background: #fff; border-radius: 25px; padding: 32px 30px 25px; } }
         @media (max-width: 520px) { .auth-page { padding: 12px 10px; } .auth-card { border-radius: 23px; } .auth-form-panel { padding: 27px 22px 23px; } .auth-heading { margin: 25px 0 20px; } .auth-heading h1 { font-size: 29px; } .auth-register .register-identity { grid-template-columns: 1fr; gap: 16px; } .auth-footer { margin-top: 10px; } }
         @media (prefers-reduced-motion: reduce) { .auth-card, .auth-ambient { animation: none; transition: none; } .auth-button, .auth-form input { transition: none !important; } }
+        .auth-compact .auth-shell { width: min(100%, 480px); }
+        .auth-compact .auth-card { display: block; min-height: 0; background: #fff; }
+        .auth-compact .auth-visual { display: none; }
+        .auth-compact .auth-form-panel { padding: 26px 24px; }
+        .auth-compact .auth-heading { margin: 20px 0 18px; }
+        .auth-compact .auth-heading h1 { font-size: 22px; line-height: 1.35; }
+        .auth-compact .auth-heading p { font-size: 12px; line-height: 1.6; }
+        .auth-compact .auth-form { gap: 14px; }
     </style>
 </head>
 <body>
     @php($activeEvents = \App\Support\PromotionEvent::activeAnnouncements())
-    <main class="auth-page {{ $errors->any() ? 'auth-has-errors' : '' }}"><div class="auth-ambient"></div><section class="auth-shell"><div class="auth-card">
+    <main class="auth-page {{ !empty($auth_compact) ? 'auth-compact' : '' }} {{ $errors->any() ? 'auth-has-errors' : '' }}"><div class="auth-ambient"></div><section class="auth-shell"><div class="auth-card">
         <aside class="auth-visual">
             <div class="auth-visual-content">
                 <div class="auth-visual-kicker">Portal SPMB Online</div>

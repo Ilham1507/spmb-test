@@ -18,7 +18,7 @@ class WhatsappOtpTest extends TestCase
         config(['app.key' => 'base64:'.base64_encode(str_repeat('x', 32))]);
         Schema::create('pengguna', function (Blueprint $table) {
             $table->id(); $table->string('name'); $table->string('phone');
-            $table->string('password'); $table->rememberToken(); $table->timestamps();
+            $table->string('password'); $table->timestamps();
         });
         Schema::create('password_reset_tokens', function (Blueprint $table) {
             $table->string('email')->primary(); $table->string('token'); $table->timestamp('created_at');
@@ -27,6 +27,10 @@ class WhatsappOtpTest extends TestCase
             $table->id(); $table->string('key')->unique(); $table->text('value')->nullable();
             $table->string('group')->nullable(); $table->timestamps();
         });
+        // Match the legacy production schema, then apply the repair migration.
+        $migration = require database_path('migrations/2026_10_04_150000_add_remember_token_to_pengguna.php');
+        $migration->up();
+        $migration->up(); // Safe when another deployment has already added it.
     }
 
     public function test_code_is_hashed_six_digits_and_replaced_on_resend(): void
@@ -45,7 +49,10 @@ class WhatsappOtpTest extends TestCase
 
     public function test_code_entry_screen_is_available_without_a_secret_in_the_url(): void
     {
-        $this->get('/reset-password/kode')->assertOk()->assertSee('Kode verifikasi WhatsApp');
+        $response = $this->get('/reset-password/kode');
+        $response->assertOk()->assertSee('Kode verifikasi WhatsApp')->assertDontSee('Selamat datang');
+        $this->assertSame(1, substr_count($response->getContent(), 'Nomor WhatsApp'));
+        $this->assertSame(1, substr_count($response->getContent(), 'name="phone"'));
         $this->get('/forgot-password')->assertOk()->assertSee('Sudah menerima kode?');
     }
 
@@ -56,6 +63,7 @@ class WhatsappOtpTest extends TestCase
         $data = ['phone' => $user->phone, 'token' => $code, 'password' => 'new-password-123', 'password_confirmation' => 'new-password-123'];
         $this->post('/reset-password', $data)->assertRedirect(route('login'));
         $this->assertTrue(Hash::check('new-password-123', $user->fresh()->password));
+        $this->assertNotEmpty($user->fresh()->remember_token);
         $this->assertDatabaseCount('password_reset_tokens', 0);
         $this->post('/reset-password', $data)->assertSessionHasErrors('phone');
     }
