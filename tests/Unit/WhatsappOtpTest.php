@@ -35,7 +35,7 @@ class WhatsappOtpTest extends TestCase
 
     public function test_code_is_hashed_six_digits_and_replaced_on_resend(): void
     {
-        $user = User::create(['name' => 'Siswa Uji', 'phone' => '081234567890', 'password' => 'old-password']);
+        $user = User::forceCreate(['name' => 'Siswa Uji', 'phone' => '081234567890', 'password' => 'old-password']);
         $service = new ParticipantActivationService;
         $first = $service->createCode($user);
         $this->assertMatchesRegularExpression('/^\d{6}$/', $first);
@@ -58,7 +58,7 @@ class WhatsappOtpTest extends TestCase
 
     public function test_valid_code_resets_password_and_cannot_be_reused(): void
     {
-        $user = User::create(['name' => 'Siswa Uji', 'phone' => '081234567890', 'password' => 'old-password']);
+        $user = User::forceCreate(['name' => 'Siswa Uji', 'phone' => '081234567890', 'password' => 'old-password']);
         $code = (new ParticipantActivationService)->createCode($user);
         $data = ['phone' => $user->phone, 'token' => $code, 'password' => 'new-password-123', 'password_confirmation' => 'new-password-123'];
         $this->post('/reset-password', $data)->assertRedirect(route('login'));
@@ -70,7 +70,7 @@ class WhatsappOtpTest extends TestCase
 
     public function test_expired_code_is_rejected(): void
     {
-        $user = User::create(['name' => 'Siswa Uji', 'phone' => '081234567890', 'password' => 'old-password']);
+        $user = User::forceCreate(['name' => 'Siswa Uji', 'phone' => '081234567890', 'password' => 'old-password']);
         $code = (new ParticipantActivationService)->createCode($user);
         DB::table('password_reset_tokens')->update(['created_at' => now()->subMinutes(6)]);
         $this->post('/reset-password', ['phone' => $user->phone, 'token' => $code, 'password' => 'new-password-123', 'password_confirmation' => 'new-password-123'])->assertSessionHasErrors('phone');
@@ -79,7 +79,7 @@ class WhatsappOtpTest extends TestCase
 
     public function test_five_invalid_attempts_block_even_a_correct_code(): void
     {
-        $user = User::create(['name' => 'Siswa Uji', 'phone' => '081234567890', 'password' => 'old-password']);
+        $user = User::forceCreate(['name' => 'Siswa Uji', 'phone' => '081234567890', 'password' => 'old-password']);
         $code = (new ParticipantActivationService)->createCode($user);
         $data = ['phone' => $user->phone, 'token' => 'not-a-code', 'password' => 'new-password-123', 'password_confirmation' => 'new-password-123'];
         foreach (range(1, 5) as $attempt) $this->post('/reset-password', $data)->assertSessionHasErrors('phone');

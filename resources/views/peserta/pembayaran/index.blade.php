@@ -3,7 +3,7 @@
 @section('page_title', 'Pembayaran')
 @section('content')
 @php
-    $gatewayReady = $gatewayReady ?? false;
+    $gatewayReady = ($gatewayReady ?? false) && \Illuminate\Support\Facades\Route::has('peserta.pembayaran.checkout');
     $activeCheckouts = $activeCheckouts ?? collect();
     $rekeningAktif = $rekeningAktif ?? collect();
 @endphp

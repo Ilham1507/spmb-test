@@ -74,11 +74,26 @@ class PaymentSummaryTest extends TestCase
 
     public function test_student_payment_page_asks_for_a_fee_selection_before_checkout(): void
     {
+        $this->paymentPage(true)->assertSee('Bayar daftar ulang')->assertSee('selected_items[]', false)->assertSee('Rincian', false);
+    }
+
+    public function test_missing_checkout_route_falls_back_to_manual_payment_without_error(): void
+    {
+        $this->paymentPage(false)->assertSee('Bayar daftar ulang')->assertDontSee('selected_items[]', false);
+    }
+
+    private function paymentPage(bool $checkoutRouteExists)
+    {
         \Illuminate\Support\Facades\Schema::create('system_settings', function ($table) {
             $table->string('key');
             $table->text('value')->nullable();
         });
         $this->withoutVite();
+        // Exercise the legacy gateway branch only when its endpoint exists.
+        if ($checkoutRouteExists) {
+            \Illuminate\Support\Facades\Route::post('/test/payment-checkout', fn () => null)->name('peserta.pembayaran.checkout');
+            \Illuminate\Support\Facades\Route::getRoutes()->refreshNameLookups();
+        }
         config(['payments.midtrans.enabled' => true, 'payments.midtrans.server_key' => 'test-server-key', 'payments.midtrans.merchant_id' => 'TEST']);
         $user = new \App\Models\User(['name' => 'Siswa Uji']);
         $user->setRelation('pendaftar', null);
@@ -86,10 +101,10 @@ class PaymentSummaryTest extends TestCase
         $bill = $this->bill([]);
         $bill->forceFill(['id' => 10, 'total_amount' => 350000, 'remaining_amount' => 250000, 'paid_amount' => 100000]);
         $bill->setRelation('jenisTagihan', new \App\Models\JenisTagihan(['name' => 'Daftar ulang']));
-        $this->view('peserta.pembayaran.index', [
+        return $this->view('peserta.pembayaran.index', [
             'pendaftar' => new \App\Models\Pendaftar(['registration_status' => 'accepted']),
             'tagihans' => collect([$bill]), 'registrationFeePaid' => true, 'registrationFeePending' => false,
             'rekeningAktif' => collect(), 'gatewayReady' => true, 'activeCheckouts' => collect(),
-        ])->assertSee('Bayar daftar ulang')->assertSee('selected_items[]', false)->assertSee('Rincian', false);
+        ]);
     }
 }
