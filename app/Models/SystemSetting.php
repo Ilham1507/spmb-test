@@ -28,6 +28,7 @@ class SystemSetting extends Model
             'school_name' => 'SMK Muhammadiyah 4 Cileungsi', 'school_short_name' => 'SMK Muhammadiyah 4',
             'portal_name' => 'SPMB Online', 'brand_name' => 'SIMUPA', 'accreditation' => 'B+',
             'school_address' => 'Jl. Cileungsi Kidul, Cileungsi, Bogor 16820, Jawa Barat',
+            'campus_address' => 'Kampus E - Jl. Akses Bojong Kaso, Cileungsi Kidul, Cileungsi, Kabupaten Bogor, Jawa Barat 16820',
             'contact_phone' => '085229056983', 'operational_hours' => 'Senin-Sabtu, 07.00-16.00 WIB',
             'tagline' => 'Bekerja & Kuliah', 'school_logo' => 'images/logo-sekolah.png', 'letterhead_path' => null,
         ];

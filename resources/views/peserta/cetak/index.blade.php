@@ -124,6 +124,6 @@
             </section>
         @endif
     @endforeach
-    <div class="signature-area"><div class="signature-box"><div>Mengetahui,</div><div class="city">Orang Tua/Wali</div><div class="line">&nbsp;</div><div class="role">Nama terang dan tanda tangan</div></div><div class="signature-box"><div>Cileungsi, ........................</div><div class="city">Calon Siswa</div><div class="line">&nbsp;</div><div class="role">Nama terang dan tanda tangan</div></div></div>
+    <div class="signature-area"><div class="signature-box"><div>Mengetahui,</div><div class="city">Orang Tua/Wali</div><div class="line">&nbsp;</div><div class="role">Nama dan tanda tangan</div></div><div class="signature-box"><div>Cileungsi, ........................</div><div class="city">Calon Siswa</div><div class="line">&nbsp;</div><div class="role">Nama dan tanda tangan</div></div></div>
 </div>
 @endsection

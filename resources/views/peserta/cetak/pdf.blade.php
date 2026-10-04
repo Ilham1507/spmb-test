@@ -46,9 +46,9 @@
     .signatures td { width: 50%; padding: 0 12mm; vertical-align: top; }
     .signature-space { height: 17mm; }
     .signature-line { border-top: 1px solid #64748b; padding-top: 4px; color: #52637d; }
-    .footer { position: fixed; bottom: -10mm; left: 0; right: 0; margin: 0; padding: 10px 17mm; background: #102d61; color: #fff; font-size: 9px; }
+    .footer { position: fixed; bottom: -10mm; left: 0; right: 0; margin: 0; padding: 8px 8mm; background: #102d61; color: #fff; font-size: 9px; text-align: center; line-height: 1.4; }
 </style></head><body>
-<footer class="footer">{{ $settings['school_name'] ?? 'SMK Muhammadiyah 4 Cileungsi' }} · {{ $settings['school_address'] ?? 'Cileungsi, Bogor' }}</footer>
+<footer class="footer"><strong>{{ $settings['school_name'] ?? 'SMK Muhammadiyah 4 Cileungsi' }}</strong><br>{{ $settings['campus_address'] ?? \App\Models\SystemSetting::defaults()['campus_address'] }}</footer>
 @if($letterheadSrc)<img class="letterhead" src="{{ $letterheadSrc }}" alt="Kop surat resmi sekolah">@else<div class="school">{{ $settings['school_name'] ?? 'SMK Muhammadiyah 4 Cileungsi' }}</div>@endif
 <h1>FORMULIR PENDAFTARAN MURID BARU</h1><p class="year">Tahun Pelajaran {{ $academicYear }}</p>
 <table class="meta"><tr><td>No. Pendaftaran: <strong>{{ $pendaftar->registration_number ?: '-' }}</strong></td><td class="right">Status: <strong>{{ $status }}</strong></td></tr></table>
@@ -70,5 +70,5 @@
 @endforeach
 </tbody></table></div>
 @endforeach
-<table class="signatures"><tr><td>Mengetahui,<br>Orang Tua/Wali</td><td>Cileungsi, ........................<br>Calon Siswa</td></tr><tr><td class="signature-space"></td><td></td></tr><tr><td><div class="signature-line">Nama terang dan tanda tangan</div></td><td><div class="signature-line">Nama terang dan tanda tangan</div></td></tr></table>
+<table class="signatures"><tr><td>Mengetahui,<br>Orang Tua/Wali</td><td>Cileungsi, ........................<br>Calon Siswa</td></tr><tr><td class="signature-space"></td><td></td></tr><tr><td><div class="signature-line">Nama dan tanda tangan</div></td><td><div class="signature-line">Nama dan tanda tangan</div></td></tr></table>
 </body></html>

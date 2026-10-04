@@ -43,6 +43,10 @@ class RegistrationPdfTest extends TestCase
         $this->assertStringContainsString('Menunggu pemeriksaan', $html);
         $this->assertStringContainsString('10 April 2010', $html);
         $this->assertStringContainsString('position: fixed; bottom: -10mm;', $html);
+        $this->assertStringContainsString('text-align: center; line-height: 1.4;', $html);
+        $this->assertStringContainsString('Kampus E - Jl. Akses Bojong Kaso', $html);
+        $this->assertSame(2, substr_count($html, 'Nama dan tanda tangan'));
+        $this->assertStringNotContainsString('Nama terang dan tanda tangan', $html);
         $this->assertStringContainsString('background: #102d61; color: #fff;', $html);
         $this->assertStringNotContainsString('global-loading', $html);
         $this->assertStringNotContainsString('Ilham Sompe &amp; Team', $html);
