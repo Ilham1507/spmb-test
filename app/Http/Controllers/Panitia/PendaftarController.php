@@ -211,8 +211,8 @@ class PendaftarController extends Controller
 
     public function cetak(Pendaftar $pendaftar)
     {
-        $pendaftar->load(['biodata', 'alamat', 'dataAyah', 'dataIbu', 'dataWali', 'sekolahAsal', 'jurusan1', 'jurusan2', 'jalurPendaftaran', 'kontak']);
-        return view('peserta.cetak.index', ['pendaftar' => $pendaftar, 'groups' => FormFieldCatalog::groups(), 'enabledFields' => FormFieldCatalog::enabled(), 'settings' => SystemSetting::publicValues(), 'backRoute' => route($this->routeName('pendaftar.show'), $pendaftar)]);
+        $pendaftar->load(['biodata', 'alamat', 'dataAyah', 'dataIbu', 'dataWali', 'sekolahAsal', 'jurusan1', 'jurusan2', 'jalurPendaftaran', 'kontak', 'tahunAjaran', 'gelombangPendaftaran.tahunAjaran']);
+        return view('peserta.cetak.index', ['pendaftar' => $pendaftar, 'groups' => FormFieldCatalog::groups(), 'enabledFields' => FormFieldCatalog::enabled(), 'settings' => SystemSetting::publicValues(), 'backRoute' => route($this->routeName('pendaftar.show'), $pendaftar), 'pdfUrl' => route($this->routeName('pendaftar.pdf'), $pendaftar)]);
     }
 
     public function pdf(Pendaftar $pendaftar)
@@ -225,9 +225,9 @@ class PendaftarController extends Controller
         $data['letterheadSrc'] = $letterheadFile && is_file($letterheadFile)
             ? 'data:image/' . pathinfo($letterheadFile, PATHINFO_EXTENSION) . ';base64,' . base64_encode(file_get_contents($letterheadFile))
             : null;
-        return Pdf::loadHTML(view('peserta.cetak.index', $data)->render())
+        return Pdf::loadHTML(view('peserta.cetak.pdf', $data)->render())
             ->setPaper('a4', 'portrait')
-            ->download('formulir-' . ($pendaftar->registration_number ?: $pendaftar->id) . '.pdf');
+            ->download('Formulir Pendaftaran - '.($pendaftar->registration_number ?: $pendaftar->id).'.pdf');
     }
 
     public function verify(Request $request, Pendaftar $pendaftar, WhatsappCloudApiService $whatsapp)

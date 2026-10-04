@@ -58,7 +58,7 @@
         <a href="{{ route($routePrefix . 'pendaftar.cetak', $pendaftar) }}" class="inline-flex items-center rounded-xl {{ $isHeadmaster ? 'bg-teal-700 hover:bg-teal-800' : 'bg-sky-600 hover:bg-sky-700' }} px-4 py-2 text-sm font-black text-white">
             Cetak Formulir
         </a>
-        <a href="{{ route($routePrefix . 'pendaftar.pdf', $pendaftar) }}" class="inline-flex items-center rounded-xl border {{ $isHeadmaster ? 'border-teal-300 text-teal-800 hover:bg-teal-50' : 'border-sky-200 text-sky-700 hover:bg-sky-50' }} bg-white px-4 py-2 text-sm font-black">
+        <a data-no-loading download href="{{ route($routePrefix . 'pendaftar.pdf', $pendaftar) }}" class="inline-flex items-center rounded-xl border {{ $isHeadmaster ? 'border-teal-300 text-teal-800 hover:bg-teal-50' : 'border-sky-200 text-sky-700 hover:bg-sky-50' }} bg-white px-4 py-2 text-sm font-black">
             Simpan sebagai PDF
         </a>
     </div>

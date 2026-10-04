@@ -17,7 +17,7 @@ class CetakController extends Controller
 
         $pendaftar->load([
             'biodata', 'alamat', 'dataAyah', 'dataIbu', 'dataWali', 'sekolahAsal',
-            'jurusan1', 'jurusan2', 'jalurPendaftaran', 'kontak',
+            'jurusan1', 'jurusan2', 'jalurPendaftaran', 'kontak', 'tahunAjaran', 'gelombangPendaftaran.tahunAjaran',
         ]);
 
         return view('peserta.cetak.index', [
@@ -33,9 +33,9 @@ class CetakController extends Controller
         $view = $this->index();
         $data = $view->getData();
         $data['letterheadSrc'] = $this->letterheadSource($data['settings'] ?? []);
-        return Pdf::loadHTML(view('peserta.cetak.index', $data)->render())
+        return Pdf::loadHTML(view('peserta.cetak.pdf', $data)->render())
             ->setPaper('a4', 'portrait')
-            ->download('formulir-pendaftaran.pdf');
+            ->download('Formulir Pendaftaran - '.($data['pendaftar']->registration_number ?: $data['pendaftar']->id).'.pdf');
     }
 
     public function preview()

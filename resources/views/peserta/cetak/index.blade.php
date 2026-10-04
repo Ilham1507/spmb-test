@@ -74,7 +74,7 @@
         <div><p class="text-xs font-black uppercase tracking-widest text-emerald-700">Formulir Pendaftaran</p><h3 class="mt-1 text-xl font-black text-slate-900">Data Calon Peserta Didik</h3><p class="mt-1 text-sm text-slate-500">No. Pendaftaran: {{ $pendaftar->registration_number ?? 'Belum dibuat' }}</p></div>
         <div class="flex flex-wrap justify-end gap-2">
             @unless($isPesertaPage)<button type="button" onclick="window.print()" class="rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-black text-white">Cetak Formulir</button>@endunless
-            <a id="simpan-pdf" href="{{ request()->routeIs('peserta.*') ? route('peserta.pdf') : route(request()->routeIs('admin.*') ? 'admin.pendaftar.pdf' : 'panitia.pendaftar.pdf', $pendaftar) }}" class="rounded-2xl border border-emerald-200 bg-white px-5 py-3 text-sm font-black text-emerald-700">Simpan sebagai PDF</a>
+            <a id="simpan-pdf" data-no-loading download href="{{ $pdfUrl ?? route('peserta.pdf') }}" class="rounded-2xl border border-emerald-200 bg-white px-5 py-3 text-sm font-black text-emerald-700">Simpan sebagai PDF</a>
             <a href="{{ $returnUrl }}" class="rounded-2xl bg-slate-100 px-5 py-3 text-sm font-black text-slate-700">Kembali</a>
         </div>
 </div>@endunless

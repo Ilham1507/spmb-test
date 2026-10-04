@@ -254,7 +254,7 @@
     @if(in_array($status, ['submitted', 'verified', 'accepted', 're_registered'], true))
         <section class="participant-status-row rounded-3xl border bg-white p-4 md:flex md:items-center md:justify-between md:p-5">
             <div><p class="text-sm font-black text-slate-900">Formulir pendaftaran</p><p class="mt-1 text-sm text-slate-500">Lihat atau simpan data yang sudah kamu kirim.</p></div>
-            <div class="mt-3 flex gap-2 md:mt-0"><a href="{{ route('peserta.formulir') }}" class="rounded-xl bg-teal-50 px-4 py-2.5 text-sm font-black text-teal-800">Lihat</a><a href="{{ route('peserta.pdf') }}" class="rounded-xl border border-teal-200 px-4 py-2.5 text-sm font-black text-teal-800">PDF</a></div>
+            <div class="mt-3 flex gap-2 md:mt-0"><a href="{{ route('peserta.formulir') }}" class="rounded-xl bg-teal-50 px-4 py-2.5 text-sm font-black text-teal-800">Lihat</a><a data-no-loading download href="{{ route('peserta.pdf') }}" class="rounded-xl border border-teal-200 px-4 py-2.5 text-sm font-black text-teal-800">PDF</a></div>
         </section>
     @endif
 

@@ -33,6 +33,6 @@
         @endif
     @endforeach
     </div>
-    <div class="flex flex-col-reverse gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between"><a href="{{ route('peserta.dashboard') }}" class="btn-link-back">Kembali ke Dashboard</a><a href="{{ route('peserta.pdf') }}" class="btn-primary">Simpan sebagai PDF</a></div>
+    <div class="flex flex-col-reverse gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between"><a href="{{ route('peserta.dashboard') }}" class="btn-link-back">Kembali ke Dashboard</a><a data-no-loading download href="{{ route('peserta.pdf') }}" class="btn-primary">Simpan sebagai PDF</a></div>
 </div>
 @endsection
