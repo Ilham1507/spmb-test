@@ -79,7 +79,7 @@
         .bmt-proof .content { padding: 2mm 4mm; }
         .bmt-proof h1 { font-size: 16px; }
         .bmt-proof .value { font-size: 11px; }
-        .bmt-proof .footer { padding: 7px 17mm; font-size: 8px; }
+        .bmt-proof .footer { padding: 7px 8mm; font-size: 8px; }
         .bmt-proof .section { margin: 8px 0 5px; }
         .bmt-proof .identity td { padding: 5px 8px; }
         .bmt-proof .fee-columns .payment td { padding: 1px 3px; }
@@ -98,12 +98,12 @@
         .next { margin-top: 10px; border-left: 4px solid #d8a900; background: #fff9e7; }
         .verification p, .next p { margin: 2px 0; }
         .notice { margin: 10px 0 0; color: #66758b; font-size: 10px; }
-        .footer { position: fixed; bottom: -10mm; left: 0; right: 0; margin: 0; padding: 10px 17mm; background: #102d61; color: #fff; font-size: 9px; }
+        .footer { position: fixed; bottom: -10mm; left: 0; right: 0; margin: 0; padding: 8px 8mm; background: #102d61; color: #fff; font-size: 9px; text-align: center; line-height: 1.4; }
     </style>
 </head>
 <body>
     <main class="invoice{{ $isBmtProof ? ' bmt-proof' : '' }}">
-        <footer class="footer">{{ $settings['school_name'] ?? 'SMK Muhammadiyah 4 Cileungsi' }} · {{ $settings['school_address'] ?? 'Cileungsi, Bogor' }}</footer>
+        <footer class="footer"><strong>{{ $settings['school_name'] ?? 'SMK Muhammadiyah 4 Cileungsi' }}</strong><br>{{ $settings['campus_address'] ?? \App\Models\SystemSetting::defaults()['campus_address'] }}</footer>
         @if($letterheadSrc)
             <img class="letterhead" src="{{ $letterheadSrc }}" alt="Kop surat resmi sekolah">
         @endif

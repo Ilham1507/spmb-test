@@ -97,6 +97,8 @@ class PaymentProofTest extends TestCase
             $html = view('payments.system-proof', ['transaction' => $transaction, 'bmtProof' => $type === 'BMT'])->render();
             $this->assertStringContainsString('position: fixed; bottom: -10mm;', $html);
             $this->assertStringContainsString('margin: 8mm 8mm 18mm;', $html);
+            $this->assertStringContainsString('text-align: center; line-height: 1.4;', $html);
+            $this->assertStringContainsString('Kampus E - Jl. Akses Bojong Kaso', $html);
             $this->assertStringNotContainsString('Dokumen ini diterbitkan otomatis', $html);
             $this->assertStringNotContainsString('Status rincian adalah akumulasi', $html);
             $this->assertStringContainsString(pathinfo(PaymentProof::filename($transaction), PATHINFO_FILENAME), $html);

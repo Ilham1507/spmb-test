@@ -65,5 +65,5 @@ body{font-size:7pt;line-height:1.15}.school-head p{color:#334155;font-size:6.2pt
 </tbody></table>
 <div class="note">Serahkan lembar ini kepada petugas BTM. Nominal, status, serta riwayat pembayaran diambil otomatis dari Sistem SPMB. Setelah pembayaran diterima, petugas mencatat transaksi dan siswa menyimpan bukti pembayaran.</div>
 <table class="signature"><tr><td colspan="2">Cileungsi, {{ now()->translatedFormat('d F Y') }}</td></tr><tr><td>Bendahara I</td><td>Bendahara II</td></tr><tr><td class="space"></td><td class="space"></td></tr><tr><td><div class="line"></div><strong>apt. Krismiyati, S.Farm.</strong></td><td><div class="line"></div><strong>Ratri Kuswarini</strong></td></tr></table>
-<p class="footer">Dokumen pembayaran ini dibuat otomatis oleh Sistem SPMB {{ $settings['school_name'] ?? 'sekolah' }} untuk proses BTM.</p>
+<p class="footer"><strong>{{ $settings['school_name'] ?? 'SMK Muhammadiyah 4 Cileungsi' }}</strong><br>{{ $settings['campus_address'] ?? \App\Models\SystemSetting::defaults()['campus_address'] }}</p>
 </body></html>
