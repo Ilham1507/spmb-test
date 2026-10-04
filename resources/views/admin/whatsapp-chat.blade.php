@@ -4,13 +4,11 @@
 @section('content')
 <div x-data="whatsappInbox(@js(['messages' => $messages, 'open' => $open, 'expires' => $expires, 'phone' => $phone, 'indexUrl' => route('admin.whatsapp-chat.index'), 'sendUrl' => route('admin.whatsapp-chat.send')]))" class="space-y-4">
     <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
-        <strong>Nomor sekolah · WhatsApp resmi</strong>
-        <p>Pesan masuk diperbarui setiap 15 detik. Balasan teks hanya tersedia dalam sesi percakapan aktif, tanpa beralih ke template berbayar.</p>
-        <p class="mt-1 text-xs">Riwayat menampilkan pesan masuk yang disimpan sistem dan balasan manual dari menu ini, bukan seluruh notifikasi otomatis. Foto/dokumen belum dapat dibuka di sini.</p>
+        <strong>{{ config('services.whatsapp.sender_number') ?: '+62 812-4707-5160' }}</strong>
     </div>
     <div class="grid gap-4 lg:grid-cols-[280px_1fr]">
         <aside class="rounded-2xl border border-slate-200 bg-white p-4">
-            <h2 class="font-bold">Percakapan masuk</h2>
+            <h2 class="font-bold">Percakapan</h2>
             <input x-model="search" placeholder="Cari nomor WhatsApp" aria-label="Cari nomor WhatsApp" class="my-3 w-full rounded-xl border-slate-200 text-sm">
             <div class="max-h-[520px] space-y-2 overflow-y-auto">
                 <template x-for="contact in contacts" :key="contact.sender_phone">
@@ -26,6 +24,7 @@
                 <h2 class="font-bold">{{ $phone ? '+'.$phone : 'Pilih percakapan' }}</h2>
                 <button type="button" @click="refresh()" class="rounded-xl bg-slate-100 px-3 py-2 text-sm">Perbarui</button>
             </div>
+            <p class="mt-2 text-xs text-slate-500">Riwayat pesan otomatis mulai tercatat sejak pembaruan ini. Pesan lama yang belum tersimpan tidak ditampilkan. Dokumen ditampilkan sebagai nama file.</p>
             <p x-show="phone" class="my-3 rounded-xl p-3 text-sm" :class="open ? 'bg-emerald-50 text-emerald-800' : 'bg-amber-50 text-amber-900'" x-text="open ? 'Balasan aktif sampai ' + expires + ' (batas aman sistem).' : 'Sesi berakhir. Penerima perlu mengirim pesan baru agar bisa dibalas.'"></p>
             <div x-ref="history" class="flex h-[380px] flex-col gap-3 overflow-y-auto rounded-xl bg-slate-50 p-3">
                 <template x-for="message in messages" :key="message.id">

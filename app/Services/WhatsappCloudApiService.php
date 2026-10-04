@@ -38,17 +38,17 @@ class WhatsappCloudApiService
         $template = $this->approvedTemplate('authentication');
         if ($this->usesWaslah() || $template === '') {
             $link = route('password.reset', ['token' => 'kode']);
-            $this->send($target, "Kode verifikasi akun SPMB: {$code}. Berlaku 5 menit. Jangan bagikan kode ini kepada siapa pun.\n\nMasukkan kode dan buat kata sandi di:\n{$link}");
+            $this->send($target, "Kode verifikasi akun SPMB: {$code}. Berlaku 5 menit. Jangan bagikan kode ini kepada siapa pun.\n\nMasukkan kode dan buat kata sandi di:\n{$link}", '[Kode verifikasi akun dikirim — kode dirahasiakan]');
             return;
         }
-        $response = $this->request()->post($this->messagesUrl(), [
+        $response = $this->postTrackedMessage([
             'messaging_product' => 'whatsapp', 'to' => $this->normalizeTarget($target), 'type' => 'template',
             'template' => ['name' => $template, 'language' => ['code' => config('services.whatsapp.template_language', 'id')],
                 'components' => [
                     ['type' => 'body', 'parameters' => [['type' => 'text', 'text' => $code]]],
                     ['type' => 'button', 'sub_type' => 'url', 'index' => '0', 'parameters' => [['type' => 'text', 'text' => $code]]],
                 ]],
-        ]);
+        ], '[Kode verifikasi akun dikirim — kode dirahasiakan]');
         $this->throwIfFailed($response->status(), $response->json());
     }
 
@@ -57,13 +57,13 @@ class WhatsappCloudApiService
     {
         $template = $this->approvedTemplate($event);
         if (! $this->usesWaslah() && $template !== '') {
-            $this->sendTemplate($target, $template, $parameters, config('services.whatsapp.template_language', 'id'));
+            $this->sendTemplate($target, $template, $parameters, config('services.whatsapp.template_language', 'id'), $message);
             return;
         }
         $this->send($target, $message);
     }
 
-    public function send(string $target, string $message): void
+    public function send(string $target, string $message, ?string $historyBody = null): void
     {
         if ($this->usesWaslah()) {
             $response = Http::acceptJson()
@@ -81,7 +81,7 @@ class WhatsappCloudApiService
         }
 
         $this->requireOpenConversation($target);
-        $response = $this->request()->post($this->messagesUrl(), [
+        $response = $this->postTrackedMessage([
             'messaging_product' => 'whatsapp',
             'to' => $this->normalizeTarget($target),
             'type' => 'text',
@@ -89,14 +89,14 @@ class WhatsappCloudApiService
                 'preview_url' => true,
                 'body' => $message,
             ],
-        ]);
+        ], $historyBody);
 
         if ((int) $response->json('error.code') === 131047) {
             $template = trim((string) config('services.whatsapp.templates.notification'));
             if ($template === '') {
                 throw new RuntimeException('Di luar sesi 24 jam: konfigurasi template notifikasi Meta yang disetujui diperlukan.');
             }
-            $this->sendTemplate($target, $template, [$message], config('services.whatsapp.template_language', 'id'));
+            $this->sendTemplate($target, $template, [$message], config('services.whatsapp.template_language', 'id'), $historyBody ?? $message);
             return;
         }
         $this->throwIfFailed($response->status(), $response->json());
@@ -108,37 +108,37 @@ class WhatsappCloudApiService
         if (! $this->usesWaslah()) {
             $template = $this->approvedTemplate($event);
             if ($template !== '') {
-                $response = $this->request()->post($this->messagesUrl(), [
+                $response = $this->postTrackedMessage([
                     'messaging_product' => 'whatsapp', 'to' => $this->normalizeTarget($target), 'type' => 'template',
                     'template' => ['name' => $template, 'language' => ['code' => config('services.whatsapp.template_language', 'id')],
                         'components' => [
                             ['type' => 'header', 'parameters' => [['type' => 'document', 'document' => ['link' => $url, 'filename' => $filename]]]],
                             ['type' => 'body', 'parameters' => array_map(fn ($text) => ['type' => 'text', 'text' => $this->templateText((string) $text)], $parameters ?: [$caption ?: 'Bukti pembayaran SPMB'])],
                         ]],
-                ]);
+                ], ($caption !== '' ? $caption."\n\n" : '').'📄 '.$filename);
                 $this->throwIfFailed($response->status(), $response->json());
                 return;
             }
             $this->requireOpenConversation($target);
             $document = ['link' => $url, 'filename' => $filename];
             if ($caption !== '') { $document['caption'] = $caption; }
-            $response = $this->request()->post($this->messagesUrl(), [
+            $response = $this->postTrackedMessage([
                 'messaging_product' => 'whatsapp', 'to' => $this->normalizeTarget($target),
                 'type' => 'document', 'document' => $document,
-            ]);
+            ], ($caption !== '' ? $caption."\n\n" : '').'📄 '.$filename);
             if ((int) $response->json('error.code') === 131047) {
                 $template = trim((string) config('services.whatsapp.templates.invoice'));
                 if ($template === '') {
                     throw new RuntimeException('Di luar sesi 24 jam: konfigurasi template invoice Meta yang disetujui diperlukan.');
                 }
-                $response = $this->request()->post($this->messagesUrl(), [
+                $response = $this->postTrackedMessage([
                     'messaging_product' => 'whatsapp', 'to' => $this->normalizeTarget($target), 'type' => 'template',
                     'template' => ['name' => $template, 'language' => ['code' => config('services.whatsapp.template_language', 'id')],
                         'components' => [
                             ['type' => 'header', 'parameters' => [['type' => 'document', 'document' => ['link' => $url, 'filename' => $filename]]]],
                             ['type' => 'body', 'parameters' => [['type' => 'text', 'text' => $caption ?: 'Bukti pembayaran SPMB']]],
                         ]],
-                ]);
+                ], ($caption !== '' ? $caption."\n\n" : '').'📄 '.$filename);
             }
             $this->throwIfFailed($response->status(), $response->json());
             return;
@@ -189,7 +189,7 @@ class WhatsappCloudApiService
      *
      * @param array<int, string> $bodyParameters
      */
-    public function sendTemplate(string $target, string $template, array $bodyParameters = [], string $language = 'id'): void
+    public function sendTemplate(string $target, string $template, array $bodyParameters = [], string $language = 'id', ?string $historyBody = null): void
     {
         if ($this->usesWaslah()) {
             $message = "Notifikasi SPMB\n\n" . implode("\n", $bodyParameters);
@@ -218,8 +218,35 @@ class WhatsappCloudApiService
             ]];
         }
 
-        $response = $this->request()->post($this->messagesUrl(), $payload);
+        $response = $this->postTrackedMessage($payload, $historyBody);
         $this->throwIfFailed($response->status(), $response->json());
+    }
+
+    /** Store accepted automatic sends without changing delivery or triggering retries. */
+    private function postTrackedMessage(array $payload, ?string $historyBody = null): \Illuminate\Http\Client\Response
+    {
+        $response = $this->request()->post($this->messagesUrl(), $payload);
+        $messageId = $response->json('messages.0.id');
+        try {
+            if (Schema::hasTable('whatsapp_chat_replies') && is_string($messageId) && $messageId !== '' && $response->successful()) {
+                $template = data_get($payload, 'template.name');
+                $body = $historyBody ?? data_get($payload, 'text.body')
+                    ?? ('[Template: '.$template."]\n".implode("\n", array_column(data_get($payload, 'template.components.0.parameters', []), 'text')));
+                if ($template && in_array($template, array_filter([
+                    config('services.whatsapp.templates.authentication'), config('services.whatsapp.templates.activation'),
+                    config('services.whatsapp.templates.password_reset'),
+                ]), true)) {
+                    $body = '[Verifikasi akun dikirim — kode/tautan dirahasiakan]';
+                }
+                DB::table('whatsapp_chat_replies')->insertOrIgnore([
+                    'recipient_phone' => $payload['to'], 'admin_id' => 0, 'body' => $body,
+                    'wa_message_id' => $messageId, 'status' => 'accepted', 'created_at' => now(), 'updated_at' => now(),
+                ]);
+            }
+        } catch (\Throwable) {
+            \Illuminate\Support\Facades\Log::warning('Riwayat pesan WhatsApp otomatis belum tersimpan.');
+        }
+        return $response;
     }
 
     private function request(): PendingRequest

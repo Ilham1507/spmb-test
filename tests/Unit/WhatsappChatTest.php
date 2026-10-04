@@ -99,4 +99,29 @@ class WhatsappChatTest extends TestCase
         }
         $this->assertDatabaseHas('whatsapp_chat_replies', ['status' => 'read']);
     }
+
+    public function test_automatic_text_and_pdf_are_recorded_in_same_conversation(): void
+    {
+        $this->incoming();
+        config(['services.whatsapp.provider' => 'meta', 'services.whatsapp.templates.invoice' => '']);
+        Http::fake(['graph.facebook.com/*' => Http::sequence()
+            ->push(['messages' => [['id' => 'wamid.auto-text']]])
+            ->push(['messages' => [['id' => 'wamid.auto-pdf']]])]);
+        $service = app(\App\Services\WhatsappCloudApiService::class);
+        $service->send('08123456789', 'Formulir sudah diverifikasi');
+        $service->sendDocument('08123456789', 'https://example.com/invoice.pdf', 'Bukti.pdf', 'Pembayaran diterima');
+        $this->assertDatabaseHas('whatsapp_chat_replies', ['admin_id' => 0, 'wa_message_id' => 'wamid.auto-text', 'recipient_phone' => '628123456789']);
+        $this->assertDatabaseHas('whatsapp_chat_replies', ['wa_message_id' => 'wamid.auto-pdf', 'body' => "Pembayaran diterima\n\n📄 Bukti.pdf"]);
+        $this->actingAs($this->user('admin'))->getJson('/admin/chat-whatsapp?phone=628123456789')->assertOk()->assertJsonCount(3, 'messages');
+    }
+
+    public function test_outgoing_only_contact_is_visible_and_otp_is_redacted(): void
+    {
+        config(['services.whatsapp.provider' => 'meta', 'services.whatsapp.business_account_id' => '', 'services.whatsapp.templates.authentication' => 'test_otp']);
+        Http::fake(['graph.facebook.com/*' => Http::response(['messages' => [['id' => 'wamid.otp']]])]);
+        app(\App\Services\WhatsappCloudApiService::class)->sendAuthentication('08123456789', '012345');
+        $body = DB::table('whatsapp_chat_replies')->value('body');
+        $this->assertStringNotContainsString('012345', $body);
+        $this->actingAs($this->user('admin'))->getJson('/admin/chat-whatsapp?phone=628123456789')->assertOk()->assertJsonPath('open', false)->assertJsonCount(1, 'conversations')->assertJsonCount(1, 'messages');
+    }
 }

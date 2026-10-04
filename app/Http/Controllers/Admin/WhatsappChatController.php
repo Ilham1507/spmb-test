@@ -14,18 +14,21 @@ class WhatsappChatController extends Controller
     {
         $phone = (string) $request->query('phone', '');
         abort_if($phone !== '' && ! preg_match('/^\d{8,20}$/D', $phone), 422);
-        $conversations = DB::table('whatsapp_messages')->select('sender_phone')
-            ->selectRaw('MAX(received_at) as last_at')->groupBy('sender_phone')
-            ->orderByDesc('last_at')->limit(100)->get();
+        $conversationRows = DB::table('whatsapp_messages')->selectRaw('sender_phone, received_at as at')
+            ->unionAll(DB::table('whatsapp_chat_replies')->selectRaw('recipient_phone as sender_phone, created_at as at'));
+        $conversations = DB::query()->fromSub($conversationRows, 'chat_rows')->select('sender_phone')
+            ->selectRaw('MAX(at) as last_at')->groupBy('sender_phone')->orderByDesc('last_at')->limit(100)->get();
         $messages = collect();
         $open = false;
         $expires = null;
         if ($phone !== '') {
             $last = DB::table('whatsapp_messages')->where('sender_phone', $phone)->max('received_at');
-            abort_unless($last, 404);
-            $end = \Carbon\Carbon::parse($last)->addHours(23);
-            $open = $end->isFuture();
-            $expires = $end->timezone('Asia/Jakarta')->format('d/m/Y H:i').' WIB';
+            abort_unless($last || DB::table('whatsapp_chat_replies')->where('recipient_phone', $phone)->exists(), 404);
+            if ($last) {
+                $end = \Carbon\Carbon::parse($last)->addHours(23);
+                $open = $end->isFuture();
+                $expires = $end->timezone('Asia/Jakarta')->format('d/m/Y H:i').' WIB';
+            }
             $incoming = DB::table('whatsapp_messages')->where('sender_phone', $phone)
                 ->orderByDesc('id')->limit(100)->get()->map(fn ($m) => [
                     'id' => 'in-'.$m->id, 'direction' => 'in',
@@ -35,7 +38,7 @@ class WhatsappChatController extends Controller
             $outgoing = DB::table('whatsapp_chat_replies')->where('recipient_phone', $phone)
                 ->orderByDesc('id')->limit(100)->get()->map(fn ($m) => [
                     'id' => 'out-'.$m->id, 'direction' => 'out', 'body' => $m->body,
-                    'at' => $m->created_at, 'status' => match ($m->status) {
+                    'at' => $m->created_at, 'status' => ((int) $m->admin_id === 0 ? 'Otomatis · ' : '').match ($m->status) {
                         'accepted', 'sent' => 'Diterima API', 'delivered' => 'Terkirim ke WA',
                         'read' => 'Dibaca', 'failed' => 'Gagal', default => 'Diproses',
                     },
