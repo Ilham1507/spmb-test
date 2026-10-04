@@ -55,21 +55,38 @@ class WhatsappChatController extends Controller
         $phones = $conversations->pluck('sender_phone')->push($phone)->filter()->unique();
         $variants = $phones->flatMap(fn ($number) => [$number, str_starts_with($number, '62') ? '0'.substr($number, 2) : $number])->unique()->values()->all();
         $names = collect();
+        $avatars = collect();
         if ($variants && \Illuminate\Support\Facades\Schema::hasTable('pengguna')) {
-            $names = DB::table('pengguna')->select('name', 'phone')->whereIn(DB::raw("REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(phone, '+', ''), ' ', ''), '-', ''), '(', ''), ')', '')"), $variants)
-                ->get()->mapWithKeys(function ($user) {
+            $columns = ['name', 'phone'];
+            foreach (['profile_photo_path', 'avatar_choice'] as $column) {
+                if (\Illuminate\Support\Facades\Schema::hasColumn('pengguna', $column)) $columns[] = $column;
+            }
+            $users = DB::table('pengguna')->select($columns)->whereIn(DB::raw("REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(phone, '+', ''), ' ', ''), '-', ''), '(', ''), ')', '')"), $variants)->get();
+            $names = $users->mapWithKeys(function ($user) {
                     $number = preg_replace('/\D/', '', (string) $user->phone);
                     if (str_starts_with($number, '0')) { $number = '62'.substr($number, 1); }
                     return [$number => $user->name];
                 });
+            $avatars = $users->mapWithKeys(function ($user) {
+                $number = preg_replace('/\D/', '', (string) $user->phone);
+                if (str_starts_with($number, '0')) $number = '62'.substr($number, 1);
+                $photo = $user->profile_photo_path ?? null;
+                // Only serve local profile assets, never arbitrary remote URLs.
+                if (!is_string($photo) || !preg_match('#^(storage|images)/#', $photo) || str_contains($photo, '..') || !is_file(public_path($photo))) $photo = null;
+                $choice = max(1, min(10, (int) str_replace('character_', '', $user->avatar_choice ?? 'character_1')));
+                return [$number => ['photo' => $photo ? asset($photo) : null, 'character' => true, 'position' => (($choice - 1) % 5 * 25).'% '.(intdiv($choice - 1, 5) * 100).'%', 'initial' => \Illuminate\Support\Str::upper(\Illuminate\Support\Str::substr($user->name, 0, 1))]];
+            });
         }
+        $defaultAvatar = ['photo' => null, 'character' => false, 'position' => '0% 0%', 'initial' => '?'];
         $counts = $this->unreadCounts($request->user()->id);
-        $conversations->each(function ($contact) use ($names, $counts) {
+        $conversations->each(function ($contact) use ($names, $counts, $avatars, $defaultAvatar) {
             $contact->name = $names->get($contact->sender_phone, 'Nomor belum terdaftar');
+            $contact->avatar = $avatars->get($contact->sender_phone, $defaultAvatar);
             $contact->unread = (int) $counts->get($contact->sender_phone, 0);
         });
         $unread = $counts->sum();
         $contactName = $names->get($phone, 'Nomor belum terdaftar');
+        $contactAvatar = $avatars->get($phone, $defaultAvatar);
         $messages = collect();
         $open = false;
         $expires = null;
@@ -99,7 +116,7 @@ class WhatsappChatController extends Controller
                 ]);
             $messages = $incoming->merge($outgoing)->sortBy('at')->values();
         }
-        $data = compact('conversations', 'messages', 'phone', 'open', 'expires', 'contactName', 'unread', 'lastIncomingId');
+        $data = compact('conversations', 'messages', 'phone', 'open', 'expires', 'contactName', 'contactAvatar', 'unread', 'lastIncomingId');
         if ($request->expectsJson()) {
             return response()->json($data)->header('Cache-Control', 'no-store');
         }

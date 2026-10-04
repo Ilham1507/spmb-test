@@ -2,7 +2,7 @@
 @section('title', 'Chat WhatsApp')
 @section('page_title', 'Chat WhatsApp')
 @section('content')
-<div x-data="whatsappInbox(@js(['messages' => $messages, 'open' => $open, 'expires' => $expires, 'phone' => $phone, 'contactName' => $contactName, 'unread' => $unread, 'lastIncomingId' => $lastIncomingId, 'readUrl' => route('admin.whatsapp-chat.read'), 'indexUrl' => route('admin.whatsapp-chat.index'), 'sendUrl' => route('admin.whatsapp-chat.send')]))" @resize.window="mobile = window.innerWidth < 1024" class="wa-inbox min-w-0 space-y-4">
+<div x-data="whatsappInbox(@js(['messages' => $messages, 'open' => $open, 'expires' => $expires, 'phone' => $phone, 'contactName' => $contactName, 'contactAvatar' => $contactAvatar, 'unread' => $unread, 'lastIncomingId' => $lastIncomingId, 'readUrl' => route('admin.whatsapp-chat.read'), 'indexUrl' => route('admin.whatsapp-chat.index'), 'sendUrl' => route('admin.whatsapp-chat.send')]))" @resize.window="mobile = window.innerWidth < 1024" class="wa-inbox min-w-0 space-y-4">
     <div x-show="!mobile || !showConversation" class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
         <strong>{{ $siteSettings['school_name'] ?? 'SMK Muhammadiyah 4 Cileungsi' }}</strong>
         <p>{{ config('services.whatsapp.sender_number') ?: '+62 812-4707-5160' }}</p>
@@ -14,9 +14,13 @@
             <div class="max-h-[520px] space-y-2 overflow-y-auto">
                 <template x-for="contact in contacts" :key="contact.sender_phone">
                     <a @click.prevent="select(contact)" x-show="contact.sender_phone.includes(search) || contact.name.toLowerCase().includes(search.toLowerCase())" :href="indexUrl + '?phone=' + contact.sender_phone" class="wa-contact block min-w-0 overflow-hidden rounded-xl border p-3 text-sm" :class="contact.sender_phone === phone ? 'border-emerald-500 bg-emerald-50' : 'border-slate-100'">
+                        <div class="flex min-w-0 items-center gap-3">
+                        @include('admin.partials.whatsapp-avatar', ['avatarExpression' => 'contact.avatar'])
+                        <div class="min-w-0 flex-1">
                         <div class="flex items-center justify-between gap-2"><strong class="truncate" x-text="contact.name"></strong><span class="shrink-0 text-[11px] text-slate-500" x-text="time(contact.last_at)"></span></div>
                         <p class="text-xs text-slate-500" x-text="'+' + contact.sender_phone"></p>
                         <div class="mt-1 flex items-center gap-2"><p class="min-w-0 flex-1 truncate text-sm text-slate-600" x-text="(contact.last_direction === 'out' ? 'Anda: ' : '') + contact.preview"></p><span x-show="contact.unread > 0" class="shrink-0 rounded-full bg-emerald-600 px-2 py-1 text-xs font-bold text-white" x-text="contact.unread" aria-label="Pesan belum dibaca"></span></div>
+                        </div></div>
                     </a>
                 </template>
                 <p x-show="contacts.length === 0" class="text-sm text-slate-500">Belum ada pesan masuk.</p>
@@ -25,6 +29,7 @@
         <section x-cloak x-show="!mobile || showConversation" class="wa-chat-panel min-w-0 rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
             <div class="wa-chat-header flex shrink-0 items-center justify-between gap-3 border-b pb-3">
                 <button type="button" x-show="mobile" @click="showConversation = false" class="wa-chat-back rounded-xl px-3 py-2 font-bold" aria-label="Kembali ke daftar chat">← Kembali</button>
+                <div x-show="phone" class="shrink-0">@include('admin.partials.whatsapp-avatar', ['avatarExpression' => 'contactAvatar'])</div>
                 <div class="min-w-0 flex-1"><h2 class="truncate font-bold" x-text="phone ? contactName : 'Pilih percakapan'"></h2><p x-show="phone" class="text-sm text-slate-500" x-text="'+' + phone"></p></div>
             </div>
             <p x-show="phone && !open" class="wa-chat-session my-2 shrink-0 rounded-xl bg-amber-50 p-2 text-xs text-amber-900">Sesi berakhir. Penerima perlu mengirim pesan baru agar bisa dibalas.</p>
@@ -56,7 +61,7 @@ function whatsappInbox(initial) {
         publishCount() { window.dispatchEvent(new CustomEvent('whatsapp-unread', {detail: {unread:this.unread}})); },
         async select(contact) {
             if (this.draft.trim() && this.phone !== contact.sender_phone) { this.showConversation = true; this.notice = 'Kirim atau kosongkan draf sebelum berpindah chat.'; this.error = true; return; }
-            this.phone = contact.sender_phone; this.contactName = contact.name; this.messages = []; this.lastIncomingId = null; this.open = false; this.showConversation = true; this.notice = '';
+            this.phone = contact.sender_phone; this.contactName = contact.name; this.contactAvatar = contact.avatar; this.messages = []; this.lastIncomingId = null; this.open = false; this.showConversation = true; this.notice = '';
             await this.refresh(true); this.$nextTick(() => {this.bottom(); this.markRead();});
         },
         async markRead() {
@@ -76,7 +81,7 @@ function whatsappInbox(initial) {
                 if (!response.ok) throw new Error(); const data = await response.json();
                 if (requestedPhone !== this.phone) return;
                 const atBottom = this.$refs.history.scrollHeight - this.$refs.history.scrollTop - this.$refs.history.clientHeight < 70;
-                this.messages = data.messages; this.contacts = data.conversations; this.open = data.open; this.expires = data.expires; this.contactName = data.contactName;
+                this.messages = data.messages; this.contacts = data.conversations; this.open = data.open; this.expires = data.expires; this.contactName = data.contactName; this.contactAvatar = data.contactAvatar;
                 this.unread = data.unread; this.lastIncomingId = data.lastIncomingId; this.publishCount();
                 if (atBottom || force) this.$nextTick(() => {this.bottom(); this.markRead();});
             } catch { this.error = true; this.notice = 'Chat belum bisa diperbarui. Periksa koneksi atau masuk kembali jika sesi berakhir.'; }

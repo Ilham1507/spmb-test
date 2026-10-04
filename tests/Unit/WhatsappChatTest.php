@@ -131,12 +131,18 @@ class WhatsappChatTest extends TestCase
     {
         Schema::create('pengguna', function ($table) {
             $table->id(); $table->string('name'); $table->string('phone');
+            $table->string('profile_photo_path')->nullable(); $table->string('avatar_choice')->nullable();
         });
         try {
             $this->incoming();
-            DB::table('pengguna')->insert(['name' => 'Ilham Sompe', 'phone' => '+62 812-3456-789']);
+            DB::table('pengguna')->insert(['name' => 'Ilham Sompe', 'phone' => '+62 812-3456-789', 'avatar_choice' => 'character_7']);
             $this->actingAs($this->user('admin'))->getJson('/admin/chat-whatsapp?phone=628123456789')
-                ->assertOk()->assertJsonPath('contactName', 'Ilham Sompe')->assertJsonPath('conversations.0.name', 'Ilham Sompe');
+                ->assertOk()->assertJsonPath('contactName', 'Ilham Sompe')->assertJsonPath('conversations.0.name', 'Ilham Sompe')
+                ->assertJsonPath('contactAvatar.position', '25% 100%')->assertJsonPath('conversations.0.avatar.character', true);
+            DB::table('pengguna')->update(['profile_photo_path' => 'images/logo-sekolah.png']);
+            $this->getJson('/admin/chat-whatsapp?phone=628123456789')->assertJsonPath('contactAvatar.photo', asset('images/logo-sekolah.png'));
+            DB::table('pengguna')->update(['profile_photo_path' => 'https://example.com/private.jpg']);
+            $this->getJson('/admin/chat-whatsapp?phone=628123456789')->assertJsonPath('contactAvatar.photo', null);
             DB::table('pengguna')->update(['phone' => '08123456789']);
             $this->getJson('/admin/chat-whatsapp?phone=628123456789')->assertJsonPath('contactName', 'Ilham Sompe');
         } finally {
@@ -176,6 +182,8 @@ class WhatsappChatTest extends TestCase
         DB::table('whatsapp_messages')->update(['body' => str_repeat('Pesan panjang untuk menguji lebar layar HP ', 20)]);
         $response = $this->actingAs($this->user('admin'))->get('/admin/chat-whatsapp?phone=628123456789');
         $response->assertOk()->assertSee('grid-cols-1', false)->assertSee('wa-contact block min-w-0 overflow-hidden', false);
+        $response->assertSee('wa-contact-avatar', false);
+        $this->getJson('/admin/chat-whatsapp?phone=628123456789')->assertJsonPath('contactAvatar.character', false)->assertJsonPath('contactAvatar.initial', '?');
         if ($directory = getenv('WHATSAPP_CHAT_PREVIEW_DIR')) {
             file_put_contents($directory.'/whatsapp-chat.html', $response->getContent());
         }
