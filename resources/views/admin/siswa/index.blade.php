@@ -5,7 +5,7 @@
 @section('page_description', 'Kelola akun login siswa dan cek identitas pendaftaran.')
 
 @section('content')
-<div x-data="{ editId: null }" class="space-y-4">
+<div x-data="{ editId: {{ old('_modal') === 'student-login' ? (int) old('student_id') : 'null' }} }" class="space-y-4">
     <section class="admin-card overflow-hidden bg-white p-0">
         <div class="admin-card-header border-b border-slate-100">
             <div>
@@ -80,6 +80,9 @@
                             <td><span class="rounded-full px-2.5 py-1 text-xs font-black {{ $statusClass }}">{{ $statusLabels[$student->registration_status] ?? ucfirst(str_replace('_', ' ', $student->registration_status ?? '-')) }}</span></td>
                             <td class="text-right">
                                 <button type="button" @click="editId={{ $student->id }}" class="rounded-xl bg-sky-50 px-3 py-2 text-xs font-black text-sky-700 hover:bg-sky-100">Kelola Login</button>
+                                @if($student->user?->phone)
+                                    <a href="{{ route('admin.users.index', ['search' => $student->user->phone]) }}" class="inline-block rounded-xl bg-violet-50 px-3 py-2 text-xs font-black text-violet-700">Ubah Peran</a>
+                                @endif
                             </td>
                         </tr>
                     @empty
@@ -94,9 +97,9 @@
     </section>
 
     @foreach($students as $student)
-        <div x-cloak x-show="editId==={{ $student->id }}" x-transition.opacity class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm" @keydown.escape.window="editId=null">
-            <div @click.outside="editId=null" class="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-3xl bg-white shadow-2xl">
-                <div class="flex items-start justify-between border-b border-slate-100 p-5">
+        <template x-teleport="body"><div x-cloak x-show="editId==={{ $student->id }}" x-transition.opacity class="fixed inset-0 z-[2147483000] flex items-center justify-center bg-slate-950/45 p-3 sm:p-4 backdrop-blur-sm" @keydown.escape.window="editId=null" role="dialog" aria-modal="true" aria-label="Kelola Login Siswa">
+            <div @click.outside="editId=null" class="user-account-dialog flex max-h-[calc(100dvh-24px)] w-full max-w-lg flex-col overflow-hidden rounded-3xl bg-white shadow-2xl sm:max-h-[calc(100dvh-32px)]">
+                <div class="flex shrink-0 items-start justify-between border-b border-slate-100 p-5">
                     <div>
                         <h3 class="text-lg font-black text-slate-950">Kelola Login Siswa</h3>
                         <p class="mt-1 text-xs text-slate-500">{{ $student->biodata?->full_name ?? $student->user?->name ?? 'Siswa' }}</p>
@@ -104,9 +107,12 @@
                     <button type="button" @click="editId=null" class="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-xl text-slate-500">&times;</button>
                 </div>
 
-                <form method="POST" action="{{ route('admin.siswa.login.update', $student) }}" class="admin-form-grid p-5">
+                <form method="POST" action="{{ route('admin.siswa.login.update', $student) }}" class="flex min-h-0 flex-1 flex-col">
                     @csrf
                     @method('PATCH')
+                    <input type="hidden" name="_modal" value="student-login">
+                    <input type="hidden" name="student_id" value="{{ $student->id }}">
+                    <div class="admin-form-grid min-h-0 flex-1 overflow-y-auto p-5">
                     <div>
                         <label class="admin-label">Nomor WhatsApp Login *</label>
                         <input type="tel" name="phone" value="{{ old('phone', $student->user?->phone) }}" required inputmode="numeric" pattern="[0-9+ ]*" class="admin-input" placeholder="08xxxxxxxxxx">
@@ -116,7 +122,7 @@
 
                     <div>
                         <label class="admin-label">Reset Kata Sandi <span class="font-medium text-slate-400">(opsional)</span></label>
-                        <input type="password" name="password" minlength="8" class="admin-input" placeholder="Isi hanya jika ingin ganti password">
+                        <input type="password" name="password" autocomplete="new-password" minlength="8" class="admin-input" placeholder="Isi hanya jika ingin ganti password">
                         <p class="admin-help">Kosongkan jika password lama tetap dipakai.</p>
                         @error('password')<p class="admin-error">{{ $message }}</p>@enderror
                     </div>
@@ -127,13 +133,13 @@
                         <div>NIK: <span class="font-black text-slate-800">{{ $student->biodata?->nik ?? '-' }}</span></div>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-2 pt-1">
+                    </div><div class="grid shrink-0 grid-cols-2 gap-2 border-t border-slate-100 bg-white px-5 py-3">
                         <button type="button" @click="editId=null" class="rounded-xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-600">Batal</button>
                         <button class="rounded-xl bg-emerald-600 px-4 py-3 text-sm font-black text-white">Simpan Login</button>
                     </div>
                 </form>
             </div>
-        </div>
+        </div></template>
     @endforeach
 </div>
 @endsection
