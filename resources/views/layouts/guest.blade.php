@@ -91,7 +91,7 @@
     </style>
 </head>
 <body>
-    @php($activeEvents = \App\Support\PromotionEvent::activeAnnouncements())
+    @php($activeEvents = !empty($auth_compact) ? [] : \App\Support\PromotionEvent::activeAnnouncements())
     <main class="auth-page {{ !empty($auth_compact) ? 'auth-compact' : '' }} {{ $errors->any() ? 'auth-has-errors' : '' }}"><div class="auth-ambient"></div><section class="auth-shell"><div class="auth-card">
         <aside class="auth-visual">
             <div class="auth-visual-content">
