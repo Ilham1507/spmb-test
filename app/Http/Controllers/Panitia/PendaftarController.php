@@ -323,17 +323,12 @@ class PendaftarController extends Controller
 
         if ($validated['status'] === 'verified') {
             $testSchedule = $pendaftar->preferredTestSchedule;
-            $scheduleInfo = $testSchedule
-                ? "Jadwal Tes SPMB: " . \App\Services\TestScheduleService::date($testSchedule->tanggal_mulai) . "\n"
-                    . "Lokasi: Kampus E SMK Muhammadiyah 4 Cileungsi\n"
-                    . "Mohon hadir 30 menit sebelum tes dimulai.\n\n"
-                : "Jadwal Tes SPMB akan muncul di dashboard setelah ditetapkan sekolah.\n\n";
-
-            $whatsappMessage = \App\Support\WhatsappGreeting::opening()."\n\n"
-                . "Formulir pendaftaran atas nama {$studentName} sudah diverifikasi oleh panitia.\n"
-                . "No. pendaftaran: {$pendaftar->registration_number}\n\n"
-                . $scheduleInfo
-                . "Buka dashboard untuk melihat informasi proses pendaftaran: {$dashboardUrl}";
+            $whatsappMessage = \App\Support\RegistrationApprovedMessage::make(
+                $studentName,
+                $pendaftar->registration_number,
+                $testSchedule ? \App\Services\TestScheduleService::date($testSchedule->tanggal_mulai) : null,
+                $dashboardUrl,
+            );
         } else {
             $whatsappMessage = \App\Support\WhatsappGreeting::opening()."\n\n"
                 ."Formulir SPMB atas nama {$studentName} dengan nomor {$pendaftar->registration_number} perlu diperbaiki oleh {$approverName}.\n"
