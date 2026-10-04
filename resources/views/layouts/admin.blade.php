@@ -17,6 +17,7 @@
         $isPrintPage = request()->routeIs('admin.pendaftar.cetak', 'admin.pendaftar.pdf', 'panitia.pendaftar.cetak', 'panitia.pendaftar.pdf', 'peserta.cetak', 'peserta.pdf');
         $navItems = [
             ['admin.dashboard', 'admin.dashboard', 'Dashboard'],
+            ['admin.whatsapp-chat.index', 'admin.whatsapp-chat', 'Chat WhatsApp', 'M4 4h16v12H8l-4 4V4z M8 8h8 M8 12h5'],
             ['admin.laporan-eksekutif.index', 'admin.laporan-eksekutif', 'Laporan Eksekutif', 'M5 19V5a2 2 0 0 1 2-2h8l4 4v12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z M14 3v5h5 M9 14h6 M9 17h6 M9 11h2'],
             ['admin.pendaftar.index', 'admin.pendaftar', 'Pendaftar', 'M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4z M4 21a8 8 0 0 1 16 0'],
         ];

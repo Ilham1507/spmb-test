@@ -44,6 +44,16 @@ class WhatsappWebhookController extends Controller
                     ]);
                 }
                 foreach ((array) data_get($change, 'value.statuses', []) as $status) {
+                    $delivery = data_get($status, 'status');
+                    if (in_array($delivery, ['sent', 'delivered', 'read', 'failed'], true)
+                        && \Illuminate\Support\Facades\Schema::hasTable('whatsapp_chat_replies')) {
+                        $reply = DB::table('whatsapp_chat_replies')->where('wa_message_id', data_get($status, 'id'));
+                        $current = (clone $reply)->value('status');
+                        $rank = ['sending' => 0, 'accepted' => 1, 'sent' => 2, 'delivered' => 3, 'read' => 4, 'failed' => 5];
+                        if ($current && ($rank[$delivery] ?? 0) > ($rank[$current] ?? 0)) {
+                            $reply->where('status', $current)->update(['status' => $delivery, 'updated_at' => now()]);
+                        }
+                    }
                     Log::info('WhatsApp delivery status', [
                         'message_id' => data_get($status, 'id'), 'status' => data_get($status, 'status'),
                         'error_codes' => collect(data_get($status, 'errors', []))->pluck('code')->all(),

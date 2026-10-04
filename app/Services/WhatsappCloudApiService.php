@@ -14,6 +14,25 @@ class WhatsappCloudApiService
 {
     private ?string $resolvedWaslahInstanceKey = null;
 
+    /** Manual inbox replies never fall back to a paid template or another provider. */
+    public function sendChatReply(string $target, string $message): string
+    {
+        if (! Schema::hasTable('whatsapp_messages')) {
+            throw new RuntimeException('Penyimpanan percakapan belum tersedia.');
+        }
+        $this->requireOpenConversation($target);
+        $response = $this->request()->post($this->messagesUrl(), [
+            'messaging_product' => 'whatsapp', 'to' => $this->normalizeTarget($target),
+            'type' => 'text', 'text' => ['preview_url' => false, 'body' => $message],
+        ]);
+        $this->throwIfFailed($response->status(), $response->json());
+        $id = $response->json('messages.0.id');
+        if (! is_string($id) || $id === '') {
+            throw new RuntimeException('Meta tidak memberikan ID pengiriman.');
+        }
+        return $id;
+    }
+
     public function sendAuthentication(string $target, string $code): void
     {
         $template = $this->approvedTemplate('authentication');

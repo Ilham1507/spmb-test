@@ -27,6 +27,8 @@ use App\Http\Controllers\Shared\MinatPromosiController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['web', 'admin'])->group(function () {
+    Route::get('/chat-whatsapp', [\App\Http\Controllers\Admin\WhatsappChatController::class, 'index'])->name('whatsapp-chat.index');
+    Route::post('/chat-whatsapp', [\App\Http\Controllers\Admin\WhatsappChatController::class, 'send'])->middleware('throttle:10,1')->name('whatsapp-chat.send');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/laporan-eksekutif', [ExecutiveReportController::class, 'index'])->name('laporan-eksekutif.index');
     Route::get('/laporan-eksekutif/pdf', [ExecutiveReportController::class, 'pdf'])->name('laporan-eksekutif.pdf');
