@@ -85,8 +85,8 @@
         @endif
         <div class="content">
             <section class="head">
-                <div><p class="kicker">SISTEM PENERIMAAN MURID BARU</p><h1>{{ $proofTitle }}</h1><p class="sub">Dokumen pembayaran resmi SPMB</p></div>
-                <div><span class="number">{{ $invoiceNumber }}</span><br><span class="status">DISETUJUI PANITIA</span></div>
+                <div><p class="kicker">SISTEM PENERIMAAN MURID BARU</p><h1>{{ $proofTitle }}</h1><p class="sub">{{ $transaction->treasurer_received_at ? 'Pembayaran diterima BMT sekolah' : 'Dokumen pembayaran resmi SPMB' }}</p></div>
+                <div><span class="number">{{ $invoiceNumber }}</span><br><span class="status">{{ $transaction->treasurer_received_at ? 'DITERIMA BMT' : 'DISETUJUI PANITIA' }}</span></div>
             </section>
             <p class="section">Data calon siswa</p>
             <table class="identity"><tr><td><span class="label">Nama calon siswa</span><span class="value">{{ $name }}</span></td><td><span class="label">Nomor pendaftaran</span><span class="value">{{ $student?->registration_number ?? '-' }}</span></td></tr></table>
@@ -99,9 +99,6 @@
                             if ($summary['unallocated']) { $groupStatus = 'Perlu dicocokkan'; }
                         @endphp
                         <tr class="group"><td>{{ $category }}</td><td class="amount">{{ number_format($items->sum('amount'), 0, ',', '.') }}</td><td class="amount">{{ $summary['unallocated'] ? '-' : number_format($items->sum('settled'), 0, ',', '.') }}</td><td class="amount">{{ $summary['unallocated'] ? '-' : number_format($items->sum('remaining'), 0, ',', '.') }}</td><td>{{ $groupStatus }}</td></tr>
-                        @foreach($items as $item)
-                            <tr><td>{{ $item['name'] }}</td><td class="amount">{{ number_format($item['amount'], 0, ',', '.') }}</td><td class="amount">{{ $summary['unallocated'] ? '-' : number_format($item['settled'], 0, ',', '.') }}</td><td class="amount">{{ $summary['unallocated'] ? '-' : number_format($item['remaining'], 0, ',', '.') }}</td><td>{{ $item['status'] === 'Belum dibayar' ? 'Belum lunas' : $item['status'] }}</td></tr>
-                        @endforeach
                     @empty
                         <tr><td colspan="5">Rincian biaya belum tersedia. Hubungi bendahara untuk pencocokan.</td></tr>
                     @endforelse
@@ -116,7 +113,10 @@
                 <table class="payment"><thead><tr><th>TAGIHAN</th><th>METODE</th><th>REFERENSI</th><th class="amount">NOMINAL</th></tr></thead><tbody><tr><td>{{ $bill?->jenisTagihan?->name ?? 'Pembayaran formulir SPMB' }}</td><td>{{ $channel }}</td><td>{{ $reference ?: '-' }}<br><span class="muted">{{ $paidAt->translatedFormat('d F Y, H:i') }} WIB</span></td><td class="amount"><strong>Rp {{ number_format($transaction->amount, 0, ',', '.') }}</strong></td></tr></tbody></table>
             @endif
             <div class="total"><span>PEMBAYARAN TRANSAKSI INI</span><strong>Rp {{ number_format($receivedAmount, 0, ',', '.') }}</strong></div>
-            <div class="verification"><p><strong>Persetujuan panitia:</strong> {{ $transaction->verifier?->name ?? '-' }}</p><p><strong>Status bendahara:</strong> {{ $treasurerStatus }}</p></div>
+            <div class="verification"><p><strong>{{ $transaction->treasurer_received_at ? 'Petugas persetujuan:' : 'Persetujuan panitia:' }}</strong> {{ $transaction->verifier?->name ?? '-' }}</p><p><strong>Status bendahara:</strong> {{ $treasurerStatus }}</p></div>
+            @if($transaction->treasurer_received_at)
+                <p class="notice">Tanggal penerimaan BMT: {{ \Illuminate\Support\Carbon::parse($transaction->treasurer_received_at)->locale('id')->translatedFormat('d F Y, H:i') }} WIB</p>
+            @endif
             <div class="next"><p><strong>INFORMASI LANJUTAN</strong></p><p>{{ $isReRegistration ? 'Pembayaran sebagian mengurangi sisa tagihan dan tidak otomatis melunasi seluruh rincian. Pembayaran berikutnya dilakukan di BMT sekolah setiap Selasa dan Jumat pukul 07.30–14.30 WIB.' : 'Pembayaran formulir telah dicatat. Silakan lanjutkan pengisian formulir SPMB melalui tautan yang dikirimkan ke WhatsApp.' }}</p></div>
             <p class="notice">Dokumen ini diterbitkan otomatis berdasarkan transaksi yang tercatat pada Sistem SPMB dan sah sebagai bukti pembayaran elektronik.</p>
         </div>

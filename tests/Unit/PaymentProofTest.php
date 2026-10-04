@@ -70,21 +70,35 @@ class PaymentProofTest extends TestCase
             $table->string('key');
             $table->text('value')->nullable();
         });
-        foreach (['Daftar ulang', 'Uang Formulir Pendaftaran'] as $type) {
-            $transaction = $this->transaction($type);
+        foreach (['Daftar ulang', 'Uang Formulir Pendaftaran', 'BMT'] as $type) {
+            $transaction = $this->transaction($type === 'BMT' ? 'Daftar ulang' : $type);
+            if ($type === 'BMT') {
+                $transaction->forceFill(['treasurer_received_at' => '2026-10-04 09:30:00', 'payment_method' => 'cash']);
+                $transaction->setRelation('treasurerReceiver', new User(['name' => 'Bendahara Uji']));
+                $transaction->setRelation('verifier', new User(['name' => 'Bendahara Uji']));
+            }
             $html = view('payments.system-proof', compact('transaction'))->render();
             $this->assertStringContainsString(pathinfo(PaymentProof::filename($transaction), PATHINFO_FILENAME), $html);
-            if ($type === 'Daftar ulang') {
+            if ($type !== 'Uang Formulir Pendaftaran') {
                 $this->assertStringContainsString('Rincian biaya', $html);
                 $this->assertStringContainsString('Buku &amp; Pembelajaran', $html);
                 $this->assertStringContainsString('Belum lunas (sebagian)', $html);
                 $this->assertStringContainsString('250.000', $html);
                 $this->assertStringNotContainsString('KELOMPOK BIAYA', $html);
+                $this->assertStringNotContainsString('<td>Seragam</td>', $html);
+                $this->assertStringNotContainsString('<td>Buku</td>', $html);
+                $this->assertStringNotContainsString('<td>SPP</td>', $html);
+            }
+            if ($type === 'BMT') {
+                $this->assertStringContainsString('DITERIMA BMT', $html);
+                $this->assertStringContainsString('Diterima oleh Bendahara Uji', $html);
+                $this->assertStringContainsString('04 Oktober 2026, 09:30', $html);
             }
             $pdf = Pdf::loadHTML($html)->setPaper('a4')->output();
             $this->assertStringStartsWith('%PDF-', $pdf);
             if ($directory = getenv('PAYMENT_PROOF_PREVIEW_DIR')) {
-                file_put_contents($directory.'/'.PaymentProof::filename($transaction), $pdf);
+                $filename = $type === 'BMT' ? 'Bukti Pembayaran BMT - SPMB2028-UJI.pdf' : PaymentProof::filename($transaction);
+                file_put_contents($directory.'/'.$filename, $pdf);
             }
         }
     }
