@@ -2857,8 +2857,8 @@ body.admin-clean .fixed.inset-0 > .visit-create-dialog{
         padding:8px!important;
     }
 }
-.wa-chat-shortcut{position:fixed;right:20px;bottom:max(20px,env(safe-area-inset-bottom));z-index:55;display:flex;align-items:center;justify-content:center;width:54px;height:54px;border-radius:50%;background:#047857!important;color:#fff!important;box-shadow:0 4px 16px #0f172a40}
-.wa-chat-shortcut svg{display:block;width:30px;height:30px;flex:none}
+.wa-chat-shortcut{position:fixed;right:20px;bottom:max(20px,env(safe-area-inset-bottom));z-index:55;display:flex;align-items:center;justify-content:center;width:54px;height:54px;border-radius:50%;background:#25d366!important;color:#fff!important;box-shadow:0 4px 16px #0f172a40}
+.wa-chat-shortcut img{display:block;width:30px;height:30px;flex:none;object-fit:contain}
 .wa-inbox{width:100%;max-width:100%}
 .wa-inbox .wa-contact{width:100%;max-width:100%}
 .wa-inbox .wa-contact strong{min-width:0}
