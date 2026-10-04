@@ -39,6 +39,7 @@ Route::middleware(['web', 'admin'])->group(function () {
     Route::get('/users', [UserController::class, 'index'])->name('users.index');
     Route::post('/users/guru', [UserController::class, 'storeTeacher'])->name('users.guru.store');
     Route::patch('/users/{user}', [UserController::class, 'update'])->name('users.update');
+    Route::patch('/users/{user}/role', [UserController::class, 'updateRole'])->name('users.role.update');
     Route::patch('/users/{user}/phone', [UserController::class, 'updatePhone'])->name('users.phone.update');
     Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
     Route::get('/siswa', [SiswaController::class, 'index'])->name('siswa.index');

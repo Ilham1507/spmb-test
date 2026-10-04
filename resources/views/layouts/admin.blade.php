@@ -49,7 +49,7 @@
         ];
         $userItems = [
             [route('admin.siswa.index'), 'Data Siswa', 'admin.siswa'],
-            [route('admin.users.index'), 'Panitia & Bendahara', 'admin.users'],
+            [route('admin.users.index'), 'Kelola Pengguna', 'admin.users'],
         ];
         $masterItems = [
             [route('admin.master.sekolah.index'), 'Asal Sekolah', 'admin.master.sekolah'],

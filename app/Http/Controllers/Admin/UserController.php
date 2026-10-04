@@ -16,10 +16,11 @@ use Throwable;
 
 class UserController extends Controller
 {
+    public const ROLE_OPTIONS = ['peserta' => 'Siswa', 'panitia' => 'Panitia / Guru', 'bendahara' => 'Bendahara', 'kepala_sekolah' => 'Kepala Sekolah', 'admin' => 'Admin'];
+
     public function index(Request $request)
     {
         $users = User::with('role')
-            ->whereHas('role', fn ($query) => $query->whereIn('name', ['panitia', 'bendahara', 'kepala_sekolah']))
             ->when($request->filled('search'), function ($query) use ($request) {
                 $search = trim((string) $request->input('search'));
                 $query->where(function ($inner) use ($search) {
@@ -31,7 +32,22 @@ class UserController extends Controller
             ->paginate(Pagination::perPage())->withQueryString();
         $teacherCount = User::whereHas('role', fn ($query) => $query->whereIn('name', ['panitia', 'bendahara', 'kepala_sekolah']))->count();
 
-        return view('admin.pengguna.index', compact('users', 'teacherCount'));
+        $roleOptions = self::ROLE_OPTIONS;
+        return view('admin.pengguna.index', compact('users', 'teacherCount', 'roleOptions'));
+    }
+
+    public function updateRole(Request $request, User $user)
+    {
+        abort_unless($request->user()?->hasRole('admin'), 403);
+        $validated = $request->validate(['role' => ['required', Rule::in(array_keys(self::ROLE_OPTIONS))]]);
+        if ($request->user()->id === $user->id && $validated['role'] !== 'admin') {
+            return back()->with('error', 'Peran akun admin yang sedang digunakan tidak boleh diturunkan.');
+        }
+        $role = Peran::firstOrCreate(['name' => $validated['role']], ['description' => self::ROLE_OPTIONS[$validated['role']]]);
+        // Change access only: retain the owner's password, phone and all historical records.
+        $user->role_id = $role->id;
+        $user->save();
+        return back()->with('success', 'Peran '.$user->name.' menjadi '.self::ROLE_OPTIONS[$validated['role']].'. Gunakan menu Dashboard atau masuk ulang untuk membuka akses baru.');
     }
 
     public function storeTeacher(Request $request)

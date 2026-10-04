@@ -1,11 +1,11 @@
 @extends('layouts.admin')
 
-@section('title', 'Panitia & Bendahara')
-@section('page_title', 'Panitia & Bendahara')
+@section('title', 'Kelola Pengguna')
+@section('page_title', 'Kelola Pengguna')
 @section('page_description', 'Kelola akun petugas yang membantu operasional dan keuangan SPMB.')
 
 @section('content')
-<div x-data="{ addOpen: {{ old('_modal') === 'add' || ($errors->any() && old('_modal') !== 'edit') ? 'true' : 'false' }}, editId: {{ old('_modal') === 'edit' ? (int) old('user_id') : 'null' }} }">
+<div x-data="{ addOpen: {{ old('_modal') === 'add' ? 'true' : 'false' }}, editId: {{ old('_modal') === 'edit' ? (int) old('user_id') : 'null' }}, roleId: {{ old('_modal') === 'role' ? (int) old('user_id') : 'null' }} }">
     <section class="admin-card overflow-hidden bg-white p-0">
         <div class="admin-card-header border-b border-slate-100">
             <div>
@@ -14,14 +14,14 @@
                     <span class="admin-count-badge bg-slate-100 text-slate-600">{{ $users->total() }} akun</span>
                     <span class="admin-count-badge bg-emerald-50 text-emerald-700">{{ $teacherCount }} staf operasional</span>
                 </div>
-                <p class="mt-1 text-sm text-slate-500">Admin dapat mengelola akun panitia, bendahara, dan kepala sekolah.</p>
+                <p class="mt-1 text-sm text-slate-500">Daftar sendiri dari halaman depan tetap menjadi siswa. Admin dapat mengubah peran akun di sini tanpa membuat akun baru. Guru menggunakan akses Panitia.</p>
             </div>
             <button type="button" @click="addOpen=true" class="admin-primary-button bg-emerald-600 hover:bg-emerald-700">+ Tambah User</button>
         </div>
 
         <div class="flex flex-col gap-3 border-b border-slate-100 px-5 py-4 md:flex-row md:items-center md:justify-between">
             <form method="GET" action="{{ route('admin.users.index') }}" class="flex min-w-0 flex-1 flex-col gap-2 md:flex-row">
-                <x-list-search placeholder="Cari nama atau nomor WhatsApp staf" class="min-w-0 flex-1" />
+                <x-list-search placeholder="Cari nama atau nomor WhatsApp pengguna" class="min-w-0 flex-1" />
                 <button type="submit" class="admin-primary-button bg-blue-700 hover:bg-blue-800">Cari</button>
                 @if(request('search'))
                     <a href="{{ route('admin.users.index') }}" class="inline-flex min-h-[42px] items-center justify-center rounded-xl bg-slate-100 px-4 text-sm font-black text-slate-600 hover:bg-slate-200">Reset</a>
@@ -45,11 +45,11 @@
                         @php
                             $roleName = $user->role?->name ?? '-';
                             $roleLabel = match ($roleName) {
-                                'panitia' => 'Panitia',
+                                'panitia' => 'Panitia / Guru',
                                 'bendahara' => 'Bendahara',
                                 'kepala_sekolah' => 'Kepala Sekolah',
                                 'admin' => 'Admin',
-                                'peserta' => 'Peserta',
+                                'peserta' => 'Siswa',
                                 default => ucfirst($roleName),
                             };
                             $roleClass = match ($roleName) {
@@ -70,12 +70,15 @@
                             <td><span class="rounded-full px-2.5 py-1 text-xs font-black {{ $roleClass }}">{{ $roleLabel }}</span></td>
                             <td>
                                 <div class="flex justify-end gap-2">
+                                    <button type="button" @click="roleId={{ $user->id }}" class="rounded-xl bg-violet-50 px-3 py-2 text-xs font-black text-violet-700">Ubah Peran</button>
+                                    @if(in_array($roleName, ['panitia', 'bendahara', 'kepala_sekolah'], true))
                                     <button type="button" @click="editId={{ $user->id }}" class="rounded-xl bg-sky-50 px-3 py-2 text-xs font-black text-sky-700 hover:bg-sky-100">Edit</button>
                                     <form method="POST" action="{{ route('admin.users.destroy', $user) }}" onsubmit="return confirm('Hapus user {{ $user->name }}? Aksi ini tidak bisa dibatalkan.')">
                                         @csrf
                                         @method('DELETE')
                                         <button class="rounded-xl bg-rose-50 px-3 py-2 text-xs font-black text-rose-700 hover:bg-rose-100">Hapus</button>
                                     </form>
+                                    @endif
                                 </div>
                             </td>
                         </tr>
@@ -133,6 +136,19 @@
     </div></template>
 
     @foreach($users as $user)
+        <template x-teleport="body"><div x-cloak x-show="roleId==={{ $user->id }}" class="fixed inset-0 z-[2147483000] flex items-center justify-center bg-slate-950/45 p-4" @keydown.escape.window="roleId=null">
+            <form method="POST" action="{{ route('admin.users.role.update', $user) }}" class="user-account-dialog w-full max-w-lg rounded-3xl bg-white p-5 shadow-2xl" @click.outside="roleId=null" onsubmit="return confirm('Ubah akses akun ini? Peran Admin memberikan akses penuh ke sistem.')">
+                @csrf @method('PATCH')
+                <input type="hidden" name="_modal" value="role">
+                <input type="hidden" name="user_id" value="{{ $user->id }}">
+                <h3 class="text-lg font-black">Ubah Peran</h3>
+                <p class="my-3 text-sm">{{ $user->name }} · {{ $user->phone }}</p>
+                <x-form-select name="role" label="Peran pengguna" :required="true" :options="$roleOptions" :value="old('user_id') == $user->id ? old('role', $user->role?->name) : $user->role?->name" :menu-z-index="2147483500" />
+                @if(old('user_id') == $user->id) @error('role')<p class="admin-error">{{ $message }}</p>@enderror @endif
+                <p class="mt-3 text-xs text-slate-500">Nomor login, kata sandi, serta riwayat pendaftaran dan pembayaran tetap tersimpan. Pastikan akun ini benar milik petugas sebelum memberi akses.</p>
+                <div class="mt-5 flex justify-end gap-2"><button type="button" @click="roleId=null" class="rounded-xl border px-4 py-2">Batal</button><button class="rounded-xl bg-violet-700 px-4 py-2 font-bold text-white">Simpan Peran</button></div>
+            </form>
+        </div></template>
         <template x-teleport="body"><div x-cloak x-show="editId==={{ $user->id }}" x-transition.opacity class="fixed inset-0 z-[2147483000] flex items-center justify-center bg-slate-950/45 p-3 sm:p-4 backdrop-blur-sm" @keydown.escape.window="editId=null">
             <div @click.outside="editId=null" class="user-account-dialog flex max-h-[calc(100dvh-24px)] w-full max-w-xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl sm:max-h-[calc(100dvh-32px)]">
                 <div class="shrink-0 flex items-start justify-between border-b border-slate-100 p-5">

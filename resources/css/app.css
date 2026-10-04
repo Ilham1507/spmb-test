@@ -2380,6 +2380,10 @@ textarea {
     box-shadow:0 12px 32px rgb(10 51 105 / .08) !important;
 }
 .portal-topbar:after { position:absolute;right:0;bottom:-1px;left:0;height:2px;background:linear-gradient(90deg,var(--portal-accent,#0b3b83),transparent 42%);content:"";opacity:.8; }
+@media(max-width:639px){
+    .portal-topbar-admin{padding-inline:0!important}
+    .portal-topbar-admin>div{padding-left:12px!important;padding-right:16px!important;gap:14px}
+}
 .portal-topbar > a > span:first-child { width:46px;height:46px;border-color:var(--portal-line,#cddff5) !important;background:#fff !important;box-shadow:0 8px 18px rgb(10 51 105 / .10) !important; }
 .portal-topbar > a strong { color:#092e6a;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;letter-spacing:-.02em; }
 .portal-topbar > a small { color:#5a7698;font-family:'DM Sans',sans-serif;font-weight:700; }
