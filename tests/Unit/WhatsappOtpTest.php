@@ -23,6 +23,10 @@ class WhatsappOtpTest extends TestCase
         Schema::create('password_reset_tokens', function (Blueprint $table) {
             $table->string('email')->primary(); $table->string('token'); $table->timestamp('created_at');
         });
+        Schema::create('system_settings', function (Blueprint $table) {
+            $table->id(); $table->string('key')->unique(); $table->text('value')->nullable();
+            $table->string('group')->nullable(); $table->timestamps();
+        });
     }
 
     public function test_code_is_hashed_six_digits_and_replaced_on_resend(): void
@@ -37,6 +41,12 @@ class WhatsappOtpTest extends TestCase
         $second = $service->createCode($user);
         $this->assertTrue(Hash::check($second, DB::table('password_reset_tokens')->value('token')));
         $this->assertDatabaseCount('password_reset_tokens', 1);
+    }
+
+    public function test_code_entry_screen_is_available_without_a_secret_in_the_url(): void
+    {
+        $this->get('/reset-password/kode')->assertOk()->assertSee('Kode verifikasi WhatsApp');
+        $this->get('/forgot-password')->assertOk()->assertSee('Sudah menerima kode?');
     }
 
     public function test_valid_code_resets_password_and_cannot_be_reused(): void
