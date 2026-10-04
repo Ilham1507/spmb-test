@@ -41,7 +41,7 @@
         /* This document is sent as a compact receipt in WhatsApp.  Do not give
            the invoice its own A4-sized minimum height: combined with the PDF
            page margin it made an otherwise short receipt spill into extra pages. */
-        @page { size: A4 portrait; margin: 8mm; }
+        @page { size: A4 portrait; margin: 8mm 8mm 18mm; }
         * { box-sizing: border-box; }
         body { margin: 0; background: #fff; color: #172033; font-family: DejaVu Sans, Arial, sans-serif; font-size: 10px; line-height: 1.4; }
         .invoice { width: 100%; margin: 0; background: #fff; }
@@ -98,11 +98,12 @@
         .next { margin-top: 10px; border-left: 4px solid #d8a900; background: #fff9e7; }
         .verification p, .next p { margin: 2px 0; }
         .notice { margin: 10px 0 0; color: #66758b; font-size: 10px; }
-        .footer { margin-top: 0; padding: 10px 17mm; background: #102d61; color: #fff; font-size: 9px; }
+        .footer { position: fixed; bottom: -10mm; left: 0; right: 0; margin: 0; padding: 10px 17mm; background: #102d61; color: #fff; font-size: 9px; }
     </style>
 </head>
 <body>
     <main class="invoice{{ $isBmtProof ? ' bmt-proof' : '' }}">
+        <footer class="footer">{{ $settings['school_name'] ?? 'SMK Muhammadiyah 4 Cileungsi' }} · {{ $settings['school_address'] ?? 'Cileungsi, Bogor' }}</footer>
         @if($letterheadSrc)
             <img class="letterhead" src="{{ $letterheadSrc }}" alt="Kop surat resmi sekolah">
         @endif
@@ -148,10 +149,10 @@
                 @if($isBmtProof)
                     <p class="muted">Selesai = pembayaran disetujui + potongan/kredit yang berlaku.</p>
                 @else
-                    <p class="muted">Status rincian adalah akumulasi pembayaran disetujui sampai dokumen diterbitkan. Diselesaikan dapat termasuk potongan atau kredit formulir yang sudah dibayar terpisah; bukan nominal uang transaksi ini.</p>
+                    <p class="muted">Diselesaikan = pembayaran disetujui + potongan/kredit yang berlaku.</p>
                 @endif
                 @if($summary['unallocated'])
-                    <p class="notice">Ada pembayaran lama yang belum dialokasikan. Sisa per rincian perlu dicocokkan bendahara; sisa total tetap ditampilkan di bawah.</p>
+                    <p class="notice">Alokasi pembayaran lama perlu dicocokkan bendahara.</p>
                 @endif
                 <table class="balances"><tr><td>Total tagihan daftar ulang (setelah potongan)</td><td class="amount">Rp {{ number_format($bill->total_amount, 0, ',', '.') }}</td></tr><tr><td>Akumulasi pembayaran daftar ulang</td><td class="amount">Rp {{ number_format($bill->paid_amount, 0, ',', '.') }}</td></tr><tr><td><strong>Sisa tagihan daftar ulang</strong></td><td class="amount"><strong>Rp {{ number_format(max(0, $bill->remaining_amount ?? ($bill->total_amount - $bill->paid_amount)), 0, ',', '.') }}</strong></td></tr></table>
             @else
@@ -163,11 +164,9 @@
                 <p class="notice">Tanggal penerimaan BMT: {{ \Illuminate\Support\Carbon::parse($transaction->treasurer_received_at)->locale('id')->translatedFormat('d F Y, H:i') }} WIB</p>
             @endif
             @unless($isBmtProof)
-            <div class="next"><p><strong>INFORMASI LANJUTAN</strong></p><p>{{ $isReRegistration ? 'Pembayaran sebagian mengurangi sisa tagihan dan tidak otomatis melunasi seluruh rincian. Pembayaran berikutnya dilakukan di BMT sekolah setiap Selasa dan Jumat pukul 07.30–14.30 WIB.' : 'Pembayaran formulir telah dicatat. Silakan lanjutkan pengisian formulir SPMB melalui tautan yang dikirimkan ke WhatsApp.' }}</p></div>
-            <p class="notice">Dokumen ini diterbitkan otomatis berdasarkan transaksi yang tercatat pada Sistem SPMB dan sah sebagai bukti pembayaran elektronik.</p>
+            <div class="next"><p>{{ $isReRegistration ? 'Pembayaran berikutnya di BMT sekolah: Selasa dan Jumat, 07.30-14.30 WIB.' : 'Pembayaran tercatat. Silakan lanjutkan pengisian formulir SPMB.' }}</p></div>
             @endunless
         </div>
-        <footer class="footer">{{ $settings['school_name'] ?? 'SMK Muhammadiyah 4 Cileungsi' }} · {{ $settings['school_address'] ?? 'Cileungsi, Bogor' }}</footer>
     </main>
 </body>
 </html>

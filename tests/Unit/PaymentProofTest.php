@@ -95,6 +95,10 @@ class PaymentProofTest extends TestCase
                 $transaction->tagihan->forceFill(['rincian_biaya' => $items, 'total_amount' => array_sum($fees), 'paid_amount' => 350000, 'remaining_amount' => array_sum($fees) - 350000]);
             }
             $html = view('payments.system-proof', ['transaction' => $transaction, 'bmtProof' => $type === 'BMT'])->render();
+            $this->assertStringContainsString('position: fixed; bottom: -10mm;', $html);
+            $this->assertStringContainsString('margin: 8mm 8mm 18mm;', $html);
+            $this->assertStringNotContainsString('Dokumen ini diterbitkan otomatis', $html);
+            $this->assertStringNotContainsString('Status rincian adalah akumulasi', $html);
             $this->assertStringContainsString(pathinfo(PaymentProof::filename($transaction), PATHINFO_FILENAME), $html);
             if ($type !== 'Uang Formulir Pendaftaran') {
                 $this->assertStringContainsString('Rincian biaya', $html);
