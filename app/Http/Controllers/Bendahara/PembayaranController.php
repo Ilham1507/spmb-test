@@ -325,6 +325,9 @@ class PembayaranController extends Controller
             if ($transaction->status === 'rejected') {
                 throw \Illuminate\Validation\ValidationException::withMessages(['payment' => 'Pembayaran ini sudah ditolak dan tidak dapat diterima.']);
             }
+            // Approval/manual entry already sent the student receipt. A later
+            // financial handover must not send the same payment a second time.
+            $notifyStudent = $transaction->status === 'pending';
             if ($transaction->status === 'pending') {
                 if ((float) $transaction->amount > (float) $bill->remaining_amount) {
                     throw \Illuminate\Validation\ValidationException::withMessages(['payment' => 'Nominal melebihi sisa tagihan. Cocokkan transaksi sebelum diterima.']);
@@ -349,18 +352,26 @@ class PembayaranController extends Controller
                 'treasurer_notes' => $request->string('notes')->toString() ?: null,
             ]);
 
-            return $transaction->fresh(['tagihan.jenisTagihan', 'tagihan.pendaftar.biodata', 'tagihan.pendaftar.user', 'verifier', 'treasurerReceiver']);
+            return [
+                'transaction' => $transaction->fresh(['tagihan.jenisTagihan', 'tagihan.pendaftar.biodata', 'tagihan.pendaftar.user', 'verifier', 'treasurerReceiver']),
+                'notify_student' => $notifyStudent,
+            ];
         }, 3);
 
-        $receiptNotifier->send($result);
-        try {
-            $this->sendReceivedNotification($whatsapp, $result);
-        } catch (Throwable $exception) {
-            Log::warning('Notifikasi penerimaan bendahara gagal dikirim.', ['transaction_id' => $result->id, 'error' => $exception->getMessage()]);
+        $transaction = $result['transaction'];
+        $receiptNotifier->send($transaction);
+        if ($result['notify_student']) {
+            try {
+                $this->sendReceivedNotification($whatsapp, $transaction);
+            } catch (Throwable $exception) {
+                Log::warning('Notifikasi penerimaan bendahara gagal dikirim.', ['transaction_id' => $transaction->id, 'error' => $exception->getMessage()]);
+            }
         }
-        $invoiceEmail->send($result);
+        $invoiceEmail->send($transaction);
 
-        return back()->with('success', 'Pembayaran diterima langsung oleh bendahara. Tagihan diperbarui dan notifikasi WhatsApp siswa telah dikirim.');
+        return back()->with('success', $result['notify_student']
+            ? 'Pembayaran diterima langsung oleh bendahara. Tagihan diperbarui dan notifikasi WhatsApp siswa diproses.'
+            : 'Penerimaan pembayaran dicatat oleh bendahara. WhatsApp siswa tidak dikirim ulang karena pembayaran sudah disetujui sebelumnya.');
     }
 
     public function receipt(TransaksiPembayaran $transaksi)
