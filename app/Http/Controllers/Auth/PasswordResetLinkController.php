@@ -34,6 +34,18 @@ class PasswordResetLinkController extends Controller
             ]);
         }
 
+        if (config('services.whatsapp.use_otp', true)) {
+            try {
+                $code = app(\App\Services\ParticipantActivationService::class)->createCode($user);
+                $whatsapp->sendAuthentication($user->phone, $code);
+            } catch (\Throwable $exception) {
+                Log::warning('Kode verifikasi WhatsApp belum dapat dikirim.', ['user_id' => $user->id]);
+                return back()->withInput()->withErrors(['phone' => 'Kode belum dapat dikirim. Silakan coba kembali atau hubungi panitia.']);
+            }
+            return redirect()->route('password.reset', ['token' => 'kode', 'phone' => $user->phone])
+                ->with('status', 'Kode verifikasi dikirim melalui WhatsApp dan berlaku 5 menit.');
+        }
+
         $plainToken = Str::random(64);
         DB::table('password_reset_tokens')->updateOrInsert(
             ['email' => $request->phone],

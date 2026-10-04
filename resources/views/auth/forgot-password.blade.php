@@ -1,5 +1,5 @@
 <x-guest-layout>
-    @slot('auth_title', 'Lupa kata sandi?')
+    @slot('auth_title', 'Buat / lupa kata sandi')
     @slot('auth_subtitle', 'Masukkan nomor WhatsApp akunmu.')
 
     <form method="POST" action="{{ route('password.email') }}" style="display:grid;gap:14px">
@@ -12,16 +12,17 @@
 
         <div style="display:flex;align-items:center;gap:10px;padding:11px 13px;border:1px solid #bae8dc;border-radius:13px;background:#effcf7;color:#35685d;font-size:12px;font-weight:700;line-height:1.35">
             <span aria-hidden="true" style="display:grid;place-items:center;flex:0 0 29px;width:29px;height:29px;border-radius:50%;background:#d2f5e8;color:#087a61;font-size:15px">&#9201;</span>
-            <span>Tautan reset dikirim lewat WhatsApp dan berlaku selama <strong>5 menit</strong>.</span>
+            <span>Verifikasi dikirim lewat WhatsApp dan berlaku selama <strong>5 menit</strong>.</span>
         </div>
 
         <button type="submit" class="w-full rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 py-2.5 font-bold text-white shadow-lg shadow-emerald-900/20 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl">
-            Kirim Tautan Reset
+            Kirim Verifikasi WhatsApp
         </button>
 
         <a href="{{ route('login') }}" style="display:flex;align-items:center;justify-content:center;gap:7px;min-height:42px;border:2px solid #b9d8d2;border-radius:12px;background:#fff;color:#08745e;font-size:13px;font-weight:900;text-decoration:none">
             <span aria-hidden="true">&larr;</span> Kembali ke Halaman Masuk
         </a>
+        <a href="{{ route('password.reset', ['token' => 'kode']) }}" class="text-center font-bold text-teal-700">Sudah menerima kode? Masukkan kode di sini</a>
     </form>
 
     @if (session('status'))

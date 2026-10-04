@@ -39,8 +39,9 @@ class PaymentReceiptNotifier
             $amount = number_format((float) $transaction->amount, 0, ',', '.');
             $remaining = number_format((float) ($bill?->remaining_amount ?? 0), 0, ',', '.');
 
-            $this->whatsapp->send($target, \App\Support\WhatsappGreeting::opening()."\n\n"
-                ."Informasi pembayaran SPMB\n\nSiswa: {$student}\nNo. pendaftaran: {$registrationNumber}\nBiaya: {$feeNames}\nNominal: Rp {$amount}\nMetode: {$channel}\nPenerima kunjungan: {$visitReceiver}\nDiverifikasi oleh: {$receivedBy}\nSisa tagihan: Rp {$remaining}");
+            $this->whatsapp->sendNotification($target, \App\Support\WhatsappGreeting::opening()."\n\n"
+                ."Informasi pembayaran SPMB\n\nSiswa: {$student}\nNo. pendaftaran: {$registrationNumber}\nBiaya: {$feeNames}\nNominal: Rp {$amount}\nMetode: {$channel}\nPenerima kunjungan: {$visitReceiver}\nDiverifikasi oleh: {$receivedBy}\nSisa tagihan: Rp {$remaining}",
+                'staff_receipt', [$student, $registrationNumber, $feeNames, $amount, $channel, $visitReceiver, $receivedBy, $remaining]);
             return true;
         } catch (\Throwable $exception) {
             Log::warning('Notifikasi penerimaan pembayaran ke penerima kunjungan gagal dikirim.', [
@@ -81,12 +82,14 @@ class PaymentReceiptNotifier
             }
 
             foreach ($approvalTargets as $target) {
-                $this->whatsapp->send($target['phone'], \App\Support\WhatsappGreeting::opening()."\n\n"
+                $this->whatsapp->sendNotification($target['phone'], \App\Support\WhatsappGreeting::opening()."\n\n"
                     .($isResubmission
                         ? "Bukti transfer ulang menunggu approval.\n\n"
                         : "Bukti transfer baru menunggu approval.\n\n")
                     ."Siswa: {$student}\nNo. pendaftaran: {$registrationNumber}\nBiaya: {$feeNames}\nNominal: Rp {$amount}\nMetode: Transfer\nPenerima kunjungan: {$receiver}\n\n"
-                    ."Silakan periksa bukti dan setujui pembayaran di:\n{$target['url']}");
+                    ."Silakan periksa bukti dan setujui pembayaran di:\n{$target['url']}",
+                    'transfer_pending', [$isResubmission ? 'Bukti transfer ulang menunggu approval.' : 'Bukti transfer baru menunggu approval.',
+                        $student, $registrationNumber, $feeNames, $amount, $receiver, $target['url']]);
             }
 
             return true;

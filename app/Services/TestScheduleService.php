@@ -79,7 +79,9 @@ class TestScheduleService
                         ."\nSilakan hadir sesuai jadwal terbaru. Tidak perlu mengirim ulang formulir.\n"
                         .'Pantau jadwal di: '.route('peserta.dashboard')."\n\nTerima kasih.";
                     try {
-                        app(WhatsappCloudApiService::class)->send($student->user->phone, $message);
+                        app(WhatsappCloudApiService::class)->sendNotification($student->user->phone, $message, 'schedule_changed', [
+                            $name, $student->registration_number, $oldDate, $newDate, $details ?: 'Ikuti jadwal terbaru.',
+                        ]);
                     } catch (\Throwable $exception) {
                         Log::warning('Notifikasi perubahan jadwal Tes SPMB gagal.', ['applicant_id' => $student->id, 'error' => $exception->getMessage()]);
                     }

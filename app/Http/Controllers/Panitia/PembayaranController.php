@@ -411,7 +411,9 @@ class PembayaranController extends Controller
                 $pdfUrl = URL::temporarySignedRoute('invoice.public.pdf', now()->addMinutes(30), ['transaksi' => $transaction->id]);
                 // Approval text is the document caption, so the invoice and
                 // its notification arrive together in a single WhatsApp bubble.
-                $whatsapp->sendDocument((string) $phone, $pdfUrl, \App\Support\PaymentProof::filename($transaction), $message);
+                $whatsapp->sendDocument((string) $phone, $pdfUrl, \App\Support\PaymentProof::filename($transaction), $message,
+                    $this->isRegistrationFee($transaction) ? 'invoice_formulir' : 'invoice_du',
+                    $this->isRegistrationFee($transaction) ? [$name, $approver, $receiverContact] : [$name, $approver]);
             } catch (Throwable $exception) {
                 Log::warning('Invoice PDF WhatsApp gagal; mengirim teks approval sebagai fallback.', [
                     'transaction_id' => $transaction->id,
@@ -457,7 +459,7 @@ class PembayaranController extends Controller
         }
 
         foreach ($targets as $target) {
-            $whatsapp->send($target, $message);
+            $whatsapp->sendNotification($target, $message, 'treasurer_pending', [$student, $amount, $approver, $url]);
         }
     }
 

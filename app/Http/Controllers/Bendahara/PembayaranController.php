@@ -555,7 +555,9 @@ Catatan: {$transaction->notes}" : '';
         if ($transaction->status === 'verified') {
             try {
                 $pdfUrl = URL::temporarySignedRoute('invoice.public.pdf', now()->addMinutes(30), ['transaksi' => $transaction->id]);
-                $whatsapp->sendDocument((string) $phone, $pdfUrl, \App\Support\PaymentProof::filename($transaction), $message);
+                $whatsapp->sendDocument((string) $phone, $pdfUrl, \App\Support\PaymentProof::filename($transaction), $message,
+                    $isRegistrationFee ? 'invoice_formulir' : 'invoice_du',
+                    $isRegistrationFee ? [$name, $approver, $receiverContact] : [$name, $approver]);
             } catch (Throwable $exception) {
                 Log::warning('Invoice PDF WhatsApp gagal; mengirim teks approval sebagai fallback.', [
                     'transaction_id' => $transaction->id,
@@ -586,17 +588,17 @@ Catatan: {$transaction->notes}" : '';
             .$approvalLine."\n"
             ."Invoice dapat dilihat dari akun siswa atau email terverifikasi.\n\n"
             ."Untuk pembayaran lanjutan, silakan ke BMT PCM Cileungsi setiap Selasa dan Jumat, Kampus E SMK Muhammadiyah 4 Cileungsi, pukul 07.30–14.30 WIB.";
-        // Receipt text is the reliable first delivery. The PDF is optional
-        // and must never suppress the notification when media upload fails.
-        $whatsapp->send($phone, $message);
+        // Keep the original confirmation and the actual PDF in one message.
         try {
             $pdf = URL::temporarySignedRoute('invoice.public.pdf', now()->addMinutes(30), ['transaksi' => $transaction->id]);
-            $whatsapp->sendDocument($phone, $pdf, \App\Support\PaymentProof::filename($transaction), 'Invoice pembayaran SPMB.');
+            $whatsapp->sendDocument($phone, $pdf, \App\Support\PaymentProof::filename($transaction), $message,
+                'invoice_received', [$type, $name, $amount, $receivedBy, $approvalLine]);
         } catch (Throwable $exception) {
             Log::warning('Invoice PDF WhatsApp gagal setelah notifikasi penerimaan terkirim.', [
                 'transaction_id' => $transaction->id,
                 'error' => $exception->getMessage(),
             ]);
+            $whatsapp->send($phone, $message);
         }
     }
 }

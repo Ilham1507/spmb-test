@@ -4,12 +4,45 @@ namespace App\Services;
 
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Cache;
 use RuntimeException;
 
 /** Sends outbound messages through Meta's official WhatsApp Business Cloud API. */
 class WhatsappCloudApiService
 {
     private ?string $resolvedWaslahInstanceKey = null;
+
+    public function sendAuthentication(string $target, string $code): void
+    {
+        $template = $this->approvedTemplate('authentication');
+        if ($this->usesWaslah() || $template === '') {
+            $link = route('password.reset', ['token' => 'kode']);
+            $this->send($target, "Kode verifikasi akun SPMB: {$code}. Berlaku 5 menit. Jangan bagikan kode ini kepada siapa pun.\n\nMasukkan kode dan buat kata sandi di:\n{$link}");
+            return;
+        }
+        $response = $this->request()->post($this->messagesUrl(), [
+            'messaging_product' => 'whatsapp', 'to' => $this->normalizeTarget($target), 'type' => 'template',
+            'template' => ['name' => $template, 'language' => ['code' => config('services.whatsapp.template_language', 'id')],
+                'components' => [
+                    ['type' => 'body', 'parameters' => [['type' => 'text', 'text' => $code]]],
+                    ['type' => 'button', 'sub_type' => 'url', 'index' => '0', 'parameters' => [['type' => 'text', 'text' => $code]]],
+                ]],
+        ]);
+        $this->throwIfFailed($response->status(), $response->json());
+    }
+
+    /** Event parameters are explicit: never guess a template from a message's wording. */
+    public function sendNotification(string $target, string $message, string $event, array $parameters): void
+    {
+        $template = $this->approvedTemplate($event);
+        if (! $this->usesWaslah() && $template !== '') {
+            $this->sendTemplate($target, $template, $parameters, config('services.whatsapp.template_language', 'id'));
+            return;
+        }
+        $this->send($target, $message);
+    }
 
     public function send(string $target, string $message): void
     {
@@ -28,6 +61,7 @@ class WhatsappCloudApiService
             return;
         }
 
+        $this->requireOpenConversation($target);
         $response = $this->request()->post($this->messagesUrl(), [
             'messaging_product' => 'whatsapp',
             'to' => $this->normalizeTarget($target),
@@ -50,9 +84,23 @@ class WhatsappCloudApiService
     }
 
     /** Send a public PDF invoice as an actual WhatsApp document attachment. */
-    public function sendDocument(string $target, string $url, string $filename, string $caption = ''): void
+    public function sendDocument(string $target, string $url, string $filename, string $caption = '', string $event = 'invoice', array $parameters = []): void
     {
         if (! $this->usesWaslah()) {
+            $template = $this->approvedTemplate($event);
+            if ($template !== '') {
+                $response = $this->request()->post($this->messagesUrl(), [
+                    'messaging_product' => 'whatsapp', 'to' => $this->normalizeTarget($target), 'type' => 'template',
+                    'template' => ['name' => $template, 'language' => ['code' => config('services.whatsapp.template_language', 'id')],
+                        'components' => [
+                            ['type' => 'header', 'parameters' => [['type' => 'document', 'document' => ['link' => $url, 'filename' => $filename]]]],
+                            ['type' => 'body', 'parameters' => array_map(fn ($text) => ['type' => 'text', 'text' => $this->templateText((string) $text)], $parameters ?: [$caption ?: 'Bukti pembayaran SPMB'])],
+                        ]],
+                ]);
+                $this->throwIfFailed($response->status(), $response->json());
+                return;
+            }
+            $this->requireOpenConversation($target);
             $document = ['link' => $url, 'filename' => $filename];
             if ($caption !== '') { $document['caption'] = $caption; }
             $response = $this->request()->post($this->messagesUrl(), [
@@ -147,7 +195,7 @@ class WhatsappCloudApiService
         if ($bodyParameters !== []) {
             $payload['template']['components'] = [[
                 'type' => 'body',
-                'parameters' => array_map(fn (string $value) => ['type' => 'text', 'text' => $value], $bodyParameters),
+                'parameters' => array_map(fn (string $value) => ['type' => 'text', 'text' => $this->templateText($value)], $bodyParameters),
             ]];
         }
 
@@ -165,6 +213,43 @@ class WhatsappCloudApiService
         return Http::acceptJson()
             ->withToken($token)
             ->timeout(20);
+    }
+
+    private function templateText(string $text): string
+    {
+        // Meta body parameter values cannot contain newlines or tabs.
+        return trim(preg_replace('/\s+/u', ' ', $text) ?? $text);
+    }
+
+    private function approvedTemplate(string $event): string
+    {
+        $name = trim((string) config("services.whatsapp.templates.{$event}"));
+        $account = trim((string) config('services.whatsapp.business_account_id'));
+        if ($name === '' || $this->usesWaslah()) return '';
+        // Legacy integrations may explicitly configure already-approved templates.
+        if ($account === '') return $name;
+        $language = config('services.whatsapp.template_language', 'id');
+        $key = 'wa-template-approved:'.hash('sha256', $account.'|'.$name.'|'.$language.'|'.config('services.whatsapp.access_token'));
+        $approved = Cache::remember($key, 60, function () use ($account, $name, $language): bool {
+            $version = config('services.whatsapp.api_version', 'v25.0');
+            $response = $this->request()->get("https://graph.facebook.com/{$version}/{$account}/message_templates", [
+                'name' => $name, 'fields' => 'name,status,language', 'limit' => 100,
+            ]);
+            $this->throwIfFailed($response->status(), $response->json());
+            return collect($response->json('data', []))->contains(fn ($template) =>
+                ($template['name'] ?? '') === $name && ($template['language'] ?? '') === $language
+                && ($template['status'] ?? '') === 'APPROVED');
+        });
+        return $approved ? $name : '';
+    }
+
+    private function requireOpenConversation(string $target): void
+    {
+        if (Schema::hasTable('whatsapp_messages') && ! DB::table('whatsapp_messages')
+            ->where('sender_phone', $this->normalizeTarget($target))
+            ->where('received_at', '>', now()->subHours(23))->exists()) {
+            throw new RuntimeException('Di luar sesi 24 jam: template Meta yang disetujui diperlukan. Penerima dapat mengirim Halo ke nomor sekolah untuk membuka sesi.');
+        }
     }
 
     private function messagesUrl(): string

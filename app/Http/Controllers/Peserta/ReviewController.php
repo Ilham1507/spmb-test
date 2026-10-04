@@ -133,23 +133,23 @@ class ReviewController extends Controller
             ."
 Silakan buka menu Pendaftar untuk memeriksa dan menyetujui formulir.";
 
-        $this->notifyAfterResponse($whatsapp, $notificationTarget, $message, $pendaftar->id);
+        $this->notifyAfterResponse($whatsapp, $notificationTarget, $message, $pendaftar->id, [$name, $pendaftar->registration_number, $scheduleDate, $receiverName]);
 
         return redirect()->route('peserta.dashboard')->with('success', $isCorrection
             ? 'Perbaikan formulir berhasil dikirim ulang. Kami akan memberi kabar setelah pemeriksaan selesai.'
             : 'Pendaftaran berhasil dikirim. Kami akan memberi kabar setelah pemeriksaan formulir selesai.');
     }
 
-    protected function notifyAfterResponse(WhatsappCloudApiService $whatsapp, ?string $target, string $message, int $applicantId): void
+    protected function notifyAfterResponse(WhatsappCloudApiService $whatsapp, ?string $target, string $message, int $applicantId, array $parameters = []): void
     {
         if (! filled($target)) {
             return;
         }
 
         // PHP-FPM finishes the redirect response before running termination callbacks.
-        app()->terminating(function () use ($whatsapp, $target, $message, $applicantId): void {
+        app()->terminating(function () use ($whatsapp, $target, $message, $applicantId, $parameters): void {
             try {
-                $whatsapp->send($target, $message);
+                $whatsapp->sendNotification($target, $message, 'form_submitted', $parameters);
             } catch (Throwable $exception) {
                 Log::warning('Notifikasi persetujuan formulir ke petugas gagal dikirim melalui WhatsApp Business API.', [
                     'applicant_id' => $applicantId,

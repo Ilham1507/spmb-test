@@ -9,6 +9,15 @@ use Illuminate\Support\Str;
 
 class ParticipantActivationService
 {
+    public function createCode(User $user): string
+    {
+        $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        DB::table('password_reset_tokens')->updateOrInsert(
+            ['email' => $user->phone],
+            ['token' => Hash::make($code), 'created_at' => now()]
+        );
+        return $code;
+    }
     public function createLink(User $user): string
     {
         $token = Str::random(64);
@@ -23,6 +32,10 @@ class ParticipantActivationService
 
     public function send(User $user, WhatsappCloudApiService $whatsapp): void
     {
+        if (config('services.whatsapp.use_otp', true)) {
+            $whatsapp->sendAuthentication($user->phone, $this->createCode($user));
+            return;
+        }
         $link = $this->createLink($user);
         $template = trim((string) config('services.whatsapp.templates.activation'));
 

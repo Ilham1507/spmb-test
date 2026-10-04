@@ -14,7 +14,7 @@ class ReviewNotificationTest extends TestCase
     {
         $sent = 0;
         $whatsapp = Mockery::mock(WhatsappCloudApiService::class);
-        $whatsapp->shouldReceive('send')->once()->with('08123456789', 'Formulir baru')
+        $whatsapp->shouldReceive('sendNotification')->once()->with('08123456789', 'Formulir baru', 'form_submitted', [])
             ->andReturnUsing(function () use (&$sent) { $sent++; });
         $this->controller()->notify($whatsapp, '08123456789');
         $this->assertSame(0, $sent);
@@ -25,7 +25,7 @@ class ReviewNotificationTest extends TestCase
     public function test_provider_failure_does_not_fail_registration(): void
     {
         $whatsapp = Mockery::mock(WhatsappCloudApiService::class);
-        $whatsapp->shouldReceive('send')->once()->andThrow(new \RuntimeException('Provider timeout'));
+        $whatsapp->shouldReceive('sendNotification')->once()->andThrow(new \RuntimeException('Provider timeout'));
         Log::shouldReceive('warning')->once()->withArgs(fn ($message, $context) => $context['applicant_id'] === 17);
         $this->controller()->notify($whatsapp, '08123456789');
         $this->app->terminate();

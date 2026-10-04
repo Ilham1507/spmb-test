@@ -13,7 +13,7 @@
             <x-input-error :messages="$errors->get('login')" class="mt-1" />
         </div>
         <div>
-            <div class="auth-password-row"><label for="password">Kata Sandi</label><a href="{{ route('password.request') }}" class="auth-link">Lupa sandi?</a></div>
+            <div class="auth-password-row"><label for="password">Kata Sandi</label><a href="{{ route('password.request') }}" class="auth-link">Buat / lupa sandi?</a></div>
             <div class="auth-password-field">
                 <input id="password" type="password" class="auth-input-password" :type="showPassword ? 'text' : 'password'" name="password" required autocomplete="current-password">
                 <button type="button" @click="showPassword=!showPassword" :aria-label="showPassword ? 'Sembunyikan kata sandi' : 'Lihat kata sandi'" class="auth-password-toggle"><svg x-show="!showPassword" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg><svg x-cloak x-show="showPassword" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 3 18 18M10.6 6.2A11 11 0 0 1 12 6c6.5 0 10 6 10 6a18 18 0 0 1-2.1 2.9M6.2 6.2C3.4 8 2 12 2 12s3.5 6 10 6a10.8 10.8 0 0 0 4.1-.8M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg></button>
