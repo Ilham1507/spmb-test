@@ -169,4 +169,16 @@ class WhatsappChatTest extends TestCase
         $this->getJson('/admin/chat-whatsapp')->assertJsonPath('conversations.0.preview', '[image]')->assertJsonPath('conversations.0.last_direction', 'in');
         Http::assertNothingSent();
     }
+
+    public function test_long_previews_render_in_width_constrained_conversation_grid(): void
+    {
+        $this->incoming();
+        DB::table('whatsapp_messages')->update(['body' => str_repeat('Pesan panjang untuk menguji lebar layar HP ', 20)]);
+        $response = $this->actingAs($this->user('admin'))->get('/admin/chat-whatsapp?phone=628123456789');
+        $response->assertOk()->assertSee('grid-cols-1', false)->assertSee('wa-contact block min-w-0 overflow-hidden', false);
+        if ($directory = getenv('WHATSAPP_CHAT_PREVIEW_DIR')) {
+            file_put_contents($directory.'/whatsapp-chat.html', $response->getContent());
+        }
+        Http::assertNothingSent();
+    }
 }

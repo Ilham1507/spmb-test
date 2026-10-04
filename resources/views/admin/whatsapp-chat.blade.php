@@ -2,18 +2,18 @@
 @section('title', 'Chat WhatsApp')
 @section('page_title', 'Chat WhatsApp')
 @section('content')
-<div x-data="whatsappInbox(@js(['messages' => $messages, 'open' => $open, 'expires' => $expires, 'phone' => $phone, 'contactName' => $contactName, 'unread' => $unread, 'lastIncomingId' => $lastIncomingId, 'readUrl' => route('admin.whatsapp-chat.read'), 'indexUrl' => route('admin.whatsapp-chat.index'), 'sendUrl' => route('admin.whatsapp-chat.send')]))" @resize.window="mobile = window.innerWidth < 1024" class="space-y-4">
+<div x-data="whatsappInbox(@js(['messages' => $messages, 'open' => $open, 'expires' => $expires, 'phone' => $phone, 'contactName' => $contactName, 'unread' => $unread, 'lastIncomingId' => $lastIncomingId, 'readUrl' => route('admin.whatsapp-chat.read'), 'indexUrl' => route('admin.whatsapp-chat.index'), 'sendUrl' => route('admin.whatsapp-chat.send')]))" @resize.window="mobile = window.innerWidth < 1024" class="wa-inbox min-w-0 space-y-4">
     <div x-show="!mobile || !showConversation" class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
         <strong>{{ $siteSettings['school_name'] ?? 'SMK Muhammadiyah 4 Cileungsi' }}</strong>
         <p>{{ config('services.whatsapp.sender_number') ?: '+62 812-4707-5160' }}</p>
     </div>
-    <div class="grid gap-4 lg:grid-cols-[280px_1fr]">
-        <aside x-show="!mobile || !showConversation" class="rounded-2xl border border-slate-200 bg-white p-4">
+    <div class="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
+        <aside x-show="!mobile || !showConversation" class="min-w-0 rounded-2xl border border-slate-200 bg-white p-4">
             <div class="flex items-center justify-between"><h2 class="font-bold">Percakapan</h2><span x-show="unread > 0" class="rounded-full bg-emerald-700 px-3 py-1 text-xs font-bold text-white" x-text="unread + ' belum dibaca'"></span></div>
             <input x-model="search" placeholder="Cari nama atau nomor" aria-label="Cari nama atau nomor WhatsApp" class="my-3 w-full rounded-xl border-slate-200 text-sm">
             <div class="max-h-[520px] space-y-2 overflow-y-auto">
                 <template x-for="contact in contacts" :key="contact.sender_phone">
-                    <a @click.prevent="select(contact)" x-show="contact.sender_phone.includes(search) || contact.name.toLowerCase().includes(search.toLowerCase())" :href="indexUrl + '?phone=' + contact.sender_phone" class="block rounded-xl border p-3 text-sm" :class="contact.sender_phone === phone ? 'border-emerald-500 bg-emerald-50' : 'border-slate-100'">
+                    <a @click.prevent="select(contact)" x-show="contact.sender_phone.includes(search) || contact.name.toLowerCase().includes(search.toLowerCase())" :href="indexUrl + '?phone=' + contact.sender_phone" class="wa-contact block min-w-0 overflow-hidden rounded-xl border p-3 text-sm" :class="contact.sender_phone === phone ? 'border-emerald-500 bg-emerald-50' : 'border-slate-100'">
                         <div class="flex items-center justify-between gap-2"><strong class="truncate" x-text="contact.name"></strong><span class="shrink-0 text-[11px] text-slate-500" x-text="time(contact.last_at)"></span></div>
                         <p class="text-xs text-slate-500" x-text="'+' + contact.sender_phone"></p>
                         <div class="mt-1 flex items-center gap-2"><p class="min-w-0 flex-1 truncate text-sm text-slate-600" x-text="(contact.last_direction === 'out' ? 'Anda: ' : '') + contact.preview"></p><span x-show="contact.unread > 0" class="shrink-0 rounded-full bg-emerald-600 px-2 py-1 text-xs font-bold text-white" x-text="contact.unread" aria-label="Pesan belum dibaca"></span></div>

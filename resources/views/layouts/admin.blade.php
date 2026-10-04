@@ -235,7 +235,7 @@
     </div>
     @if(!$isPrintPage && !request()->routeIs('admin.whatsapp-chat.*'))
     <a href="{{ route('admin.whatsapp-chat.index') }}" x-data="whatsappUnreadBadge()" @whatsapp-unread.window="count = $event.detail.unread" class="wa-chat-shortcut" aria-label="Buka Chat WhatsApp" title="Chat WhatsApp">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l-2 2V11.5a9.5 9.5 0 0 1 19 0Z"/><path d="M8 7c0 5 4 9 9 9l1-3-3-1-1 1c-2-1-3-2-4-4l1-1-1-2Z"/></svg>
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.65 15.02L2 22l5.12-1.34A10 10 0 1 0 12 2Zm0 18.18a8.1 8.1 0 0 1-4.16-1.14l-.3-.18-3.04.8.81-2.96-.2-.31A8.18 8.18 0 1 1 12 20.18Z"/><path d="M8.15 6.9c-.2-.45-.4-.46-.6-.47h-.51c-.18 0-.47.07-.72.34s-.94.92-.94 2.24.96 2.59 1.1 2.77c.13.18 1.88 2.87 4.56 4.02.64.27 1.14.43 1.53.55.64.2 1.23.17 1.7.1.52-.08 1.6-.66 1.82-1.3.23-.64.23-1.18.16-1.3-.07-.11-.25-.18-.52-.32-.27-.13-1.6-.79-1.85-.88-.25-.09-.43-.13-.61.14-.18.27-.7.88-.86 1.06-.15.18-.31.2-.58.07-.27-.14-1.14-.42-2.17-1.34-.8-.71-1.34-1.59-1.5-1.86-.16-.27-.02-.42.12-.55.12-.12.27-.32.4-.48.14-.15.18-.27.27-.45.09-.18.05-.34-.02-.48-.07-.13-.61-1.47-.83-2Z"/></svg>
         <span class="sr-only">WhatsApp</span><span x-cloak x-show="count > 0" x-text="count > 99 ? '99+' : count" class="wa-chat-shortcut-count" aria-label="Pesan belum dibaca"></span>
     </a>
     @endif
