@@ -119,6 +119,8 @@ class PaymentProofTest extends TestCase
                 $this->assertStringContainsString('<td>Lunas</td>', $html);
                 $this->assertStringNotContainsString('<td>Seragam &amp; Perlengkapan</td>', $html);
                 $this->assertStringContainsString('BUKTI PEMBAYARAN BTM ANNISA', $html);
+                $this->assertStringContainsString('class="fee-columns"', $html);
+                $this->assertSame(2, substr_count($html, '<th class="fee-name">Rincian biaya</th>'));
                 $parentHtml = view('payments.system-proof', ['transaction' => $transaction])->render();
                 $this->assertStringContainsString('class="group"', $parentHtml);
                 $this->assertStringNotContainsString('<td>INFAQ GEDUNG</td>', $parentHtml);

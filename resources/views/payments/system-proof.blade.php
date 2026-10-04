@@ -66,6 +66,27 @@
         .payment tr, .total, .verification, .next { page-break-inside: avoid; }
         .payment .group td { background: #edf3fa; font-weight: bold; }
         .payment .group { page-break-after: avoid; }
+        .fee-columns { table-layout: fixed; }
+        .fee-columns > tbody > tr > td { width: 49%; vertical-align: top; padding: 0; }
+        .fee-columns > tbody > tr > td.gutter { width: 2%; }
+        .fee-columns .payment { table-layout: fixed; font-size: 9px; }
+        .fee-columns .payment th { padding: 5px 3px; font-size: 8px; overflow-wrap: break-word; }
+        .fee-columns .payment td { padding: 4px 3px; overflow-wrap: break-word; }
+        .fee-columns .payment .fee-name { width: 32%; }
+        .fee-columns .payment .fee-amount { width: 16%; }
+        .fee-columns .payment .fee-status { width: 20%; }
+        .bmt-proof { font-size: 9px; line-height: 1.3; }
+        .bmt-proof .content { padding: 2mm 4mm; }
+        .bmt-proof h1 { font-size: 16px; }
+        .bmt-proof .value { font-size: 11px; }
+        .bmt-proof .footer { padding: 7px 17mm; font-size: 8px; }
+        .bmt-proof .section { margin: 8px 0 5px; }
+        .bmt-proof .identity td { padding: 5px 8px; }
+        .bmt-proof .fee-columns .payment td { padding: 1px 3px; }
+        .bmt-proof .balances td { padding: 4px 8px; }
+        .bmt-proof .notice, .bmt-proof .muted { margin: 6px 0 0; font-size: 9px; }
+        .bmt-proof .total, .bmt-proof .verification, .bmt-proof .next { margin-top: 6px; padding: 6px 10px; }
+        .bmt-proof .total > strong { font-size: 19px; }
         .balances td { padding: 8px; border-bottom: 1px solid #d8e1ee; }
         .amount { text-align: right; white-space: nowrap; }
         .muted { color: #718096; font-size: 10px; }
@@ -81,7 +102,7 @@
     </style>
 </head>
 <body>
-    <main class="invoice">
+    <main class="invoice{{ $isBmtProof ? ' bmt-proof' : '' }}">
         @if($letterheadSrc)
             <img class="letterhead" src="{{ $letterheadSrc }}" alt="Kop surat resmi sekolah">
         @endif
@@ -94,16 +115,24 @@
             <table class="identity"><tr><td><span class="label">Nama calon siswa</span><span class="value">{{ $name }}</span></td><td><span class="label">Nomor pendaftaran</span><span class="value">{{ $student?->registration_number ?? '-' }}</span></td></tr></table>
             <p class="section">Rincian transaksi</p>
             @if($isReRegistration)
-                <table class="payment"><thead><tr><th>Rincian biaya</th><th class="amount">Tagihan (Rp)</th><th class="amount">Diselesaikan (Rp)</th><th class="amount">Sisa (Rp)</th><th>Status</th></tr></thead><tbody>
                     @if($isBmtProof)
-                        @foreach($summary['items'] as $item)
+                        @php $feeColumns = $summary['items']->values()->split(2); @endphp
+                        <table class="fee-columns"><tbody><tr>
+                        @foreach($feeColumns as $column)
+                            @if(!$loop->first)<td class="gutter"></td>@endif
+                            <td><table class="payment"><thead><tr><th class="fee-name">Rincian biaya</th><th class="fee-amount">Tagihan<br>(Rp)</th><th class="fee-amount">Selesai<br>(Rp)</th><th class="fee-amount">Sisa<br>(Rp)</th><th class="fee-status">Status</th></tr></thead><tbody>
+                        @foreach($column as $item)
                             @php
                                 $itemStatus = $item['remaining'] <= 0 ? 'Lunas' : ($item['settled'] > 0 ? 'Belum lunas (sebagian)' : 'Belum lunas');
                                 if ($summary['unallocated']) { $itemStatus = 'Perlu dicocokkan'; }
                             @endphp
                             <tr><td>{{ $item['name'] }}</td><td class="amount">{{ number_format($item['amount'], 0, ',', '.') }}</td><td class="amount">{{ $summary['unallocated'] ? '-' : number_format($item['settled'], 0, ',', '.') }}</td><td class="amount">{{ $summary['unallocated'] ? '-' : number_format($item['remaining'], 0, ',', '.') }}</td><td>{{ $itemStatus }}</td></tr>
                         @endforeach
+                            </tbody></table></td>
+                        @endforeach
+                        </tr></tbody></table>
                     @else
+                <table class="payment"><thead><tr><th>Rincian biaya</th><th class="amount">Tagihan (Rp)</th><th class="amount">Diselesaikan (Rp)</th><th class="amount">Sisa (Rp)</th><th>Status</th></tr></thead><tbody>
                     @forelse($studentGroups as $category => $items)
                         @php
                             $groupStatus = $items->every(fn ($item) => $item['status'] === 'Lunas') ? 'Lunas' : ($items->sum('settled') > 0 ? 'Belum lunas (sebagian)' : 'Belum lunas');
@@ -113,8 +142,8 @@
                     @empty
                         <tr><td colspan="5">Rincian biaya belum tersedia. Hubungi bendahara untuk pencocokan.</td></tr>
                     @endforelse
-                    @endif
                 </tbody></table>
+                    @endif
                 <p class="notice">Metode: {{ $channel }} · Referensi: {{ $reference ?: '-' }} · Tercatat {{ $paidAt->translatedFormat('d F Y, H:i') }} WIB</p>
                 <p class="muted">Status rincian adalah akumulasi pembayaran disetujui sampai dokumen diterbitkan. Diselesaikan dapat termasuk potongan atau kredit formulir yang sudah dibayar terpisah; bukan nominal uang transaksi ini.</p>
                 @if($summary['unallocated'])
