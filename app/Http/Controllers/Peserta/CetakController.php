@@ -33,9 +33,9 @@ class CetakController extends Controller
         $view = $this->index();
         $data = $view->getData();
         $data['letterheadSrc'] = $this->letterheadSource($data['settings'] ?? []);
-        return Pdf::loadHTML(view('peserta.cetak.pdf', $data)->render())
-            ->setPaper('a4', 'portrait')
-            ->download('Formulir Pendaftaran - '.($data['pendaftar']->registration_number ?: $data['pendaftar']->id).'.pdf');
+        $pdf = Pdf::loadHTML(view('peserta.cetak.pdf', $data)->render())->setPaper('a4', 'portrait');
+        $filename = 'Formulir Pendaftaran - '.($data['pendaftar']->registration_number ?: $data['pendaftar']->id).'.pdf';
+        return request()->boolean('inline') ? $pdf->stream($filename) : $pdf->download($filename);
     }
 
     public function preview()

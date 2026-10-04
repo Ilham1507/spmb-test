@@ -73,14 +73,14 @@
 @unless($isPdf)<div class="print-actions mx-auto mb-4 flex max-w-4xl flex-wrap items-center justify-between gap-3">
         <div><p class="text-xs font-black uppercase tracking-widest text-emerald-700">Formulir Pendaftaran</p><h3 class="mt-1 text-xl font-black text-slate-900">Data Calon Peserta Didik</h3><p class="mt-1 text-sm text-slate-500">No. Pendaftaran: {{ $pendaftar->registration_number ?? 'Belum dibuat' }}</p></div>
         <div class="flex flex-wrap justify-end gap-2">
-            @unless($isPesertaPage)<button type="button" onclick="window.print()" class="rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-black text-white">Cetak Formulir</button>@endunless
+            <a data-no-loading target="_blank" rel="noopener" href="{{ ($pdfUrl ?? route('peserta.pdf')).'?inline=1' }}" class="rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-black text-white">Cetak Formulir</a>
             <a id="simpan-pdf" data-no-loading download href="{{ $pdfUrl ?? route('peserta.pdf') }}" class="rounded-2xl border border-emerald-200 bg-white px-5 py-3 text-sm font-black text-emerald-700">Simpan sebagai PDF</a>
             <a href="{{ $returnUrl }}" class="rounded-2xl bg-slate-100 px-5 py-3 text-sm font-black text-slate-700">Kembali</a>
         </div>
 </div>@endunless
 @if(request()->boolean('autoprint'))
 <script>
-    window.addEventListener('load', () => window.setTimeout(() => window.print(), 300));
+    window.addEventListener('load', () => window.location.replace(@json(($pdfUrl ?? route('peserta.pdf')).'?inline=1')));
 </script>
 @endif
 <div class="print-sheet {{ $isPdf ? 'pdf-output' : '' }} max-w-4xl rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">

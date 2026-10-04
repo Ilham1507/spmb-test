@@ -61,8 +61,22 @@ class RegistrationPdfTest extends TestCase
             $this->assertNotEmpty($links[0], $view);
             foreach ($links[0] as $link) {
                 $this->assertStringContainsString('data-no-loading', $link);
-                $this->assertStringContainsString(' download', $link);
+                if (str_contains($link, '?inline=1')) {
+                    $this->assertStringContainsString('target="_blank"', $link);
+                } else {
+                    $this->assertStringContainsString(' download', $link);
+                }
             }
+        }
+    }
+
+    public function test_print_opens_the_shared_pdf_instead_of_printing_the_portal(): void
+    {
+        $source = file_get_contents(resource_path('views/peserta/cetak/index.blade.php'));
+        $this->assertStringNotContainsString('window.print()', $source);
+        $this->assertStringContainsString('?inline=1', $source);
+        foreach ([app_path('Http/Controllers/Peserta/CetakController.php'), app_path('Http/Controllers/Panitia/PendaftarController.php')] as $file) {
+            $this->assertStringContainsString('$pdf->stream($filename)', file_get_contents($file));
         }
     }
 }
