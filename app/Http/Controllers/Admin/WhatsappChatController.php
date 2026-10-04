@@ -10,6 +10,33 @@ use Illuminate\Support\Facades\Log;
 
 class WhatsappChatController extends Controller
 {
+    private function unreadCounts(int $adminId)
+    {
+        return DB::table('whatsapp_messages as m')->leftJoin('whatsapp_chat_reads as r', function ($join) use ($adminId) {
+            $join->on('r.phone', '=', 'm.sender_phone')->where('r.admin_id', $adminId);
+        })->whereRaw('m.id > COALESCE(r.last_message_id, 0)')
+            ->groupBy('m.sender_phone')->selectRaw('m.sender_phone, COUNT(*) as unread')->pluck('unread', 'sender_phone');
+    }
+
+    public function unread(Request $request)
+    {
+        return response()->json(['unread' => $this->unreadCounts($request->user()->id)->sum()])->header('Cache-Control', 'no-store');
+    }
+
+    public function markRead(Request $request)
+    {
+        $data = $request->validate(['phone' => ['required', 'regex:/^\d{8,20}$/D'], 'last_id' => ['required', 'integer', 'min:1']]);
+        abort_unless(DB::table('whatsapp_messages')->where('sender_phone', $data['phone'])->where('id', $data['last_id'])->exists(), 422);
+        DB::table('whatsapp_chat_reads')->insertOrIgnore([
+            'admin_id' => $request->user()->id, 'phone' => $data['phone'], 'last_message_id' => 0,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        DB::table('whatsapp_chat_reads')->where('admin_id', $request->user()->id)->where('phone', $data['phone'])
+            ->where('last_message_id', '<', $data['last_id'])->update(['last_message_id' => $data['last_id'], 'updated_at' => now()]);
+        $counts = $this->unreadCounts($request->user()->id);
+        return response()->json(['unread' => $counts->sum(), 'contactUnread' => (int) $counts->get($data['phone'], 0)]);
+    }
+
     public function index(Request $request)
     {
         $phone = (string) $request->query('phone', '');
@@ -29,13 +56,20 @@ class WhatsappChatController extends Controller
                     return [$number => $user->name];
                 });
         }
-        $conversations->each(fn ($contact) => $contact->name = $names->get($contact->sender_phone, 'Nomor belum terdaftar'));
+        $counts = $this->unreadCounts($request->user()->id);
+        $conversations->each(function ($contact) use ($names, $counts) {
+            $contact->name = $names->get($contact->sender_phone, 'Nomor belum terdaftar');
+            $contact->unread = (int) $counts->get($contact->sender_phone, 0);
+        });
+        $unread = $counts->sum();
         $contactName = $names->get($phone, 'Nomor belum terdaftar');
         $messages = collect();
         $open = false;
         $expires = null;
+        $lastIncomingId = null;
         if ($phone !== '') {
             $last = DB::table('whatsapp_messages')->where('sender_phone', $phone)->max('received_at');
+            $lastIncomingId = DB::table('whatsapp_messages')->where('sender_phone', $phone)->max('id');
             abort_unless($last || DB::table('whatsapp_chat_replies')->where('recipient_phone', $phone)->exists(), 404);
             if ($last) {
                 $end = \Carbon\Carbon::parse($last)->addHours(23);
@@ -58,7 +92,7 @@ class WhatsappChatController extends Controller
                 ]);
             $messages = $incoming->merge($outgoing)->sortBy('at')->values();
         }
-        $data = compact('conversations', 'messages', 'phone', 'open', 'expires', 'contactName');
+        $data = compact('conversations', 'messages', 'phone', 'open', 'expires', 'contactName', 'unread', 'lastIncomingId');
         if ($request->expectsJson()) {
             return response()->json($data)->header('Cache-Control', 'no-store');
         }

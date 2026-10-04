@@ -17,6 +17,7 @@ class WhatsappChatTest extends TestCase
         config(['app.key' => 'base64:'.base64_encode(str_repeat('x', 32)), 'session.driver' => 'array']);
         (require base_path('database/migrations/2026_10_04_120000_create_whatsapp_messages_table.php'))->up();
         (require base_path('database/migrations/2026_10_05_010000_create_whatsapp_chat_replies_table.php'))->up();
+        (require base_path('database/migrations/2026_10_05_020000_create_whatsapp_chat_reads_table.php'))->up();
         config(['services.whatsapp.phone_number_id' => '123', 'services.whatsapp.access_token' => 'test', 'services.whatsapp.app_secret' => 'test']);
         Http::preventStrayRequests();
     }
@@ -24,6 +25,7 @@ class WhatsappChatTest extends TestCase
     protected function tearDown(): void
     {
         Schema::dropIfExists('whatsapp_chat_replies');
+        Schema::dropIfExists('whatsapp_chat_reads');
         Schema::dropIfExists('whatsapp_messages');
         parent::tearDown();
     }
@@ -140,5 +142,20 @@ class WhatsappChatTest extends TestCase
         } finally {
             Schema::dropIfExists('pengguna');
         }
+    }
+
+    public function test_unread_badges_clear_only_after_visible_messages_are_marked_read(): void
+    {
+        $this->incoming();
+        $firstId = DB::table('whatsapp_messages')->value('id');
+        $this->actingAs($this->user('admin'))->getJson('/admin/chat-whatsapp/unread')->assertJsonPath('unread', 1);
+        $this->getJson('/admin/chat-whatsapp?phone=628123456789')->assertJsonPath('conversations.0.unread', 1);
+        $this->postJson('/admin/chat-whatsapp/read', ['phone' => '628123456789', 'last_id' => $firstId])->assertOk()->assertJsonPath('unread', 0);
+        DB::table('whatsapp_messages')->insert(['wa_message_id' => 'incoming-new', 'sender_phone' => '628123456789', 'message_type' => 'text', 'body' => 'Baru', 'payload' => '{}', 'received_at' => now(), 'created_at' => now(), 'updated_at' => now()]);
+        $this->getJson('/admin/chat-whatsapp/unread')->assertJsonPath('unread', 1);
+        $otherAdmin = $this->user('admin'); $otherAdmin->id = 2;
+        $this->actingAs($otherAdmin)->getJson('/admin/chat-whatsapp/unread')->assertJsonPath('unread', 2);
+        $this->postJson('/admin/chat-whatsapp/read', ['phone' => '628123456789', 'last_id' => 999999])->assertStatus(422);
+        Http::assertNothingSent();
     }
 }

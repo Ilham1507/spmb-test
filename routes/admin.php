@@ -28,6 +28,8 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware(['web', 'admin'])->group(function () {
     Route::get('/chat-whatsapp', [\App\Http\Controllers\Admin\WhatsappChatController::class, 'index'])->name('whatsapp-chat.index');
+    Route::get('/chat-whatsapp/unread', [\App\Http\Controllers\Admin\WhatsappChatController::class, 'unread'])->name('whatsapp-chat.unread');
+    Route::post('/chat-whatsapp/read', [\App\Http\Controllers\Admin\WhatsappChatController::class, 'markRead'])->middleware('throttle:120,1')->name('whatsapp-chat.read');
     Route::post('/chat-whatsapp', [\App\Http\Controllers\Admin\WhatsappChatController::class, 'send'])->middleware('throttle:10,1')->name('whatsapp-chat.send');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/laporan-eksekutif', [ExecutiveReportController::class, 'index'])->name('laporan-eksekutif.index');

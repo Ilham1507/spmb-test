@@ -106,6 +106,9 @@
                                 <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="{{ $icon }}"/></svg>
                             </span>
                             {{ $label }}
+                            @if($match === 'admin.whatsapp-chat')
+                                <span x-data="whatsappUnreadBadge()" @whatsapp-unread.window="count = $event.detail.unread" x-cloak x-show="count > 0" x-text="count > 99 ? '99+' : count" class="ml-auto rounded-full bg-emerald-500 px-2 py-0.5 text-xs text-white" aria-label="Pesan WhatsApp belum dibaca"></span>
+                            @endif
                         </a>
                     @endforeach
 
@@ -242,4 +245,13 @@
     </script>
     @stack('scripts')
 </body>
+<script>
+function whatsappUnreadBadge() {
+    return { count: 0, timer: null,
+        init() { this.check(); this.timer = setInterval(() => { if(!document.hidden) this.check(); }, 8000); },
+        destroy() { clearInterval(this.timer); },
+        async check() { try { const r = await fetch(@json(route('admin.whatsapp-chat.unread')), {headers:{Accept:'application/json'},cache:'no-store'}); if(r.ok) this.count = (await r.json()).unread; } catch {} }
+    };
+}
+</script>
 </html>
