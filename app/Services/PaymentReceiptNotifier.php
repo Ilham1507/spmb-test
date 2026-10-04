@@ -11,45 +11,14 @@ class PaymentReceiptNotifier
 {
     public function __construct(private WhatsappCloudApiService $whatsapp) {}
 
-    /** Send only after a payment has changed to verified. */
+    /**
+     * Staff receipt notifications are intentionally disabled to avoid redundant
+     * messages and potential WhatsApp charges. Keep the existing call sites
+     * compatible; student receipts and approval requests are separate flows.
+     */
     public function send(TransaksiPembayaran $transaction): bool
     {
-        try {
-            $transaction->loadMissing([
-                'tagihan.jenisTagihan',
-                'tagihan.pendaftar.biodata',
-                'tagihan.pendaftar.user',
-                'tagihan.pendaftar.kunjungan.penerima',
-                'verifier',
-            ]);
-            $bill = $transaction->tagihan;
-            $applicant = $bill?->pendaftar;
-            $visit = $applicant?->kunjunganPenerimaanUtama();
-            // The teacher who received the visit owns the first follow-up,
-            // not a generic administrator number.
-            $target = (string) ($visit?->penerima?->phone ?: config('services.panitia.whatsapp_number'));
-            if ($target === '') return false;
-
-            $student = $applicant?->biodata?->full_name ?? $applicant?->user?->name ?? 'Calon siswa';
-            $feeNames = $this->feeSummary($transaction);
-            $receivedBy = $transaction->verifier?->name ?? 'Panitia SPMB';
-            $visitReceiver = $visit?->penerima?->name ?? 'Panitia SPMB';
-            $channel = ['cash' => 'Tunai di sekolah', 'transfer' => 'Transfer bank'][$transaction->payment_method] ?? 'Pembayaran manual';
-            $registrationNumber = $applicant?->registration_number ?: '-';
-            $amount = number_format((float) $transaction->amount, 0, ',', '.');
-            $remaining = number_format((float) ($bill?->remaining_amount ?? 0), 0, ',', '.');
-
-            $this->whatsapp->sendNotification($target, \App\Support\WhatsappGreeting::opening()."\n\n"
-                ."Informasi pembayaran SPMB\n\nSiswa: {$student}\nNo. pendaftaran: {$registrationNumber}\nBiaya: {$feeNames}\nNominal: Rp {$amount}\nMetode: {$channel}\nPenerima kunjungan: {$visitReceiver}\nDiverifikasi oleh: {$receivedBy}\nSisa tagihan: Rp {$remaining}",
-                'staff_receipt', [$student, $registrationNumber, $feeNames, $amount, $channel, $visitReceiver, $receivedBy, $remaining]);
-            return true;
-        } catch (\Throwable $exception) {
-            Log::warning('Notifikasi penerimaan pembayaran ke penerima kunjungan gagal dikirim.', [
-                'transaction_id' => $transaction->id,
-                'error' => $exception->getMessage(),
-            ]);
-            return false;
-        }
+        return true;
     }
 
     /**
