@@ -10,7 +10,6 @@
     <div class="grid gap-4 lg:grid-cols-[280px_1fr]">
         <aside x-show="!mobile || !showConversation" class="rounded-2xl border border-slate-200 bg-white p-4">
             <div class="flex items-center justify-between"><h2 class="font-bold">Percakapan</h2><span x-show="unread > 0" class="rounded-full bg-emerald-700 px-3 py-1 text-xs font-bold text-white" x-text="unread + ' belum dibaca'"></span></div>
-            <p class="mt-1 text-xs text-slate-500">Diperbarui otomatis setiap 3 detik.</p>
             <input x-model="search" placeholder="Cari nama atau nomor" aria-label="Cari nama atau nomor WhatsApp" class="my-3 w-full rounded-xl border-slate-200 text-sm">
             <div class="max-h-[520px] space-y-2 overflow-y-auto">
                 <template x-for="contact in contacts" :key="contact.sender_phone">
@@ -27,10 +26,8 @@
             <div class="wa-chat-header flex shrink-0 items-center justify-between gap-3 border-b pb-3">
                 <button type="button" x-show="mobile" @click="showConversation = false" class="wa-chat-back rounded-xl px-3 py-2 font-bold" aria-label="Kembali ke daftar chat">← Kembali</button>
                 <div class="min-w-0 flex-1"><h2 class="truncate font-bold" x-text="phone ? contactName : 'Pilih percakapan'"></h2><p x-show="phone" class="text-sm text-slate-500" x-text="'+' + phone"></p></div>
-                <button type="button" @click="refresh()" class="rounded-xl bg-slate-100 px-3 py-2 text-sm">Perbarui</button>
             </div>
-            <p x-show="!mobile" class="mt-2 text-xs text-slate-500">Riwayat pesan otomatis mulai tercatat sejak pembaruan ini. Pesan lama yang belum tersimpan tidak ditampilkan. Dokumen ditampilkan sebagai nama file.</p>
-            <p x-show="phone" class="wa-chat-session my-2 shrink-0 rounded-xl p-2 text-xs" :class="open ? 'bg-emerald-50 text-emerald-800' : 'bg-amber-50 text-amber-900'" x-text="open ? 'Balasan aktif sampai ' + expires : 'Sesi berakhir. Penerima perlu mengirim pesan baru agar bisa dibalas.'"></p>
+            <p x-show="phone && !open" class="wa-chat-session my-2 shrink-0 rounded-xl bg-amber-50 p-2 text-xs text-amber-900">Sesi berakhir. Penerima perlu mengirim pesan baru agar bisa dibalas.</p>
             <div x-ref="history" @scroll.debounce.200ms="markRead()" class="wa-chat-history flex h-[clamp(200px,42dvh,480px)] flex-col gap-3 overflow-y-auto rounded-xl bg-slate-50 p-3">
                 <template x-for="message in messages" :key="message.id">
                     <div class="max-w-[90%] rounded-2xl border p-3 text-sm" :class="message.direction === 'out' ? 'self-end border-emerald-100 bg-emerald-50' : 'self-start border-slate-200 bg-white'">
