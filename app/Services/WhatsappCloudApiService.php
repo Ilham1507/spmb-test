@@ -38,6 +38,14 @@ class WhatsappCloudApiService
             ],
         ]);
 
+        if ((int) $response->json('error.code') === 131047) {
+            $template = trim((string) config('services.whatsapp.templates.notification'));
+            if ($template === '') {
+                throw new RuntimeException('Di luar sesi 24 jam: konfigurasi template notifikasi Meta yang disetujui diperlukan.');
+            }
+            $this->sendTemplate($target, $template, [$message], config('services.whatsapp.template_language', 'id'));
+            return;
+        }
         $this->throwIfFailed($response->status(), $response->json());
     }
 
@@ -45,7 +53,28 @@ class WhatsappCloudApiService
     public function sendDocument(string $target, string $url, string $filename, string $caption = ''): void
     {
         if (! $this->usesWaslah()) {
-            throw new RuntimeException('Lampiran invoice WhatsApp saat ini memerlukan konfigurasi Waslah.');
+            $document = ['link' => $url, 'filename' => $filename];
+            if ($caption !== '') { $document['caption'] = $caption; }
+            $response = $this->request()->post($this->messagesUrl(), [
+                'messaging_product' => 'whatsapp', 'to' => $this->normalizeTarget($target),
+                'type' => 'document', 'document' => $document,
+            ]);
+            if ((int) $response->json('error.code') === 131047) {
+                $template = trim((string) config('services.whatsapp.templates.invoice'));
+                if ($template === '') {
+                    throw new RuntimeException('Di luar sesi 24 jam: konfigurasi template invoice Meta yang disetujui diperlukan.');
+                }
+                $response = $this->request()->post($this->messagesUrl(), [
+                    'messaging_product' => 'whatsapp', 'to' => $this->normalizeTarget($target), 'type' => 'template',
+                    'template' => ['name' => $template, 'language' => ['code' => config('services.whatsapp.template_language', 'id')],
+                        'components' => [
+                            ['type' => 'header', 'parameters' => [['type' => 'document', 'document' => ['link' => $url, 'filename' => $filename]]]],
+                            ['type' => 'body', 'parameters' => [['type' => 'text', 'text' => $caption ?: 'Bukti pembayaran SPMB']]],
+                        ]],
+                ]);
+            }
+            $this->throwIfFailed($response->status(), $response->json());
+            return;
         }
 
         // Upload the generated invoice first. This avoids a third-party fetch
@@ -151,10 +180,10 @@ class WhatsappCloudApiService
 
     private function usesWaslah(): bool
     {
-        $provider = strtolower(trim((string) config('services.whatsapp.provider', 'auto')));
+        $provider = strtolower(trim((string) config('services.whatsapp.provider', 'meta')));
         $waslahToken = trim((string) config('services.whatsapp.waslah_token'));
 
-        if ($provider === 'meta') {
+        if ($provider !== 'waslah') {
             return false;
         }
 

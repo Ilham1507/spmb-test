@@ -42,10 +42,8 @@ return [
     ],
 
     'whatsapp' => [
-        // auto: gunakan Waslah bila tokennya ada, atau Meta Cloud API bila
-        // kredensial Meta yang tersedia. Hindari provider kosong membuat semua
-        // notifikasi gagal tanpa pernah mencoba Meta.
-        'provider' => env('WHATSAPP_PROVIDER', 'auto'),
+        // Meta by default. Legacy credentials must never silently route to Waslah.
+        'provider' => env('WHATSAPP_PROVIDER', 'meta'),
         'waslah_token' => env('WASLAH_API_TOKEN'),
         'waslah_instance_key' => env('WASLAH_INSTANCE_KEY'),
         'api_version' => env('WHATSAPP_API_VERSION', 'v25.0'),
@@ -53,8 +51,11 @@ return [
         'sender_number' => env('WHATSAPP_SENDER_NUMBER'),
         'access_token' => env('WHATSAPP_ACCESS_TOKEN'),
         'verify_token' => env('WHATSAPP_WEBHOOK_VERIFY_TOKEN'),
+        'app_secret' => env('WHATSAPP_APP_SECRET'),
         'template_language' => env('WHATSAPP_TEMPLATE_LANGUAGE', 'id'),
         'templates' => [
+            'notification' => env('WHATSAPP_TEMPLATE_NOTIFICATION'),
+            'invoice' => env('WHATSAPP_TEMPLATE_INVOICE'),
             'activation' => env('WHATSAPP_TEMPLATE_ACTIVATION'),
             'password_reset' => env('WHATSAPP_TEMPLATE_PASSWORD_RESET'),
         ],
