@@ -145,7 +145,11 @@
                 </tbody></table>
                     @endif
                 <p class="notice">Metode: {{ $channel }} · Referensi: {{ $reference ?: '-' }} · Tercatat {{ $paidAt->translatedFormat('d F Y, H:i') }} WIB</p>
-                <p class="muted">Status rincian adalah akumulasi pembayaran disetujui sampai dokumen diterbitkan. Diselesaikan dapat termasuk potongan atau kredit formulir yang sudah dibayar terpisah; bukan nominal uang transaksi ini.</p>
+                @if($isBmtProof)
+                    <p class="muted">Selesai = pembayaran disetujui + potongan/kredit yang berlaku.</p>
+                @else
+                    <p class="muted">Status rincian adalah akumulasi pembayaran disetujui sampai dokumen diterbitkan. Diselesaikan dapat termasuk potongan atau kredit formulir yang sudah dibayar terpisah; bukan nominal uang transaksi ini.</p>
+                @endif
                 @if($summary['unallocated'])
                     <p class="notice">Ada pembayaran lama yang belum dialokasikan. Sisa per rincian perlu dicocokkan bendahara; sisa total tetap ditampilkan di bawah.</p>
                 @endif
@@ -158,8 +162,10 @@
             @if($transaction->treasurer_received_at)
                 <p class="notice">Tanggal penerimaan BMT: {{ \Illuminate\Support\Carbon::parse($transaction->treasurer_received_at)->locale('id')->translatedFormat('d F Y, H:i') }} WIB</p>
             @endif
+            @unless($isBmtProof)
             <div class="next"><p><strong>INFORMASI LANJUTAN</strong></p><p>{{ $isReRegistration ? 'Pembayaran sebagian mengurangi sisa tagihan dan tidak otomatis melunasi seluruh rincian. Pembayaran berikutnya dilakukan di BMT sekolah setiap Selasa dan Jumat pukul 07.30–14.30 WIB.' : 'Pembayaran formulir telah dicatat. Silakan lanjutkan pengisian formulir SPMB melalui tautan yang dikirimkan ke WhatsApp.' }}</p></div>
             <p class="notice">Dokumen ini diterbitkan otomatis berdasarkan transaksi yang tercatat pada Sistem SPMB dan sah sebagai bukti pembayaran elektronik.</p>
+            @endunless
         </div>
         <footer class="footer">{{ $settings['school_name'] ?? 'SMK Muhammadiyah 4 Cileungsi' }} · {{ $settings['school_address'] ?? 'Cileungsi, Bogor' }}</footer>
     </main>
