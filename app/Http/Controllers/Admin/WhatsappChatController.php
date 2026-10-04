@@ -18,6 +18,19 @@ class WhatsappChatController extends Controller
             ->unionAll(DB::table('whatsapp_chat_replies')->selectRaw('recipient_phone as sender_phone, created_at as at'));
         $conversations = DB::query()->fromSub($conversationRows, 'chat_rows')->select('sender_phone')
             ->selectRaw('MAX(at) as last_at')->groupBy('sender_phone')->orderByDesc('last_at')->limit(100)->get();
+        $phones = $conversations->pluck('sender_phone')->push($phone)->filter()->unique();
+        $variants = $phones->flatMap(fn ($number) => [$number, str_starts_with($number, '62') ? '0'.substr($number, 2) : $number])->unique()->values()->all();
+        $names = collect();
+        if ($variants && \Illuminate\Support\Facades\Schema::hasTable('pengguna')) {
+            $names = DB::table('pengguna')->select('name', 'phone')->whereIn(DB::raw("REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(phone, '+', ''), ' ', ''), '-', ''), '(', ''), ')', '')"), $variants)
+                ->get()->mapWithKeys(function ($user) {
+                    $number = preg_replace('/\D/', '', (string) $user->phone);
+                    if (str_starts_with($number, '0')) { $number = '62'.substr($number, 1); }
+                    return [$number => $user->name];
+                });
+        }
+        $conversations->each(fn ($contact) => $contact->name = $names->get($contact->sender_phone, 'Nomor belum terdaftar'));
+        $contactName = $names->get($phone, 'Nomor belum terdaftar');
         $messages = collect();
         $open = false;
         $expires = null;
@@ -45,7 +58,7 @@ class WhatsappChatController extends Controller
                 ]);
             $messages = $incoming->merge($outgoing)->sortBy('at')->values();
         }
-        $data = compact('conversations', 'messages', 'phone', 'open', 'expires');
+        $data = compact('conversations', 'messages', 'phone', 'open', 'expires', 'contactName');
         if ($request->expectsJson()) {
             return response()->json($data)->header('Cache-Control', 'no-store');
         }

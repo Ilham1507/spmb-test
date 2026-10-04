@@ -124,4 +124,21 @@ class WhatsappChatTest extends TestCase
         $this->assertStringNotContainsString('012345', $body);
         $this->actingAs($this->user('admin'))->getJson('/admin/chat-whatsapp?phone=628123456789')->assertOk()->assertJsonPath('open', false)->assertJsonCount(1, 'conversations')->assertJsonCount(1, 'messages');
     }
+
+    public function test_contact_names_match_registered_phone_formats(): void
+    {
+        Schema::create('pengguna', function ($table) {
+            $table->id(); $table->string('name'); $table->string('phone');
+        });
+        try {
+            $this->incoming();
+            DB::table('pengguna')->insert(['name' => 'Ilham Sompe', 'phone' => '+62 812-3456-789']);
+            $this->actingAs($this->user('admin'))->getJson('/admin/chat-whatsapp?phone=628123456789')
+                ->assertOk()->assertJsonPath('contactName', 'Ilham Sompe')->assertJsonPath('conversations.0.name', 'Ilham Sompe');
+            DB::table('pengguna')->update(['phone' => '08123456789']);
+            $this->getJson('/admin/chat-whatsapp?phone=628123456789')->assertJsonPath('contactName', 'Ilham Sompe');
+        } finally {
+            Schema::dropIfExists('pengguna');
+        }
+    }
 }

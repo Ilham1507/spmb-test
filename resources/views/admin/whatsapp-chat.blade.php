@@ -2,18 +2,19 @@
 @section('title', 'Chat WhatsApp')
 @section('page_title', 'Chat WhatsApp')
 @section('content')
-<div x-data="whatsappInbox(@js(['messages' => $messages, 'open' => $open, 'expires' => $expires, 'phone' => $phone, 'indexUrl' => route('admin.whatsapp-chat.index'), 'sendUrl' => route('admin.whatsapp-chat.send')]))" class="space-y-4">
+<div x-data="whatsappInbox(@js(['messages' => $messages, 'open' => $open, 'expires' => $expires, 'phone' => $phone, 'contactName' => $contactName, 'indexUrl' => route('admin.whatsapp-chat.index'), 'sendUrl' => route('admin.whatsapp-chat.send')]))" class="space-y-4">
     <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
-        <strong>{{ config('services.whatsapp.sender_number') ?: '+62 812-4707-5160' }}</strong>
+        <strong>{{ $siteSettings['school_name'] ?? 'SMK Muhammadiyah 4 Cileungsi' }}</strong>
+        <p>{{ config('services.whatsapp.sender_number') ?: '+62 812-4707-5160' }}</p>
     </div>
     <div class="grid gap-4 lg:grid-cols-[280px_1fr]">
         <aside class="rounded-2xl border border-slate-200 bg-white p-4">
             <h2 class="font-bold">Percakapan</h2>
-            <input x-model="search" placeholder="Cari nomor WhatsApp" aria-label="Cari nomor WhatsApp" class="my-3 w-full rounded-xl border-slate-200 text-sm">
+            <input x-model="search" placeholder="Cari nama atau nomor" aria-label="Cari nama atau nomor WhatsApp" class="my-3 w-full rounded-xl border-slate-200 text-sm">
             <div class="max-h-[520px] space-y-2 overflow-y-auto">
                 <template x-for="contact in contacts" :key="contact.sender_phone">
-                    <a x-show="contact.sender_phone.includes(search)" :href="indexUrl + '?phone=' + contact.sender_phone" class="block rounded-xl border p-3 text-sm" :class="contact.sender_phone === phone ? 'border-emerald-500 bg-emerald-50' : 'border-slate-100'">
-                        <strong x-text="'+' + contact.sender_phone"></strong><p class="text-xs text-slate-500" x-text="time(contact.last_at)"></p>
+                    <a x-show="contact.sender_phone.includes(search) || contact.name.toLowerCase().includes(search.toLowerCase())" :href="indexUrl + '?phone=' + contact.sender_phone" class="block rounded-xl border p-3 text-sm" :class="contact.sender_phone === phone ? 'border-emerald-500 bg-emerald-50' : 'border-slate-100'">
+                        <strong x-text="contact.name"></strong><p x-text="'+' + contact.sender_phone"></p><p class="text-xs text-slate-500" x-text="time(contact.last_at)"></p>
                     </a>
                 </template>
                 <p x-show="contacts.length === 0" class="text-sm text-slate-500">Belum ada pesan masuk.</p>
@@ -21,7 +22,7 @@
         </aside>
         <section class="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
             <div class="flex items-center justify-between gap-3 border-b pb-3">
-                <h2 class="font-bold">{{ $phone ? '+'.$phone : 'Pilih percakapan' }}</h2>
+                <div><h2 class="font-bold" x-text="phone ? contactName : 'Pilih percakapan'"></h2><p x-show="phone" class="text-sm text-slate-500" x-text="'+' + phone"></p></div>
                 <button type="button" @click="refresh()" class="rounded-xl bg-slate-100 px-3 py-2 text-sm">Perbarui</button>
             </div>
             <p class="mt-2 text-xs text-slate-500">Riwayat pesan otomatis mulai tercatat sejak pembaruan ini. Pesan lama yang belum tersimpan tidak ditampilkan. Dokumen ditampilkan sebagai nama file.</p>
@@ -54,7 +55,7 @@ function whatsappInbox(initial) {
             try { const response = await fetch(this.indexUrl + (this.phone ? '?phone=' + this.phone : ''), {headers:{Accept:'application/json'}, cache:'no-store'});
                 if (!response.ok) throw new Error(); const data = await response.json();
                 const atBottom = this.$refs.history.scrollHeight - this.$refs.history.scrollTop - this.$refs.history.clientHeight < 70;
-                this.messages = data.messages; this.contacts = data.conversations; this.open = data.open; this.expires = data.expires;
+                this.messages = data.messages; this.contacts = data.conversations; this.open = data.open; this.expires = data.expires; this.contactName = data.contactName;
                 if (atBottom) this.$nextTick(() => this.bottom());
             } catch { this.error = true; this.notice = 'Chat belum bisa diperbarui. Periksa koneksi atau masuk kembali jika sesi berakhir.'; }
         },
