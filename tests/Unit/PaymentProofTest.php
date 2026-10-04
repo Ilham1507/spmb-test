@@ -76,14 +76,29 @@ class PaymentProofTest extends TestCase
                 $transaction->forceFill(['treasurer_received_at' => '2026-10-04 09:30:00', 'payment_method' => 'cash']);
                 $transaction->setRelation('treasurerReceiver', new User(['name' => 'Bendahara Uji']));
                 $transaction->setRelation('verifier', new User(['name' => 'Bendahara Uji']));
-                $transaction->forceFill(['amount' => 150000, 'selected_items' => [['name' => 'Seragam', 'amount' => 100000], ['name' => 'Buku', 'amount' => 50000]]]);
-                $transaction->tagihan->forceFill(['paid_amount' => 150000, 'remaining_amount' => 200000]);
+                // Full-size sample based on the fee names supplied by the user.
+                // This is not a production student's bill or current price list.
+                $fees = [
+                    'FORMULIR' => 150000, 'INFAQ GEDUNG' => 825000, 'ZIS' => 150000,
+                    'TABUNGAN' => 40000, 'FORTASI' => 70000, 'PEMBINAAN' => 150000,
+                    'BUKU WAJIB' => 222000, 'BUKU RAPORT/VSKIL, PASPORT/VKHSU/VKSRS' => 120000,
+                    'KARTU PELAJAR, PHOTO' => 120000, 'PAKAIAN OLAH RAGA' => 170000,
+                    'SERAGAM HW' => 269000, 'BAJU BATIK' => 147000, 'BAJU ALMAMATER SMK 4' => 252000,
+                    'Baju Jurusan SMK 4' => 230000, 'SPP' => 250000, 'IPM' => 120000,
+                    'SIMULASI DIGITAL' => 192000, 'UKS' => 120000, 'DANA TA\'AWIN' => 35000,
+                    'PRAKTEK (KEGIATAN JURUSAN)' => 650000, 'MAJALAH SEKOLAH' => 50000,
+                    'GO SISWA' => 80000, 'UJIAN CBT' => 20000, 'CAMBRIDGE ENGLISH PROGRAM' => 150000,
+                    'BAHASA JEPANG' => 200000, 'Buku Bahasa Jepang' => 194250,
+                ];
+                $items = collect($fees)->map(fn ($amount, $name) => ['name' => $name, 'amount' => $amount])->values()->all();
+                $transaction->forceFill(['amount' => 350000, 'selected_items' => [['name' => 'INFAQ GEDUNG', 'amount' => 100000], ['name' => 'SPP', 'amount' => 250000]]]);
+                $transaction->tagihan->forceFill(['rincian_biaya' => $items, 'total_amount' => array_sum($fees), 'paid_amount' => 350000, 'remaining_amount' => array_sum($fees) - 350000]);
             }
             $html = view('payments.system-proof', ['transaction' => $transaction, 'bmtProof' => $type === 'BMT'])->render();
             $this->assertStringContainsString(pathinfo(PaymentProof::filename($transaction), PATHINFO_FILENAME), $html);
             if ($type !== 'Uang Formulir Pendaftaran') {
                 $this->assertStringContainsString('Rincian biaya', $html);
-                $this->assertStringContainsString($type === 'BMT' ? '<td>Buku</td>' : 'Buku &amp; Pembelajaran', $html);
+                $this->assertStringContainsString($type === 'BMT' ? '<td>BUKU WAJIB</td>' : 'Buku &amp; Pembelajaran', $html);
                 $this->assertStringContainsString('Belum lunas (sebagian)', $html);
                 $this->assertStringContainsString($type === 'BMT' ? '200.000' : '250.000', $html);
                 $this->assertStringNotContainsString('KELOMPOK BIAYA', $html);
@@ -97,14 +112,16 @@ class PaymentProofTest extends TestCase
                 $this->assertStringContainsString('DITERIMA BMT', $html);
                 $this->assertStringContainsString('Diterima oleh Bendahara Uji', $html);
                 $this->assertStringContainsString('04 Oktober 2026, 09:30', $html);
-                $this->assertStringContainsString('<td>Seragam</td>', $html);
+                foreach ($transaction->tagihan->rincian_biaya as $item) {
+                    $this->assertTrue(str_contains($html, '<td>'.e($item['name']).'</td>'), 'Missing receipt item: '.$item['name']);
+                }
                 $this->assertStringContainsString('<td>SPP</td>', $html);
                 $this->assertStringContainsString('<td>Lunas</td>', $html);
                 $this->assertStringNotContainsString('<td>Seragam &amp; Perlengkapan</td>', $html);
                 $this->assertStringContainsString('BUKTI PEMBAYARAN BTM ANNISA', $html);
                 $parentHtml = view('payments.system-proof', ['transaction' => $transaction])->render();
-                $this->assertStringContainsString('<td>Seragam &amp; Perlengkapan</td>', $parentHtml);
-                $this->assertStringNotContainsString('<td>Seragam</td>', $parentHtml);
+                $this->assertStringContainsString('class="group"', $parentHtml);
+                $this->assertStringNotContainsString('<td>INFAQ GEDUNG</td>', $parentHtml);
             }
             $pdf = Pdf::loadHTML($html)->setPaper('a4')->output();
             $this->assertStringStartsWith('%PDF-', $pdf);
