@@ -6,17 +6,16 @@
 
 @section('content')
 <div x-data="{ addOpen: {{ old('_modal') === 'add' ? 'true' : 'false' }}, editId: {{ old('_modal') === 'edit' ? (int) old('user_id') : 'null' }}, roleId: {{ old('_modal') === 'role' ? (int) old('user_id') : 'null' }} }">
-    <section class="admin-card overflow-hidden bg-white p-0">
-        <div class="admin-card-header border-b border-slate-100">
+    <section class="admin-card user-management-card overflow-hidden bg-white p-0">
+        <div class="admin-card-header user-management-header border-b border-slate-100">
             <div>
                 <div class="flex flex-wrap items-center gap-2">
                     <h2 class="text-lg font-black text-slate-950">Daftar Pengguna Sistem</h2>
                     <span class="admin-count-badge bg-slate-100 text-slate-600">{{ $users->total() }} akun</span>
                     <span class="admin-count-badge bg-emerald-50 text-emerald-700">{{ $teacherCount }} staf operasional</span>
                 </div>
-                <p class="mt-1 text-sm text-slate-500">Daftar sendiri dari halaman depan tetap menjadi siswa. Admin dapat mengubah peran akun di sini tanpa membuat akun baru. Guru menggunakan akses Panitia.</p>
             </div>
-            <button type="button" @click="addOpen=true" class="admin-primary-button bg-emerald-600 hover:bg-emerald-700">+ Tambah User</button>
+            <button type="button" @click="addOpen=true" class="admin-primary-button shrink-0 whitespace-nowrap bg-emerald-600 hover:bg-emerald-700">+ Tambah User</button>
         </div>
 
         <div class="flex flex-col gap-3 border-b border-slate-100 px-5 py-4 md:flex-row md:items-center md:justify-between">
@@ -30,8 +29,8 @@
             <x-per-page-pagination :paginator="$users" toolbar />
         </div>
 
-        <div class="admin-table-wrap">
-            <table class="admin-table min-w-[780px]">
+        <div class="admin-table-wrap user-management-table-wrap">
+            <table class="admin-table user-management-table">
                 <thead>
                     <tr>
                         <th>Nama</th>
@@ -62,18 +61,18 @@
                             };
                         @endphp
                         <tr>
-                            <td><div class="flex items-center gap-3"><x-user-avatar :user="$user" size="h-10 w-10" class="border border-slate-200" /><div><div class="font-black text-slate-950">{{ $user->name }}</div><div class="text-xs font-semibold text-slate-400">ID {{ $user->id }}</div></div></div></td>
-                            <td>
+                            <td class="user-management-name"><div class="flex min-w-0 items-center gap-3"><x-user-avatar :user="$user" size="h-10 w-10" class="shrink-0 border border-slate-200" /><div class="min-w-0"><div class="break-words font-black text-slate-950">{{ $user->name }}</div><div class="text-xs font-semibold text-slate-400">ID {{ $user->id }}</div></div></div></td>
+                            <td data-label="WhatsApp Login">
                                 <span class="font-bold text-slate-700">{{ $user->phone ?: '-' }}</span>
                                 @if(!$user->phone)<p class="mt-1 text-[10px] font-bold text-amber-600">Belum bisa login dengan WhatsApp</p>@endif
                             </td>
-                            <td><span class="rounded-full px-2.5 py-1 text-xs font-black {{ $roleClass }}">{{ $roleLabel }}</span></td>
-                            <td>
-                                <div class="flex justify-end gap-2">
+                            <td data-label="Peran"><span class="rounded-full px-2.5 py-1 text-xs font-black {{ $roleClass }}">{{ $roleLabel }}</span></td>
+                            <td class="user-management-actions">
+                                <div class="flex flex-wrap justify-end gap-2">
                                     <button type="button" @click="roleId={{ $user->id }}" class="rounded-xl bg-violet-50 px-3 py-2 text-xs font-black text-violet-700">Ubah Peran</button>
-                                    @if(in_array($roleName, ['panitia', 'bendahara', 'kepala_sekolah'], true))
                                     <button type="button" @click="editId={{ $user->id }}" class="rounded-xl bg-sky-50 px-3 py-2 text-xs font-black text-sky-700 hover:bg-sky-100">Edit</button>
-                                    <form method="POST" action="{{ route('admin.users.destroy', $user) }}" onsubmit="return confirm('Hapus user {{ $user->name }}? Aksi ini tidak bisa dibatalkan.')">
+                                    @if(auth()->id() !== $user->id)
+                                    <form method="POST" action="{{ route('admin.users.destroy', $user) }}" onsubmit="return confirm('Hapus akun ini? Aksi ini tidak bisa dibatalkan. Akun dengan riwayat pendaftaran tidak dapat dihapus di sini.')">
                                         @csrf
                                         @method('DELETE')
                                         <button class="rounded-xl bg-rose-50 px-3 py-2 text-xs font-black text-rose-700 hover:bg-rose-100">Hapus</button>
@@ -180,13 +179,13 @@
 
                     <div>
                         @php $selectedRole = old('user_id') == $user->id ? old('role', $user->role?->name) : $user->role?->name; @endphp
-                        <x-form-select name="role" label="Akses" :required="true" :options="['panitia' => 'Panitia', 'bendahara' => 'Bendahara', 'kepala_sekolah' => 'Kepala Sekolah']" :value="$selectedRole" placeholder="Pilih akses" :menu-z-index="2147483500" />
+                        <x-form-select name="role" label="Akses" :required="true" :options="$roleOptions" :value="$selectedRole" placeholder="Pilih akses" :menu-z-index="2147483500" />
                         @if(old('user_id') == $user->id) @error('role')<p class="admin-error">{{ $message }}</p>@enderror @endif
                     </div>
 
                     <div>
                         <label class="admin-label">Reset Kata Sandi <span class="font-medium text-slate-400">(opsional)</span></label>
-                        <input type="password" name="password" minlength="8" class="admin-input" placeholder="Kosongkan jika tidak diganti">
+                        <input type="password" name="password" autocomplete="new-password" minlength="8" class="admin-input" placeholder="Kosongkan jika tidak diganti">
                         @if(old('user_id') == $user->id) @error('password')<p class="admin-error">{{ $message }}</p>@enderror @endif
                     </div>
 

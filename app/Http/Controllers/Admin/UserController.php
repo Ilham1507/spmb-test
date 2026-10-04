@@ -77,20 +77,24 @@ class UserController extends Controller
 
     public function update(Request $request, User $user, WhatsappCloudApiService $whatsapp, PhoneChangeVerificationService $phoneChanges)
     {
-        $this->ensureManageableStaff($user);
+        abort_unless($request->user()?->hasRole('admin'), 403);
 
         $request->merge(['phone' => $this->normalizePhone((string) $request->input('phone'))]);
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:150'],
             'phone' => ['required', 'regex:/^08[0-9]{8,13}$/', Rule::unique('pengguna', 'phone')->ignore($user->id)],
-            'role' => ['required', Rule::in(['panitia', 'bendahara', 'kepala_sekolah'])],
+            'role' => ['required', Rule::in(array_keys(self::ROLE_OPTIONS))],
             'password' => ['nullable', 'string', 'min:8'],
         ], $this->phoneMessages() + [
             'name.required' => 'Nama user wajib diisi.',
             'role.required' => 'Akses user wajib dipilih.',
-            'role.in' => 'Akses user hanya boleh Panitia, Bendahara, atau Kepala Sekolah.',
+            'role.in' => 'Pilih peran pengguna yang tersedia.',
             'password.min' => 'Kata sandi baru minimal 8 karakter.',
         ]);
+
+        if ($request->user()->id === $user->id && $validated['role'] !== 'admin') {
+            return back()->with('error', 'Peran akun admin yang sedang digunakan tidak boleh diturunkan.');
+        }
 
         $role = Peran::firstOrCreate(
             ['name' => $validated['role']],
@@ -107,7 +111,7 @@ class UserController extends Controller
         }
 
         $phoneChanged = $validated['phone'] !== $user->phone;
-        $user->update($data);
+        $user->forceFill($data)->save();
         if ($phoneChanged) {
             try {
                 $phoneChanges->send($user, $validated['phone'], $whatsapp);
@@ -140,10 +144,14 @@ class UserController extends Controller
 
     public function destroy(User $user)
     {
-        $this->ensureManageableStaff($user);
+        abort_unless(auth()->user()?->hasRole('admin'), 403);
 
         if (auth()->id() === $user->id) {
             return back()->with('error', 'Akun yang sedang digunakan tidak boleh dihapus.');
+        }
+
+        if ($user->pendaftar()->exists()) {
+            return back()->with('error', 'Akun memiliki riwayat pendaftaran siswa dan tidak dapat dihapus dari Kelola Pengguna agar data pendaftaran dan pembayaran tetap aman.');
         }
 
         $name = $user->name;
@@ -154,11 +162,6 @@ class UserController extends Controller
         }
 
         return back()->with('success', "User {$name} berhasil dihapus.");
-    }
-
-    private function ensureManageableStaff(User $user): void
-    {
-        abort_unless(in_array($user->role?->name, ['panitia', 'bendahara', 'kepala_sekolah'], true), 403);
     }
 
     private function roleDescription(string $role): string

@@ -5,6 +5,8 @@ namespace Tests\Unit;
 use App\Models\Peran;
 use App\Models\User;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class UserRoleManagementTest extends TestCase
@@ -19,6 +21,9 @@ class UserRoleManagementTest extends TestCase
         Schema::create('pengguna', function ($table) {
             $table->id(); $table->string('name'); $table->string('phone'); $table->string('password');
             $table->unsignedBigInteger('role_id'); $table->timestamps();
+        });
+        Schema::create('pendaftar', function ($table) {
+            $table->id(); $table->unsignedBigInteger('user_id'); $table->timestamps();
         });
     }
 
@@ -61,5 +66,57 @@ class UserRoleManagementTest extends TestCase
         $source = file_get_contents(app_path('Http/Controllers/Auth/RegisteredUserController.php'));
         $this->assertStringContainsString("where('name', 'peserta')", $source);
         $this->assertStringNotContainsString("\$request->role", $source);
+    }
+
+    public function test_admin_can_edit_and_reset_password_for_every_role_without_sending_messages(): void
+    {
+        Http::fake();
+        $admin = $this->account('admin');
+        foreach (['peserta', 'panitia', 'bendahara', 'kepala_sekolah', 'admin'] as $role) {
+            $user = $this->account($role);
+            $user->phone = '0812'.str_pad((string) $user->id, 8, '0', STR_PAD_LEFT);
+            $user->save();
+            $this->actingAs($admin)->patch(route('admin.users.update', $user), [
+                'name' => 'Nama Baru', 'phone' => $user->phone, 'role' => $role, 'password' => 'new-password-123',
+            ])->assertSessionHasNoErrors()->assertSessionHas('success');
+            $this->assertSame('Nama Baru', $user->fresh()->name);
+            $this->assertTrue(Hash::check('new-password-123', $user->fresh()->password));
+        }
+        Http::assertNothingSent();
+    }
+
+    public function test_consolidated_edit_cannot_demote_current_admin(): void
+    {
+        $admin = $this->account('admin');
+        $this->actingAs($admin)->patch(route('admin.users.update', $admin), [
+            'name' => $admin->name, 'phone' => $admin->phone, 'role' => 'peserta',
+        ])->assertSessionHas('error');
+        $this->assertSame('admin', $admin->fresh()->role->name);
+    }
+
+    public function test_delete_preserves_registration_history_and_current_admin(): void
+    {
+        $admin = $this->account('admin');
+        $student = $this->account('peserta');
+        \Illuminate\Support\Facades\DB::table('pendaftar')->insert(['user_id' => $student->id]);
+        $this->actingAs($admin)->delete(route('admin.users.destroy', $student))->assertSessionHas('error');
+        $this->assertDatabaseHas('pengguna', ['id' => $student->id]);
+        $this->delete(route('admin.users.destroy', $admin))->assertSessionHas('error');
+        $this->assertDatabaseHas('pengguna', ['id' => $admin->id]);
+        $unused = $this->account('panitia');
+        $this->delete(route('admin.users.destroy', $unused))->assertSessionHas('success');
+        $this->assertDatabaseMissing('pengguna', ['id' => $unused->id]);
+    }
+
+    public function test_old_student_menu_redirects_to_user_management(): void
+    {
+        $this->actingAs($this->account('admin'))->get(route('admin.siswa.index', ['search' => 'Ilham']))
+            ->assertRedirect(route('admin.users.index', ['search' => 'Ilham']));
+        $view = file_get_contents(resource_path('views/admin/pengguna/index.blade.php'));
+        $this->assertStringNotContainsString('Daftar sendiri dari halaman depan', $view);
+        $this->assertStringContainsString('user-management-table', $view);
+        $this->assertStringNotContainsString("in_array(\$roleName, ['panitia', 'bendahara', 'kepala_sekolah']", $view);
+        $layout = file_get_contents(resource_path('views/layouts/admin.blade.php'));
+        $this->assertStringNotContainsString("[route('admin.siswa.index'), 'Data Siswa'", $layout);
     }
 }

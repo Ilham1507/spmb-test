@@ -48,7 +48,6 @@
             [route('admin.laporan.index'), 'Laporan Keuangan', 'admin.laporan'],
         ];
         $userItems = [
-            [route('admin.siswa.index'), 'Data Siswa', 'admin.siswa'],
             [route('admin.users.index'), 'Kelola Pengguna', 'admin.users'],
         ];
         $masterItems = [

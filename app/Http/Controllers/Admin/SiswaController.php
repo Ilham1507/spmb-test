@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Pendaftar;
 use Illuminate\Validation\Rule;
 use Illuminate\Http\Request;
-use App\Support\Pagination;
 use App\Services\WhatsappCloudApiService;
 use App\Services\PhoneChangeVerificationService;
 use Throwable;
@@ -15,25 +14,7 @@ class SiswaController extends Controller
 {
     public function index(Request $request)
     {
-        $students = Pendaftar::with(['user', 'biodata', 'alamat', 'jurusan1', 'kontak'])
-            ->when($request->search, function ($query, $search) {
-                $query->where(function ($inner) use ($search) {
-                    $inner->where('registration_number', 'like', "%{$search}%")
-                        ->orWhereHas('user', function ($user) use ($search) {
-                            $user->where('phone', 'like', "%{$search}%")
-                                ->orWhere('name', 'like', "%{$search}%");
-                        })
-                        ->orWhereHas('biodata', function ($biodata) use ($search) {
-                            $biodata->where('full_name', 'like', "%{$search}%")
-                                ->orWhere('nisn', 'like', "%{$search}%")
-                                ->orWhere('nik', 'like', "%{$search}%");
-                        });
-                });
-            })
-            ->latest()
-            ->paginate(Pagination::perPage())->withQueryString();
-
-        return view('admin.siswa.index', compact('students'));
+        return redirect()->route('admin.users.index', $request->only(['search', 'per_page']));
     }
 
     public function updateLogin(Request $request, Pendaftar $pendaftar, WhatsappCloudApiService $whatsapp, PhoneChangeVerificationService $phoneChanges)

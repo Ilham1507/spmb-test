@@ -2863,6 +2863,20 @@ body.admin-clean .fixed.inset-0 > .visit-create-dialog{
 }
 .wa-chat-shortcut{position:fixed;right:20px;bottom:max(20px,env(safe-area-inset-bottom));z-index:55;display:flex;align-items:center;justify-content:center;width:54px;height:54px;border-radius:50%;background:#25d366!important;color:#fff!important;box-shadow:0 4px 16px #0f172a40}
 .wa-chat-shortcut img{display:block;width:30px;height:30px;flex:none;object-fit:contain}
+.user-management-table{min-width:780px}
+@media(max-width:639px){
+    .user-management-header{flex-direction:column!important;align-items:stretch!important;gap:16px!important}
+    .user-management-header>button{width:100%;min-height:44px;white-space:nowrap}
+    .user-management-table-wrap{overflow:visible!important;padding:12px}
+    .user-management-table{display:block;width:100%;min-width:0!important}
+    .user-management-table thead{display:none}
+    .user-management-table tbody{display:grid;gap:12px}
+    .user-management-table tr{display:block;min-width:0;border:1px solid #dbe4ef;border-radius:16px;padding:14px;background:#fff}
+    .user-management-table td{display:block;min-width:0;padding:8px 0!important;border:0!important;white-space:normal!important;overflow-wrap:anywhere}
+    .user-management-table td[data-label]:before{content:attr(data-label);display:block;margin-bottom:6px;font-size:11px;font-weight:700;color:#64748b}
+    .user-management-actions>div{justify-content:flex-start!important;gap:8px;padding-top:8px;border-top:1px solid #edf2f7}
+    .user-management-actions button{min-height:40px;white-space:nowrap}
+}
 .wa-inbox{width:100%;max-width:100%}
 .wa-inbox .wa-contact{width:100%;max-width:100%}
 .wa-inbox .wa-contact strong{min-width:0}
