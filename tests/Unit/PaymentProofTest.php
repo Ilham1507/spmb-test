@@ -76,28 +76,40 @@ class PaymentProofTest extends TestCase
                 $transaction->forceFill(['treasurer_received_at' => '2026-10-04 09:30:00', 'payment_method' => 'cash']);
                 $transaction->setRelation('treasurerReceiver', new User(['name' => 'Bendahara Uji']));
                 $transaction->setRelation('verifier', new User(['name' => 'Bendahara Uji']));
+                $transaction->forceFill(['amount' => 150000, 'selected_items' => [['name' => 'Seragam', 'amount' => 100000], ['name' => 'Buku', 'amount' => 50000]]]);
+                $transaction->tagihan->forceFill(['paid_amount' => 150000, 'remaining_amount' => 200000]);
             }
-            $html = view('payments.system-proof', compact('transaction'))->render();
+            $html = view('payments.system-proof', ['transaction' => $transaction, 'bmtProof' => $type === 'BMT'])->render();
             $this->assertStringContainsString(pathinfo(PaymentProof::filename($transaction), PATHINFO_FILENAME), $html);
             if ($type !== 'Uang Formulir Pendaftaran') {
                 $this->assertStringContainsString('Rincian biaya', $html);
-                $this->assertStringContainsString('Buku &amp; Pembelajaran', $html);
+                $this->assertStringContainsString($type === 'BMT' ? '<td>Buku</td>' : 'Buku &amp; Pembelajaran', $html);
                 $this->assertStringContainsString('Belum lunas (sebagian)', $html);
-                $this->assertStringContainsString('250.000', $html);
+                $this->assertStringContainsString($type === 'BMT' ? '200.000' : '250.000', $html);
                 $this->assertStringNotContainsString('KELOMPOK BIAYA', $html);
-                $this->assertStringNotContainsString('<td>Seragam</td>', $html);
-                $this->assertStringNotContainsString('<td>Buku</td>', $html);
-                $this->assertStringNotContainsString('<td>SPP</td>', $html);
+                if ($type !== 'BMT') {
+                    $this->assertStringNotContainsString('<td>Seragam</td>', $html);
+                    $this->assertStringNotContainsString('<td>Buku</td>', $html);
+                    $this->assertStringNotContainsString('<td>SPP</td>', $html);
+                }
             }
             if ($type === 'BMT') {
                 $this->assertStringContainsString('DITERIMA BMT', $html);
                 $this->assertStringContainsString('Diterima oleh Bendahara Uji', $html);
                 $this->assertStringContainsString('04 Oktober 2026, 09:30', $html);
+                $this->assertStringContainsString('<td>Seragam</td>', $html);
+                $this->assertStringContainsString('<td>SPP</td>', $html);
+                $this->assertStringContainsString('<td>Lunas</td>', $html);
+                $this->assertStringNotContainsString('<td>Seragam &amp; Perlengkapan</td>', $html);
+                $this->assertStringContainsString('BUKTI PEMBAYARAN BTM ANNISA', $html);
+                $parentHtml = view('payments.system-proof', ['transaction' => $transaction])->render();
+                $this->assertStringContainsString('<td>Seragam &amp; Perlengkapan</td>', $parentHtml);
+                $this->assertStringNotContainsString('<td>Seragam</td>', $parentHtml);
             }
             $pdf = Pdf::loadHTML($html)->setPaper('a4')->output();
             $this->assertStringStartsWith('%PDF-', $pdf);
             if ($directory = getenv('PAYMENT_PROOF_PREVIEW_DIR')) {
-                $filename = $type === 'BMT' ? 'Bukti Pembayaran BMT - SPMB2028-UJI.pdf' : PaymentProof::filename($transaction);
+                $filename = $type === 'BMT' ? 'Bukti Pembayaran BTM ANNISA - SPMB2028-UJI.pdf' : PaymentProof::filename($transaction);
                 file_put_contents($directory.'/'.$filename, $pdf);
             }
         }

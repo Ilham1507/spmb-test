@@ -26,7 +26,9 @@
         ? 'Diterima oleh '.($transaction->treasurerReceiver?->name ?? 'Bendahara')
         : 'Menunggu penerimaan bendahara';
     $isReRegistration = \App\Support\PaymentProof::isReRegistration($transaction);
+    $isBmtProof = $isReRegistration && ($bmtProof ?? false);
     $proofTitle = $isReRegistration ? 'BUKTI PEMBAYARAN DAFTAR ULANG' : 'BUKTI PEMBAYARAN FORMULIR';
+    if ($isBmtProof) { $proofTitle = 'BUKTI PEMBAYARAN BTM ANNISA'; }
     $summary = $isReRegistration && $bill ? \App\Support\PaymentSummary::forBill($bill) : null;
     $studentGroups = $summary ? $summary['items']->groupBy('category') : collect();
 @endphp
@@ -93,6 +95,15 @@
             <p class="section">Rincian transaksi</p>
             @if($isReRegistration)
                 <table class="payment"><thead><tr><th>Rincian biaya</th><th class="amount">Tagihan (Rp)</th><th class="amount">Diselesaikan (Rp)</th><th class="amount">Sisa (Rp)</th><th>Status</th></tr></thead><tbody>
+                    @if($isBmtProof)
+                        @foreach($summary['items'] as $item)
+                            @php
+                                $itemStatus = $item['remaining'] <= 0 ? 'Lunas' : ($item['settled'] > 0 ? 'Belum lunas (sebagian)' : 'Belum lunas');
+                                if ($summary['unallocated']) { $itemStatus = 'Perlu dicocokkan'; }
+                            @endphp
+                            <tr><td>{{ $item['name'] }}</td><td class="amount">{{ number_format($item['amount'], 0, ',', '.') }}</td><td class="amount">{{ $summary['unallocated'] ? '-' : number_format($item['settled'], 0, ',', '.') }}</td><td class="amount">{{ $summary['unallocated'] ? '-' : number_format($item['remaining'], 0, ',', '.') }}</td><td>{{ $itemStatus }}</td></tr>
+                        @endforeach
+                    @else
                     @forelse($studentGroups as $category => $items)
                         @php
                             $groupStatus = $items->every(fn ($item) => $item['status'] === 'Lunas') ? 'Lunas' : ($items->sum('settled') > 0 ? 'Belum lunas (sebagian)' : 'Belum lunas');
@@ -102,6 +113,7 @@
                     @empty
                         <tr><td colspan="5">Rincian biaya belum tersedia. Hubungi bendahara untuk pencocokan.</td></tr>
                     @endforelse
+                    @endif
                 </tbody></table>
                 <p class="notice">Metode: {{ $channel }} · Referensi: {{ $reference ?: '-' }} · Tercatat {{ $paidAt->translatedFormat('d F Y, H:i') }} WIB</p>
                 <p class="muted">Status rincian adalah akumulasi pembayaran disetujui sampai dokumen diterbitkan. Diselesaikan dapat termasuk potongan atau kredit formulir yang sudah dibayar terpisah; bukan nominal uang transaksi ini.</p>

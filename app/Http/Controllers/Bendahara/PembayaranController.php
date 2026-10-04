@@ -368,7 +368,7 @@ class PembayaranController extends Controller
         abort_unless($transaksi->status === 'verified', 404, 'Nota pembayaran belum tersedia.');
         $transaksi->load(['tagihan.jenisTagihan', 'tagihan.pendaftar.biodata', 'tagihan.pendaftar.user', 'tagihan.pendaftar.kunjungan.penerima', 'verifier']);
 
-        return view('payments.system-proof', ['transaction' => $transaksi]);
+        return view('payments.system-proof', ['transaction' => $transaksi, 'bmtProof' => true]);
     }
 
     public function receiptPdf(TransaksiPembayaran $transaksi)
@@ -376,9 +376,9 @@ class PembayaranController extends Controller
         abort_unless($transaksi->status === 'verified', 404, 'Invoice pembayaran belum tersedia.');
         $transaksi->load(['tagihan.jenisTagihan', 'tagihan.pendaftar.biodata', 'tagihan.pendaftar.user', 'tagihan.pendaftar.kunjungan.penerima', 'verifier', 'treasurerReceiver']);
 
-        return \Barryvdh\DomPDF\Facade\Pdf::loadView('payments.system-proof', ['transaction' => $transaksi])
+        return \Barryvdh\DomPDF\Facade\Pdf::loadView('payments.system-proof', ['transaction' => $transaksi, 'bmtProof' => true])
             ->setPaper('a4')
-            ->download(\App\Support\PaymentProof::filename($transaksi));
+            ->download(str_replace('Bukti Pembayaran Daftar Ulang - ', 'Bukti Pembayaran BTM ANNISA - ', \App\Support\PaymentProof::filename($transaksi)));
     }
 
     /** A short-lived signed URL used by Waslah to fetch the invoice PDF. */
