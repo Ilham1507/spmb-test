@@ -99,6 +99,9 @@ class PaymentProofTest extends TestCase
             $this->assertStringContainsString('margin: 8mm 8mm 18mm;', $html);
             $this->assertStringContainsString('text-align: center; line-height: 1.4;', $html);
             $this->assertStringContainsString('Kampus E - Jl. Akses Bojong Kaso', $html);
+            $this->assertStringContainsString('class="transaction-total"', $html);
+            $this->assertStringContainsString('class="currency">Rp</td>', $html);
+            $this->assertSame($type === 'Uang Formulir Pendaftaran' ? 1 : 4, substr_count($html, 'class="balance-amount"'));
             $this->assertStringNotContainsString('Dokumen ini diterbitkan otomatis', $html);
             $this->assertStringNotContainsString('Status rincian adalah akumulasi', $html);
             $this->assertStringContainsString(pathinfo(PaymentProof::filename($transaction), PATHINFO_FILENAME), $html);

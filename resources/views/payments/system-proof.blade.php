@@ -67,14 +67,14 @@
         .payment .group td { background: #edf3fa; font-weight: bold; }
         .payment .group { page-break-after: avoid; }
         .fee-columns { table-layout: fixed; }
-        .fee-columns { font-size: 9px; }
-        .fee-columns th { padding: 5px 3px; font-size: 8px; }
+        .fee-columns { font-size: 8px; line-height: 1.3; }
+        .fee-columns th { padding: 5px 3px; font-size: 7.5px; }
         .fee-columns td { padding: 2px 3px; overflow-wrap: break-word; }
         .fee-columns .gutter { width: 2%; padding: 0; border: 0; background: #fff; }
         .fee-columns .fee-name { width: 16%; }
         .fee-columns .fee-amount { width: 8%; }
         .fee-columns .fee-status { width: 9%; }
-        .fee-columns td:first-child, .fee-columns td:nth-child(7) { font-size: 8px; }
+        .fee-columns td:first-child, .fee-columns td:nth-child(7) { font-size: 7.5px; }
         .bmt-proof { font-size: 9px; line-height: 1.3; }
         .bmt-proof .content { padding: 2mm 4mm; }
         .bmt-proof h1 { font-size: 16px; }
@@ -87,6 +87,11 @@
         .bmt-proof .total, .bmt-proof .verification, .bmt-proof .next { margin-top: 6px; padding: 6px 10px; }
         .balances { font-size: 10px; }
         .balances td { padding: 8px; border-bottom: 1px solid #d8e1ee; }
+        .balances { table-layout: fixed; margin-top: 6px; }
+        .balances td:first-child { width: 75%; }
+        .balances .currency { width: 4%; text-align: left; white-space: nowrap; }
+        .balances .balance-amount { width: 21%; text-align: right; white-space: nowrap; }
+        .balances .transaction-total td { background: #f8fafd; border-top: 1px solid #d8e1ee; font-weight: 700; }
         .amount { text-align: right; white-space: nowrap; }
         .muted { color: #718096; font-size: 10px; }
         .total { display: table; width: 100%; margin-top: 10px; padding: 8px; border: 1px solid #d8e1ee; background: #f8fafd; }
@@ -166,11 +171,17 @@
                 @if($summary['unallocated'])
                     <p class="notice">Alokasi pembayaran lama perlu dicocokkan bendahara.</p>
                 @endif
-                <table class="balances"><tr><td>Total tagihan daftar ulang (setelah potongan)</td><td class="amount">Rp {{ number_format($bill->total_amount, 0, ',', '.') }}</td></tr><tr><td>Akumulasi pembayaran daftar ulang</td><td class="amount">Rp {{ number_format($bill->paid_amount, 0, ',', '.') }}</td></tr><tr><td><strong>Sisa tagihan daftar ulang</strong></td><td class="amount"><strong>Rp {{ number_format(max(0, $bill->remaining_amount ?? ($bill->total_amount - $bill->paid_amount)), 0, ',', '.') }}</strong></td></tr></table>
             @else
                 <table class="payment"><thead><tr><th>TAGIHAN</th><th>METODE</th><th>REFERENSI</th><th class="amount">NOMINAL</th></tr></thead><tbody><tr><td>{{ $bill?->jenisTagihan?->name ?? 'Pembayaran formulir SPMB' }}</td><td>{{ $channel }}</td><td>{{ $reference ?: '-' }}<br><span class="muted">{{ $paidAt->translatedFormat('d F Y, H:i') }} WIB</span></td><td class="amount"><strong>Rp {{ number_format($transaction->amount, 0, ',', '.') }}</strong></td></tr></tbody></table>
             @endif
-            <div class="total"><span>PEMBAYARAN TRANSAKSI INI</span><strong>Rp {{ number_format($receivedAmount, 0, ',', '.') }}</strong></div>
+            <table class="balances">
+                @if($isReRegistration)
+                    <tr><td>Total tagihan daftar ulang (setelah potongan)</td><td class="currency">Rp</td><td class="balance-amount">{{ number_format($bill->total_amount, 0, ',', '.') }}</td></tr>
+                    <tr><td>Akumulasi pembayaran daftar ulang</td><td class="currency">Rp</td><td class="balance-amount">{{ number_format($bill->paid_amount, 0, ',', '.') }}</td></tr>
+                    <tr><td><strong>Sisa tagihan daftar ulang</strong></td><td class="currency"><strong>Rp</strong></td><td class="balance-amount"><strong>{{ number_format(max(0, $bill->remaining_amount ?? ($bill->total_amount - $bill->paid_amount)), 0, ',', '.') }}</strong></td></tr>
+                @endif
+                <tr class="transaction-total"><td>PEMBAYARAN TRANSAKSI INI</td><td class="currency">Rp</td><td class="balance-amount">{{ number_format($receivedAmount, 0, ',', '.') }}</td></tr>
+            </table>
             <div class="verification"><p><strong>{{ $transaction->treasurer_received_at ? 'Petugas persetujuan:' : 'Persetujuan panitia:' }}</strong> {{ $transaction->verifier?->name ?? '-' }}</p><p><strong>Status bendahara:</strong> {{ $treasurerStatus }}</p></div>
             @if($transaction->treasurer_received_at)
                 <p class="notice">Tanggal penerimaan BMT: {{ \Illuminate\Support\Carbon::parse($transaction->treasurer_received_at)->locale('id')->translatedFormat('d F Y, H:i') }} WIB</p>
