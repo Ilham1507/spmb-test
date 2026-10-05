@@ -36,7 +36,7 @@
                 <label for="search_sekolah" class="mb-2 block text-xs font-black uppercase tracking-wide text-sky-800">Cari SMP / MTs berdasarkan nama, NPSN, atau kecamatan <span class="text-rose-500">*</span></label>
 
                 <div class="relative">
-                    <input id="search_sekolah" x-ref="schoolInput" type="text" x-model="query" @input.debounce.150ms="search()" @focus="if (query.trim().length >= 1) { open = true; $nextTick(() => positionSchoolMenu()) }" @keydown.escape="open = false"
+                    <input id="search_sekolah" x-ref="schoolInput" type="text" x-model="query" @input="cancelSearch()" @input.debounce.500ms="search()" @focus="if (query.trim().length >= 1) { open = true; $nextTick(() => positionSchoolMenu()) }" @keydown.escape="open = false"
                            required
                            class="w-full px-4 py-3 rounded-xl border border-sky-200 bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/40 focus:border-sky-500 text-sm transition-all"
                            placeholder="Cari SMP/MTs, NPSN, atau kecamatan">
@@ -117,8 +117,10 @@
 @endsection
 
 @push('scripts')
+<script src="{{ asset('js/school-search.js') }}"></script>
 <script>
     function schoolPicker(config) {
+        const searchClient = window.createSchoolSearchClient();
         return {
             searchUrl: config.searchUrl,
             query: config.initialName || '',
@@ -158,6 +160,7 @@
 
                 if (this.query.trim().length < 1) {
                     this.results = [];
+                    this.open = false;
                     return;
                 }
 
@@ -165,19 +168,20 @@
                 this.open = true;
                 this.$nextTick(() => this.positionSchoolMenu());
 
-                try {
-                    const response = await fetch(`${this.searchUrl}?q=${encodeURIComponent(this.query.trim())}`, {
-                        headers: { 'Accept': 'application/json' }
-                    });
-                    this.results = await response.json();
-                } catch (error) {
-                    this.results = [];
-                } finally {
-                    this.loading = false;
-                    this.$nextTick(() => this.positionSchoolMenu());
-                }
+                const results = await searchClient.search(this.searchUrl, this.query);
+                if (results === null) return;
+                this.results = results;
+                this.loading = false;
+                this.$nextTick(() => this.positionSchoolMenu());
+            },
+            cancelSearch() {
+                searchClient.cancel();
+                this.selectedId = '';
+                this.loading = false;
+                this.results = [];
             },
             selectSchool(school) {
+                this.cancelSearch();
                 this.selectedId = school.id;
                 this.selectionError = false;
                 this.selectedName = school.nama;
@@ -194,6 +198,7 @@
                 this.open = false;
             },
             clearSelection() {
+                this.cancelSearch();
                 this.selectedId = '';
                 this.selectedName = '';
                 this.selectedNpsn = '';

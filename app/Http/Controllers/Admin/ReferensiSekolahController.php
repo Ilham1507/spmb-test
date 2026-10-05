@@ -4,10 +4,9 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ReferensiSekolah;
+use App\Services\OfficialSchoolDirectory;
 use App\Support\Pagination;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\Rule;
 
 class ReferensiSekolahController extends Controller
@@ -66,8 +65,8 @@ class ReferensiSekolahController extends Controller
             ->limit(15)
             ->get();
 
-        $officialSchools = mb_strlen($query) >= 3 && $schools->count() < 5
-            ? $this->findAndCacheOfficialSchools($query)
+        $officialSchools = mb_strlen($query) >= 3 && $schools->isEmpty()
+            ? app(OfficialSchoolDirectory::class)->search($query)
             : collect();
 
         return response()->json(
@@ -180,96 +179,4 @@ class ReferensiSekolahController extends Controller
         ];
     }
 
-    private function findAndCacheOfficialSchools(string $query)
-    {
-        return Cache::remember('admin-official-school-search:'.sha1(mb_strtolower($query)), now()->addMinutes(15), function () use ($query) {
-            try {
-                $search = $this->officialHttpClient()
-                    ->timeout(8)
-                    ->accept('text/html')
-                    ->get('https://referensi.data.kemendikdasmen.go.id/pendidikan/cari/'.rawurlencode($query));
-
-                if (! $search->successful()) {
-                    return collect();
-                }
-
-                preg_match_all('~pendidikan/npsn/(\\d{8})~', $search->body(), $matches);
-
-                return collect($matches[1] ?? [])->unique()->take(10)
-                    ->map(fn (string $npsn) => $this->fetchAndCacheOfficialSchool($npsn))
-                    ->filter()
-                    ->values();
-            } catch (\Throwable) {
-                return collect();
-            }
-        });
-    }
-
-    private function fetchAndCacheOfficialSchool(string $npsn): ?ReferensiSekolah
-    {
-        try {
-            $response = $this->officialHttpClient()
-                ->timeout(8)
-                ->accept('text/html')
-                ->get("https://referensi.data.kemendikdasmen.go.id/pendidikan/npsn/{$npsn}");
-
-            if (! $response->successful()) {
-                return null;
-            }
-
-            $html = $response->body();
-            preg_match('~<h4>\\s*(.*?)\\s*</h4>~is', $html, $nameMatch);
-            $name = $this->cleanOfficialValue($nameMatch[1] ?? '');
-
-            if ($name === '') {
-                return null;
-            }
-
-            $school = ReferensiSekolah::updateOrCreate(
-                ['npsn' => $npsn],
-                [
-                    'nama' => $name,
-                    'alamat' => $this->officialField($html, 'Alamat'),
-                    'desa_kelurahan' => $this->officialField($html, 'Desa/Kelurahan'),
-                    'kecamatan' => $this->officialField($html, 'Kecamatan/Kota (LN)'),
-                    'kabupaten_kota' => $this->officialField($html, 'Kab.-Kota/Negara (LN)'),
-                    'provinsi' => $this->officialField($html, 'Propinsi/Luar Negeri (LN)'),
-                    'status' => $this->officialField($html, 'Status Sekolah'),
-                    'bentuk_pendidikan' => $this->officialField($html, 'Bentuk Pendidikan'),
-                ]
-            );
-
-            return in_array(strtoupper(trim((string) $school->bentuk_pendidikan)), self::JUNIOR_HIGH_FORMS, true)
-                ? $school
-                : null;
-        } catch (\Throwable) {
-            return null;
-        }
-    }
-
-    private function officialField(string $html, string $label): ?string
-    {
-        $quotedLabel = preg_quote($label, '~');
-        $pattern = "~<td[^>]*>\\s*{$quotedLabel}\\s*</td>\\s*<td[^>]*>.*?</td>\\s*<td[^>]*>(.*?)</td>~is";
-
-        return preg_match($pattern, $html, $match)
-            ? ($this->cleanOfficialValue($match[1]) ?: null)
-            : null;
-    }
-
-    private function cleanOfficialValue(string $value): string
-    {
-        return trim((string) preg_replace('/\\s+/', ' ', html_entity_decode(strip_tags($value), ENT_QUOTES | ENT_HTML5, 'UTF-8')));
-    }
-
-    private function officialHttpClient()
-    {
-        $request = Http::retry(1, 200);
-
-        if ($caBundle = config('payments.midtrans.ca_bundle')) {
-            $request = $request->withOptions(['verify' => $caBundle]);
-        }
-
-        return $request;
-    }
 }

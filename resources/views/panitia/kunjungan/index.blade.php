@@ -115,7 +115,7 @@
                     <label class="admin-label">Nama orang tua/wali <span class="font-normal text-slate-400">(isi salah satu)</span><input name="parent_name" value="{{ old('parent_name') }}" class="admin-input mt-1" placeholder="Nama orang tua atau wali">@error('parent_name')<p class="admin-error">{{ $message }}</p>@enderror</label>
                     <label class="admin-label">No. HP orang tua/wali <span class="font-normal text-slate-400">(isi salah satu)</span><input name="parent_phone" value="{{ old('parent_phone') }}" inputmode="numeric" class="admin-input mt-1" placeholder="08xxxxxxxxxx">@error('parent_phone')<p class="admin-error">{{ $message }}</p>@enderror</label>
                     <div class="rounded-2xl border border-sky-100 bg-sky-50/70 p-3 sm:col-span-2"><div class="mb-2 flex items-center justify-between gap-2"><label class="admin-label mb-0 text-sky-900">Cari sekolah asal <span class="text-rose-500">*</span></label><span class="text-xs font-semibold text-sky-700">Hanya SMP/MTs</span></div>
-                        <div x-show="!manual" class="relative"><input x-ref="schoolInput" type="text" x-model="query" @input.debounce.150ms="search()" @focus="if (query.trim().length >= 1) { open = true; $nextTick(() => positionSchoolMenu()) }" @keydown.escape="open=false" class="admin-input bg-white" autocomplete="off" spellcheck="false" placeholder="Ketik nama SMP/MTs, NPSN, atau kecamatan"><template x-teleport="body"><div x-cloak x-show="open" @click.outside="open=false" class="fixed z-[1100] overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-2xl" :style="schoolMenuStyle"><p x-show="loading" class="p-3 text-sm font-bold text-slate-500">Mencari SMP/MTs...</p><p x-show="!loading && query.trim().length >= 1 && results.length === 0" class="p-3 text-sm font-semibold leading-relaxed text-slate-600">SMP/MTs tidak ditemukan. Periksa kembali nama sekolah, NPSN, atau kecamatan.</p><template x-for="school in results" :key="school.id"><button type="button" @click="selectSchool(school)" class="block w-full border-b border-slate-100 px-4 py-3 text-left last:border-b-0 hover:bg-sky-50"><span class="block text-sm font-black text-slate-900" x-text="school.nama"></span><span class="mt-1 block text-xs font-bold text-sky-700" x-text="(school.bentuk_pendidikan || 'SMP/MTs') + ' · NPSN ' + school.npsn"></span><span class="mt-1 block text-xs font-semibold text-slate-500" x-text="[school.kecamatan, school.kabupaten_kota].filter(Boolean).join(', ') || 'Wilayah belum tersedia'"></span></button></template></div></template></div>
+                        <div x-show="!manual" class="relative"><input x-ref="schoolInput" type="text" x-model="query" @input="cancelSearch()" @input.debounce.500ms="search()" @focus="if (query.trim().length >= 1) { open = true; $nextTick(() => positionSchoolMenu()) }" @keydown.escape="open=false" class="admin-input bg-white" autocomplete="off" spellcheck="false" placeholder="Ketik nama SMP/MTs, NPSN, atau kecamatan"><template x-teleport="body"><div x-cloak x-show="open" @click.outside="open=false" class="fixed z-[1100] overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-2xl" :style="schoolMenuStyle"><p x-show="loading" class="p-3 text-sm font-bold text-slate-500">Mencari SMP/MTs...</p><p x-show="!loading && query.trim().length >= 1 && results.length === 0" class="p-3 text-sm font-semibold leading-relaxed text-slate-600">SMP/MTs tidak ditemukan. Periksa kembali nama sekolah, NPSN, atau kecamatan.</p><template x-for="school in results" :key="school.id"><button type="button" @click="selectSchool(school)" class="block w-full border-b border-slate-100 px-4 py-3 text-left last:border-b-0 hover:bg-sky-50"><span class="block text-sm font-black text-slate-900" x-text="school.nama"></span><span class="mt-1 block text-xs font-bold text-sky-700" x-text="(school.bentuk_pendidikan || 'SMP/MTs') + ' · NPSN ' + school.npsn"></span><span class="mt-1 block text-xs font-semibold text-slate-500" x-text="[school.kecamatan, school.kabupaten_kota].filter(Boolean).join(', ') || 'Wilayah belum tersedia'"></span></button></template></div></template></div>
                         <div x-cloak x-show="selectedName" class="mt-2 rounded-xl bg-emerald-50 p-3"><p class="font-black" x-text="selectedName"></p><p class="text-xs text-emerald-700" x-text="'NPSN ' + selectedNpsn"></p><button type="button" @click="clearSchool()" class="mt-1 text-xs font-black text-sky-700">Ganti sekolah</button></div>
                         @error('referensi_sekolah_id')<p class="admin-error">{{ $message }}</p>@enderror</div>
                     <label class="admin-label">Jurusan diminati<x-form-select name="interested_major_id" menuClass="visit-major-menu" :menuZIndex="1100" :forceDown="true" :options="$jurusans->map(fn ($jurusan) => ['value' => $jurusan->id, 'label' => $jurusan->name])" :value="old('interested_major_id')" placeholder="Pilih jurusan" required />@error('interested_major_id')<p class="admin-error">{{ $message }}</p>@enderror</label>
@@ -130,14 +130,27 @@
 @endsection
 
 @push('scripts')
+<script src="{{ asset('js/school-search.js') }}"></script>
 <script>
-function visitSchoolPicker(searchUrl) { return {
+function visitSchoolPicker(searchUrl) {
+const searchClient = window.createSchoolSearchClient();
+return {
     searchUrl, query:'', results:[], loading:false, open:false, manual:false, schoolMenuStyle:'',
     selectedId:'', selectedName:'', selectedNpsn:'', selectedAddress:'',
     positionSchoolMenu(){ const rect=this.$refs.schoolInput?.getBoundingClientRect(); if(!rect) return; const below=Math.max(96,window.innerHeight-rect.bottom-12); const height=Math.min(220,below); this.schoolMenuStyle=`left:${rect.left}px;top:${rect.bottom+6}px;width:${rect.width}px;max-height:${height}px;`; },
-    async search() { this.selectedId=''; this.selectedName=''; if(this.query.trim().length<1){this.results=[];this.open=false;return;} this.loading=true; this.open=true; this.$nextTick(() => this.positionSchoolMenu()); try { const response=await fetch(`${this.searchUrl}?q=${encodeURIComponent(this.query.trim())}`,{headers:{Accept:'application/json'}}); this.results=await response.json(); } catch(e){this.results=[];} finally{this.loading=false;this.$nextTick(() => this.positionSchoolMenu());} },
-    selectSchool(school){this.selectedId=school.id;this.selectedName=school.nama;this.selectedNpsn=school.npsn;this.selectedAddress=school.alamat||'';this.query=`${school.nama} - ${school.npsn}`;this.results=[];this.open=false;},
-    clearSchool(){this.selectedId='';this.selectedName='';this.selectedNpsn='';this.query='';},
+    async search() {
+        this.selectedId = ''; this.selectedName = '';
+        if (!this.query.trim()) { this.results = []; this.open = false; return; }
+        this.loading = true; this.open = true;
+        this.$nextTick(() => this.positionSchoolMenu());
+        const results = await searchClient.search(this.searchUrl, this.query);
+        if (results === null) return;
+        this.results = results; this.loading = false;
+        this.$nextTick(() => this.positionSchoolMenu());
+    },
+    cancelSearch() { searchClient.cancel(); this.selectedId = ''; this.loading = false; this.results = []; },
+    selectSchool(school){this.cancelSearch();this.selectedId=school.id;this.selectedName=school.nama;this.selectedNpsn=school.npsn;this.selectedAddress=school.alamat||'';this.query=`${school.nama} - ${school.npsn}`;this.results=[];this.open=false;},
+    clearSchool(){this.cancelSearch();this.selectedId='';this.selectedName='';this.selectedNpsn='';this.query='';this.open=false;},
 } }
 </script>
 @endpush

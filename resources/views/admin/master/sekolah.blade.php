@@ -7,25 +7,28 @@
     .school-search-overlay { position: fixed !important; inset: 0 !important; z-index: 2147483000 !important; display: flex !important; min-height: 100dvh !important; width: 100vw !important; align-items: center !important; justify-content: center !important; padding: 16px !important; background: rgba(15, 23, 42, .48); backdrop-filter: blur(4px); }
     .school-search-modal { width: min(100%, 680px); max-height: calc(100dvh - 32px); overflow: auto; border: 1px solid #dbeafe; border-radius: 24px; background: #fff; box-shadow: 0 24px 60px rgba(15, 23, 42, .26); }
 </style>
+<script src="{{ asset('js/school-search.js') }}"></script>
 <script>
 function schoolFinder() {
+    const searchClient = window.createSchoolSearchClient();
     return {
         isOpen: false, query: '', results: [], searching: false, hasSearched: false, submitTried: false,
         selected: { npsn: '', nama: '', alamat: '', bentuk_pendidikan: '', status: 'aktif', desa_kelurahan: '', kecamatan: '', kabupaten_kota: '', provinsi: '', alamat_lengkap: '' },
         openModal() { this.isOpen = true; this.query = ''; this.results = []; this.hasSearched = false; this.submitTried = false; this.selected = { npsn: '', nama: '', alamat: '', bentuk_pendidikan: '', status: 'aktif', desa_kelurahan: '', kecamatan: '', kabupaten_kota: '', provinsi: '', alamat_lengkap: '' }; this.$nextTick(() => this.$refs.schoolQuery.focus()); },
-        closeModal() { this.isOpen = false; },
+        closeModal() { this.cancelSearch(); this.isOpen = false; },
         async searchSchools() {
+            if (!this.isOpen) return;
             const query = this.query.trim();
             this.hasSearched = query.length >= 1;
             if (!this.hasSearched) { this.results = []; return; }
             this.searching = true;
-            try {
-                const response = await fetch(`{{ route('admin.master.sekolah.search') }}?q=${encodeURIComponent(query)}`, { headers: { 'Accept': 'application/json' } });
-                this.results = response.ok ? await response.json() : [];
-            } catch (_) { this.results = []; }
-            finally { this.searching = false; }
+            const results = await searchClient.search(`{{ route('admin.master.sekolah.search') }}`, query);
+            if (results === null) return;
+            this.results = results;
+            this.searching = false;
         },
-        selectSchool(school) { this.selected = school; this.query = school.nama; this.results = []; this.hasSearched = false; }
+        cancelSearch() { searchClient.cancel(); this.selected = { npsn: '', nama: '', alamat: '', bentuk_pendidikan: '', status: 'aktif', desa_kelurahan: '', kecamatan: '', kabupaten_kota: '', provinsi: '', alamat_lengkap: '' }; this.searching = false; this.results = []; },
+        selectSchool(school) { this.cancelSearch(); this.selected = school; this.query = school.nama; this.results = []; this.hasSearched = false; }
     }
 }
 </script>
@@ -70,7 +73,7 @@ function schoolFinder() {
                         <label class="text-sm font-black text-slate-800">Pencarian sekolah</label>
                         <div class="mt-2 flex items-center gap-2 rounded-xl border border-blue-200 bg-white px-3 shadow-sm" :class="searching ? 'ring-2 ring-blue-200' : ''">
                             <svg class="h-5 w-5 shrink-0 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-                            <input x-ref="schoolQuery" type="search" x-model="query" @input.debounce.150ms="searchSchools()" class="min-w-0 flex-1 border-0 bg-transparent py-3 text-sm font-semibold outline-none" placeholder="Ketik nama sekolah, NPSN, kecamatan, atau kabupaten">
+                            <input x-ref="schoolQuery" type="search" x-model="query" @input="cancelSearch()" @input.debounce.500ms="searchSchools()" class="min-w-0 flex-1 border-0 bg-transparent py-3 text-sm font-semibold outline-none" placeholder="Ketik nama sekolah, NPSN, kecamatan, atau kabupaten">
                             <span x-show="searching" class="text-xs font-bold text-blue-700">Mencari…</span>
                         </div>
                         <p class="mt-2 text-xs text-slate-500">Ketik nama sekolah, NPSN, kecamatan, atau kabupaten. Sistem hanya menampilkan jenjang SMP dan MTs.</p>

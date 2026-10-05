@@ -32,8 +32,10 @@
 <style>
 .assist-page{--accent:var(--portal-accent,#1559b1);--deep:var(--portal-accent-deep,#0d3476);--soft:var(--portal-soft,#ebf3ff);--line:var(--portal-line,#c9dcfa)}.assist-page [x-cloak]{display:none!important}.assist-hero{overflow:hidden;border-radius:24px;padding:28px;background:linear-gradient(120deg,var(--deep),var(--accent));color:#fff;box-shadow:0 16px 32px #123b7724}.assist-kicker{color:#ffdf70;font-size:11px;font-weight:900;letter-spacing:.16em;text-transform:uppercase}.assist-hero h2{margin:7px 0;color:#fff!important;font-size:26px;font-weight:900}.assist-hero p{max-width:720px;margin:0;color:#e7efff;font-size:13px;font-weight:600;line-height:1.6}.assist-steps{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}.assist-step{display:flex;align-items:center;gap:7px;border:1px solid #ffffff36;border-radius:999px;padding:8px 11px;font-size:12px;font-weight:800}.assist-step b{display:grid;width:20px;height:20px;place-items:center;border-radius:50%;background:#fff;color:var(--deep);font-size:10px}.assist-card{overflow:hidden;border:1px solid var(--line);border-radius:24px;background:#fff;box-shadow:0 14px 28px #16397414}.assist-section{padding:25px}.assist-head{display:flex;gap:12px;margin-bottom:20px}.assist-index{display:grid;width:34px;height:34px;flex:none;place-items:center;border-radius:11px;background:var(--soft);color:var(--deep);font-size:12px;font-weight:900}.assist-head h3{margin:0;color:#18233a;font-size:18px;font-weight:900}.assist-head p{margin:3px 0 0;color:#64748b;font-size:12px;font-weight:600}.assist-label{display:block;color:#334155;font-size:12px;font-weight:800}.assist-label em{margin-left:3px;color:#e11d48;font-style:normal}.assist-input{border:1.5px solid #d5e2f5!important;background:#fff!important;color:#14213d!important;outline:0}.assist-input:focus{border-color:var(--accent)!important;box-shadow:0 0 0 4px var(--soft)!important}.assist-parent{border:1px solid #dce8f8;border-radius:17px;padding:15px;background:#fbfdff}.assist-parent h4{margin:0 0 12px;color:#1e3a5f;font-size:13px;font-weight:900}.assist-footer{display:flex;align-items:center;gap:10px;border-top:1px solid #e1eaf6;padding:16px 24px;background:#fff}.assist-back{border:1px solid #cfdaeb;border-radius:12px;padding:11px 16px;color:#475569;font-size:13px;font-weight:800}.assist-next{border-radius:12px;padding:11px 17px;background:linear-gradient(135deg,var(--accent),var(--deep));color:#fff;font-size:13px;font-weight:900;box-shadow:0 8px 16px #1559b12a}@media(max-width:640px){.assist-hero{border-radius:20px;padding:21px}.assist-hero h2{font-size:22px}.assist-section{padding:17px}.assist-footer{padding:14px 17px}.assist-footer>*{flex:1;text-align:center}.assist-step{font-size:11px}}
 </style>
+<script src="{{ asset('js/school-search.js') }}"></script>
 <script>
 function assistedForm(config) {
+    const searchClient = window.createSchoolSearchClient();
     return {
         step: 1,
         total: config.total,
@@ -68,13 +70,21 @@ function assistedForm(config) {
             this.schoolLoading = true;
             this.schoolOpen = true;
             this.$nextTick(() => this.positionSchoolMenu());
-            try {
-                const response = await fetch(`${this.schoolSearchUrl}?q=${encodeURIComponent(query)}`, { headers: { 'Accept': 'application/json' } });
-                this.schoolResults = response.ok ? await response.json() : [];
-            } catch (_) { this.schoolResults = []; }
-            finally { this.schoolLoading = false; this.$nextTick(() => this.positionSchoolMenu()); }
+            const results = await searchClient.search(this.schoolSearchUrl, query);
+            if (results === null) return;
+            this.schoolResults = results;
+            this.schoolLoading = false;
+            this.$nextTick(() => this.positionSchoolMenu());
+        },
+        cancelSchoolSearch() {
+            searchClient.cancel();
+            this.selectedSchoolId = '';
+            this.selectedSchool = null;
+            this.schoolLoading = false;
+            this.schoolResults = [];
         },
         selectSchool(school) {
+            this.cancelSchoolSearch();
             this.selectedSchool = school;
             this.selectedSchoolId = school.id;
             this.schoolQuery = `${school.nama} - ${school.npsn}`;
@@ -173,7 +183,7 @@ function assistedForm(config) {
             <div class="rounded-2xl border p-4" style="border-color:var(--line);background:var(--soft)">
                 <label class="assist-label" for="assisted-school-search">Cari sekolah SMP / MTs<em>*</em></label>
                 <div class="relative mt-1.5">
-                    <input id="assisted-school-search" x-ref="schoolSearch" type="search" x-model="schoolQuery" @input.debounce.150ms="searchSchool()" @focus="if (schoolQuery.trim().length >= 1) { schoolOpen = true; $nextTick(() => positionSchoolMenu()) }" @keydown.escape="schoolOpen = false" autocomplete="off" class="assist-input w-full rounded-xl px-3.5 py-3 text-sm font-semibold" placeholder="Ketik nama sekolah, NPSN, kecamatan, atau kabupaten">
+                    <input id="assisted-school-search" x-ref="schoolSearch" type="search" x-model="schoolQuery" @input="cancelSchoolSearch()" @input.debounce.500ms="searchSchool()" @focus="if (schoolQuery.trim().length >= 1) { schoolOpen = true; $nextTick(() => positionSchoolMenu()) }" @keydown.escape="schoolOpen = false" autocomplete="off" class="assist-input w-full rounded-xl px-3.5 py-3 text-sm font-semibold" placeholder="Ketik nama sekolah, NPSN, kecamatan, atau kabupaten">
                     <template x-teleport="body"><div x-cloak x-show="schoolOpen" @click.outside="schoolOpen = false" class="fixed z-[1100] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-1 shadow-2xl" :style="schoolMenuStyle">
                         <p x-show="schoolLoading" class="px-3 py-3 text-sm font-semibold text-slate-500">Mencari sekolah…</p>
                         <template x-for="school in schoolResults" :key="school.id">

@@ -60,4 +60,11 @@ php artisan migrate --force --path=database/migrations/2026_10_04_150000_add_rem
 # The school finder depends on this SMP/MTs reference data. It is idempotent
 # (matched by NPSN), so it can safely run again whenever Railway restarts.
 php artisan db:seed --force --class=Database\\Seeders\\CileungsiSmpSeeder
-exec php -S "0.0.0.0:${PORT:-10000}" -t public
+# CLI startup runs as root; FPM workers need write access to runtime/upload files.
+chown -R www-data:www-data storage bootstrap/cache
+task_port="${PORT:-10000}"
+case "$task_port" in ''|*[!0-9]*) echo "Invalid HTTP port" >&2; exit 1;; esac
+sed "s/__PORT__/$task_port/g" docker/nginx.conf.template > /etc/nginx/nginx.conf
+nginx -t
+php-fpm -t
+exec /usr/bin/supervisord -c /etc/supervisord.conf
