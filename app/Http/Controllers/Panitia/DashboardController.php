@@ -17,7 +17,7 @@ class DashboardController extends Controller
     {
         // Keep login responsive on Railway: the old dashboard issued a
         // separate database query for every status.
-        $applicantStats = Pendaftar::query()->selectRaw(<<<'SQL'
+        $applicantStats = Pendaftar::studentApplicants()->selectRaw(<<<'SQL'
             COUNT(*) as total,
             SUM(registration_status = 'submitted') as submitted,
             SUM(registration_status = 'verified') as verified,
@@ -64,7 +64,7 @@ class DashboardController extends Controller
             ->selectRaw("DATE_FORMAT(visited_at, '%Y-%m') as period, COUNT(*) as total")
             ->groupBy('period')
             ->pluck('total', 'period');
-        $applicantCounts = Pendaftar::query()
+        $applicantCounts = Pendaftar::studentApplicants()
             ->where('created_at', '>=', $chartStart)
             ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as period, COUNT(*) as total")
             ->groupBy('period')
@@ -84,7 +84,7 @@ class DashboardController extends Controller
         });
 
         // Pendaftar terbaru
-        $recentApplicants = Pendaftar::with(['biodata', 'jurusan1'])
+        $recentApplicants = Pendaftar::studentApplicants()->with(['biodata', 'jurusan1'])
             ->whereIn('registration_status', ['submitted', 'verified', 'accepted', 'rejected', 're_registered'])
             ->latest('updated_at')
             ->take(5)

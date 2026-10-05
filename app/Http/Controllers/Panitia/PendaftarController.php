@@ -422,7 +422,7 @@ class PendaftarController extends Controller
 
     private function filteredPendaftarQuery(Request $request)
     {
-        return Pendaftar::query()
+        return Pendaftar::studentApplicants()
             ->when($request->filled('academic_year_id'), fn ($query) => $query->where('academic_year_id', $request->integer('academic_year_id')))
             ->when($request->filled('status'), fn ($query) => $query->where('registration_status', $request->status))
             ->when($request->filled('correction'), fn ($query) => $query->where('correction_status', $request->correction))

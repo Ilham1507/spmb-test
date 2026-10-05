@@ -7,6 +7,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use App\Models\BiodataPendaftar;
 use App\Models\KontakPendaftar;
@@ -137,10 +138,23 @@ class ProfileController extends Controller
             if ($image === false || strlen($image) > 3 * 1024 * 1024) {
                 return back()->withErrors(['avatar_crop' => 'Ukuran foto profil maksimal 3 MB.']);
             }
+            $info = @getimagesizefromstring($image);
+            if (! $info || ! in_array($info['mime'], ['image/png', 'image/jpeg', 'image/webp'], true)
+                || $info['mime'] !== 'image/'.$matches[1]) {
+                return back()->withErrors(['avatar_crop' => 'File foto profil harus berupa gambar PNG, JPEG, atau WebP.']);
+            }
             $extension = $matches[1] === 'jpeg' ? 'jpg' : $matches[1];
-            $path = 'uploads/profiles/'.Str::uuid().'.'.$extension;
-            file_put_contents(public_path($path), $image);
-            $user->update(['profile_photo_path' => $path]);
+            $path = 'profiles/'.Str::uuid().'.'.$extension;
+            try {
+                // The disk creates missing directories and checks failed writes.
+                if (! Storage::disk('public')->put($path, $image)) {
+                    return back()->withErrors(['avatar_crop' => 'Foto belum dapat disimpan. Silakan coba lagi.']);
+                }
+                $user->update(['profile_photo_path' => 'storage/'.$path]);
+            } catch (Throwable $exception) {
+                report($exception);
+                return back()->withErrors(['avatar_crop' => 'Foto belum dapat disimpan. Silakan coba lagi.']);
+            }
         } elseif (! empty($validated['avatar_choice'])) {
             $user->update(['avatar_choice' => $validated['avatar_choice'], 'profile_photo_path' => null]);
         }

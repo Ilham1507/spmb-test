@@ -17,7 +17,7 @@ class SeleksiController extends Controller
     public function index(Request $request)
     {
         // Pendaftar yang sudah verified dan siap diseleksi
-        $pendaftars = Pendaftar::with(['biodata', 'jurusan1', 'jurusan2', 'hasilSeleksi.major', 'hasilSeleksi.decisionMaker'])
+        $pendaftars = Pendaftar::studentApplicants()->with(['biodata', 'jurusan1', 'jurusan2', 'hasilSeleksi.major', 'hasilSeleksi.decisionMaker'])
             ->whereIn('registration_status', ['verified', 'accepted', 'rejected'])
             ->when($request->filled('search'), fn ($query) => $query->where(fn ($inner) => $inner
                 ->where('registration_number', 'like', '%'.$request->search.'%')

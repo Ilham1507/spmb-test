@@ -22,7 +22,8 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        $statusCounts = Pendaftar::query()
+        $studentIds = Pendaftar::studentApplicants()->select('pendaftar.id');
+        $statusCounts = Pendaftar::studentApplicants()
             ->select('registration_status', DB::raw('count(*) as total'))
             ->groupBy('registration_status')
             ->pluck('total', 'registration_status');
@@ -71,7 +72,7 @@ class DashboardController extends Controller
             ->map(fn ($item) => ['label' => $item->label, 'value' => (float) $item->total]);
 
         $majorChart = Jurusan::query()
-            ->leftJoin('pendaftar', 'jurusan.id', '=', 'pendaftar.major_choice_1')
+            ->leftJoinSub(Pendaftar::studentApplicants()->select('pendaftar.*'), 'pendaftar', 'jurusan.id', '=', 'pendaftar.major_choice_1')
             ->select('jurusan.name', DB::raw('count(pendaftar.id) as total'))
             ->groupBy('jurusan.id', 'jurusan.name')
             ->orderByDesc('total')
@@ -84,7 +85,7 @@ class DashboardController extends Controller
 
             return [
                 'label' => $monthNames[(int) $date->format('n')],
-                'value' => Pendaftar::whereBetween('created_at', [$date->copy()->startOfMonth(), $date->copy()->endOfMonth()])->count(),
+                'value' => Pendaftar::studentApplicants()->whereBetween('created_at', [$date->copy()->startOfMonth(), $date->copy()->endOfMonth()])->count(),
             ];
         });
 
@@ -97,25 +98,25 @@ class DashboardController extends Controller
             return [
                 'label' => $monthNames[(int) $date->format('n')],
                 'year' => $date->format('Y'),
-                'applicants' => Pendaftar::whereBetween('created_at', [$start, $end])->count(),
+                'applicants' => Pendaftar::studentApplicants()->whereBetween('created_at', [$start, $end])->count(),
                 'payments' => TransaksiPembayaran::where('status', 'verified')->whereBetween('payment_date', [$start, $end])->count(),
             ];
         });
 
         $dataHealth = [
-            ['label' => 'NISN valid', 'value' => DB::table('biodata_pendaftar')->whereRaw('CHAR_LENGTH(nisn) = 10')->count()],
-            ['label' => 'NIK terisi', 'value' => DB::table('biodata_pendaftar')->whereRaw('CHAR_LENGTH(nik) = 16')->count()],
-            ['label' => 'Jarak sekolah terisi', 'value' => DB::table('alamat_pendaftar')->whereNotNull('distance_range')->count()],
-            ['label' => 'Sekolah asal lengkap', 'value' => DB::table('sekolah_asal')->whereNotNull('school_name')->count()],
+            ['label' => 'NISN valid', 'value' => DB::table('biodata_pendaftar')->whereIn('applicant_id', $studentIds)->whereRaw('CHAR_LENGTH(nisn) = 10')->count()],
+            ['label' => 'NIK terisi', 'value' => DB::table('biodata_pendaftar')->whereIn('applicant_id', $studentIds)->whereRaw('CHAR_LENGTH(nik) = 16')->count()],
+            ['label' => 'Jarak sekolah terisi', 'value' => DB::table('alamat_pendaftar')->whereIn('applicant_id', $studentIds)->whereNotNull('distance_range')->count()],
+            ['label' => 'Sekolah asal lengkap', 'value' => DB::table('sekolah_asal')->whereIn('applicant_id', $studentIds)->whereNotNull('school_name')->count()],
         ];
 
-        $latestApplicants = Pendaftar::with(['biodata', 'jurusan1'])
+        $latestApplicants = Pendaftar::studentApplicants()->with(['biodata', 'jurusan1'])
             ->latest('updated_at')
             ->take(5)
             ->get();
 
         return view('admin.dashboard.index', [
-            'totalPendaftar' => Pendaftar::count(),
+            'totalPendaftar' => Pendaftar::studentApplicants()->count(),
             'draft' => (int) ($statusCounts['draft'] ?? 0),
             'submitted' => (int) ($statusCounts['submitted'] ?? 0),
             'verified' => (int) ($statusCounts['verified'] ?? 0),
@@ -132,9 +133,9 @@ class DashboardController extends Controller
             'monthlyApplicants' => $monthlyApplicants,
             'adminActivityChart' => $adminActivityChart,
             'finance' => $finance,
-            'documentUploaded' => DokumenPendaftar::whereNotNull('file_path')->count(),
-            'documentPending' => DokumenPendaftar::whereIn('status', ['uploaded', 'pending'])->count(),
-            'testAttendance' => PesertaTes::where('attendance', true)->distinct('applicant_id')->count('applicant_id'),
+            'documentUploaded' => DokumenPendaftar::whereIn('applicant_id', $studentIds)->whereNotNull('file_path')->count(),
+            'documentPending' => DokumenPendaftar::whereIn('applicant_id', $studentIds)->whereIn('status', ['uploaded', 'pending'])->count(),
+            'testAttendance' => PesertaTes::whereIn('applicant_id', $studentIds)->where('attendance', true)->distinct('applicant_id')->count('applicant_id'),
             'visitsToday' => KunjunganPendaftar::whereDate('visited_at', today())->count(),
             'dataHealth' => $dataHealth,
             'latestApplicants' => $latestApplicants,

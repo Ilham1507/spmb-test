@@ -3,11 +3,19 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 
 class Pendaftar extends Model
 {
     protected $table = 'pendaftar';
     protected $guarded = ['id'];
+
+    // Staff can retain a registration history without being counted as students.
+    // Keep this local: receipts and registration-number allocation need all history.
+    public function scopeStudentApplicants(Builder $query): Builder
+    {
+        return $query->whereHas('user.role', fn (Builder $role) => $role->where('name', 'peserta'));
+    }
 
     protected $casts = [
         'correction_submitted_at' => 'datetime',

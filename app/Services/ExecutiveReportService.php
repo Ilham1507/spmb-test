@@ -20,7 +20,7 @@ class ExecutiveReportService
         ]);
         $years = TahunAjaran::orderByDesc('start_date')->get();
         $filters['academic_year_id'] = $filters['academic_year_id'] ?? ($years->firstWhere('is_active', true)?->id ?? 0);
-        $query = Pendaftar::with(['user', 'biodata', 'sekolahAsal', 'tahunAjaran', 'jurusan1', 'jurusan2', 'jalurPendaftaran', 'gelombangPendaftaran', 'hasilSeleksi.major']);
+        $query = Pendaftar::studentApplicants()->with(['user', 'biodata', 'sekolahAsal', 'tahunAjaran', 'jurusan1', 'jurusan2', 'jalurPendaftaran', 'gelombangPendaftaran', 'hasilSeleksi.major']);
         foreach (['academic_year_id' => 'academic_year_id', 'major_id' => 'major_choice_1', 'wave_id' => 'wave_id', 'path_id' => 'admission_path_id', 'status' => 'registration_status'] as $filter => $column) {
             if (!empty($filters[$filter])) $query->where($column, $filters[$filter]);
         }

@@ -31,7 +31,7 @@ class TesSpmbController extends Controller
         if ($request->routeIs('admin.*')) {
             return $this->manageCbt();
         }
-        $applicants = Pendaftar::with(['biodata', 'jurusan1'])
+        $applicants = Pendaftar::studentApplicants()->with(['biodata', 'jurusan1'])
             ->whereIn('registration_status', ['verified', 'accepted'])
             ->when($request->search, function ($query, $search) {
                 $query->where(function ($inner) use ($search) {
@@ -82,7 +82,7 @@ class TesSpmbController extends Controller
 
     public function index(Request $request)
     {
-        $applicants = Pendaftar::with(['biodata', 'jurusan1'])
+        $applicants = Pendaftar::studentApplicants()->with(['biodata', 'jurusan1'])
             ->whereIn('registration_status', ['verified', 'accepted', 'rejected'])
             ->when($request->search, function ($query, $search) {
                 $query->where(function ($inner) use ($search) {

@@ -28,7 +28,7 @@ class HasilTesController extends Controller
         };
 
         if ($isParticipant) {
-            $pendaftar = Pendaftar::with(['biodata', 'jurusan1', 'preferredTestSchedule'])
+            $pendaftar = Pendaftar::studentApplicants()->with(['biodata', 'jurusan1', 'preferredTestSchedule'])
                 ->where('user_id', Auth::id())
                 ->first();
             $activeCbtSession = $pendaftar
@@ -63,7 +63,7 @@ class HasilTesController extends Controller
         $baseResults = PesertaTes::with('tes')->where('attendance', true)
             ->when($testId, fn ($query) => $query->where('test_id', $testId));
         $applicantIds = $baseResults->pluck('applicant_id')->unique();
-        $applicants = Pendaftar::with(['biodata', 'jurusan1'])
+        $applicants = Pendaftar::studentApplicants()->with(['biodata', 'jurusan1'])
             ->whereIn('id', $applicantIds)
             ->when($request->filled('search'), function ($query) use ($request) {
                 $search = $request->string('search')->trim();

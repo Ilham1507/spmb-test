@@ -36,7 +36,7 @@ class PembayaranController extends Controller
             ->orderByDesc('payment_date')
             ->paginate(Pagination::perPage())->withQueryString();
 
-        $applicants = Pendaftar::with(['user', 'biodata'])
+        $applicants = Pendaftar::studentApplicants()->with(['user', 'biodata'])
             ->latest('id')->limit(250)->get();
         $paymentCandidates = $applicants->flatMap(function (Pendaftar $applicant) {
             $name = $applicant->biodata?->full_name ?? $applicant->user?->name ?? 'Pendaftar';
@@ -120,7 +120,7 @@ class PembayaranController extends Controller
                     throw \Illuminate\Validation\ValidationException::withMessages(['candidate' => 'Cari dan pilih pendaftar yang akan melakukan pembayaran.']);
                 }
 
-                $applicant = Pendaftar::with('user')->lockForUpdate()->findOrFail($candidateId);
+                $applicant = Pendaftar::studentApplicants()->with('user')->lockForUpdate()->findOrFail($candidateId);
 
                 $registrationBill = RegistrationFee::ensureBill($applicant);
                 $isRegistration = $validated['fee_type'] === 'formulir';

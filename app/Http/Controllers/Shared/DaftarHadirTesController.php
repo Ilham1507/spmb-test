@@ -25,7 +25,7 @@ class DaftarHadirTesController extends Controller
             $selectedScheduleId = 0;
         }
 
-        $participants = Pendaftar::query()
+        $participants = Pendaftar::studentApplicants()
             ->with(['biodata', 'sekolahAsal', 'jurusan1', 'preferredTestSchedule'])
             ->whereNotNull('preferred_test_schedule_id')
             ->whereIn('registration_status', ['submitted', 'verified', 'accepted', 're_registered'])

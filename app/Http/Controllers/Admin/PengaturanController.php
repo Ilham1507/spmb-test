@@ -237,7 +237,7 @@ class PengaturanController extends Controller
 
     public function eventPromo(): View
     {
-        $applicants = \App\Models\Pendaftar::with(['biodata', 'user'])
+        $applicants = \App\Models\Pendaftar::studentApplicants()->with(['biodata', 'user'])
             ->orderBy('registration_number')
             ->get()
             ->map(fn ($applicant) => [

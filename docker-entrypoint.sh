@@ -7,6 +7,7 @@ set -e
 php artisan config:clear
 php artisan route:clear
 php artisan view:clear
+php artisan storage:link
 
 # Railway MySQL uses caching_sha2_password. Bootstrap through PDO instead of
 # Alpine's MariaDB client, which cannot load that authentication plugin.

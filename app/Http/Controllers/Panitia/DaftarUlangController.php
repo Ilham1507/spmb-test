@@ -15,7 +15,7 @@ class DaftarUlangController extends Controller
     public function index()
     {
         // Only accepted students can re-register
-        $pendaftars = Pendaftar::with(['biodata', 'jurusan1'])
+        $pendaftars = Pendaftar::studentApplicants()->with(['biodata', 'jurusan1'])
             ->where('registration_status', 'accepted')
             ->latest()
             ->paginate(Pagination::perPage())->withQueryString();

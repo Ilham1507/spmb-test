@@ -12,7 +12,7 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        $statusCounts = Pendaftar::query()
+        $statusCounts = Pendaftar::studentApplicants()
             ->selectRaw('registration_status, count(*) as total')
             ->groupBy('registration_status')
             ->pluck('total', 'registration_status');
@@ -24,7 +24,7 @@ class DashboardController extends Controller
 
             return [
                 'label' => $month->translatedFormat('M'),
-                'applicants' => Pendaftar::whereBetween('created_at', [$start, $end])->count(),
+                'applicants' => Pendaftar::studentApplicants()->whereBetween('created_at', [$start, $end])->count(),
                 'receipts' => (float) TransaksiPembayaran::where('status', 'verified')
                     ->whereBetween('payment_date', [$start, $end])->sum('amount'),
             ];
@@ -34,7 +34,7 @@ class DashboardController extends Controller
         $targetTotal = (float) TagihanPendaftar::sum('total_amount');
 
         return view('kepala-sekolah.dashboard.index', [
-            'totalApplicants' => Pendaftar::count(),
+            'totalApplicants' => Pendaftar::studentApplicants()->count(),
             'submitted' => (int) ($statusCounts['submitted'] ?? 0),
             'accepted' => (int) ($statusCounts['accepted'] ?? 0),
             'reRegistered' => (int) ($statusCounts['re_registered'] ?? 0),
@@ -45,7 +45,7 @@ class DashboardController extends Controller
             'months' => $months,
             'chartMaxApplicants' => max(1, (int) $months->max('applicants')),
             'chartMaxReceipts' => max(1, (float) $months->max('receipts')),
-            'latestApplicants' => Pendaftar::with(['biodata', 'jurusan1'])
+            'latestApplicants' => Pendaftar::studentApplicants()->with(['biodata', 'jurusan1'])
                 ->latest('updated_at')->limit(5)->get(),
         ]);
     }
