@@ -125,7 +125,16 @@ class PaymentProofTest extends TestCase
                 $this->assertStringContainsString('<td>Lunas</td>', $html);
                 $this->assertStringNotContainsString('<td>Seragam &amp; Perlengkapan</td>', $html);
                 $this->assertStringContainsString('BUKTI PEMBAYARAN BTM ANNISA', $html);
-                $this->assertStringContainsString('class="fee-columns"', $html);
+                $this->assertStringContainsString('class="payment fee-columns"', $html);
+                $this->assertStringContainsString('.balances { font-size: 10px; }', $html);
+                $this->assertStringNotContainsString('font-size: 22px', $html);
+                $document = new \DOMDocument;
+                @$document->loadHTML($html);
+                $rows = (new \DOMXPath($document))->query('//table[@class="payment fee-columns"]/tbody/tr');
+                $this->assertCount(13, $rows);
+                foreach ($rows as $row) {
+                    $this->assertSame(11, $row->getElementsByTagName('td')->length, 'Both fee columns must share each row.');
+                }
                 $this->assertSame(2, substr_count($html, '<th class="fee-name">Rincian biaya</th>'));
                 $this->assertStringNotContainsString('INFORMASI LANJUTAN', $html);
                 $this->assertStringNotContainsString('Dokumen ini diterbitkan otomatis', $html);
